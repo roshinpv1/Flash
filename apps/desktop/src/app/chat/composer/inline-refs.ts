@@ -14,7 +14,7 @@ import {
 export type InlineRefInput = string | { kind: string; label?: string; value: string }
 
 /** MIME for an in-app session drag (sidebar row → composer). */
-export const HERMES_SESSION_MIME = 'application/x-hermes-session'
+export const NYXO_SESSION_MIME = 'application/x-nyxo-session'
 
 export interface SessionDragPayload {
   id: string
@@ -23,16 +23,16 @@ export interface SessionDragPayload {
 }
 
 export function writeSessionDrag(transfer: DataTransfer, payload: SessionDragPayload) {
-  transfer.setData(HERMES_SESSION_MIME, JSON.stringify(payload))
+  transfer.setData(NYXO_SESSION_MIME, JSON.stringify(payload))
   transfer.effectAllowed = 'copy'
 }
 
 export function dragHasSession(transfer: DataTransfer | null) {
-  return Boolean(transfer) && Array.from(transfer!.types || []).includes(HERMES_SESSION_MIME)
+  return Boolean(transfer) && Array.from(transfer!.types || []).includes(NYXO_SESSION_MIME)
 }
 
 export function readSessionDrag(transfer: DataTransfer | null): null | SessionDragPayload {
-  const raw = transfer?.getData(HERMES_SESSION_MIME)
+  const raw = transfer?.getData(NYXO_SESSION_MIME)
 
   if (!raw) {
     return null

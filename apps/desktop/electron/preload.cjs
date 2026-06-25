@@ -1,60 +1,60 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
-contextBridge.exposeInMainWorld('hermesDesktop', {
-  getConnection: profile => ipcRenderer.invoke('hermes:connection', profile),
-  revalidateConnection: () => ipcRenderer.invoke('hermes:connection:revalidate'),
-  touchBackend: profile => ipcRenderer.invoke('hermes:backend:touch', profile),
-  getGatewayWsUrl: profile => ipcRenderer.invoke('hermes:gateway:ws-url', profile),
-  openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('hermes:window:openSession', sessionId, opts),
-  openNewSessionWindow: () => ipcRenderer.invoke('hermes:window:openNewSession'),
+contextBridge.exposeInMainWorld('nyxoDesktop', {
+  getConnection: profile => ipcRenderer.invoke('nyxo:connection', profile),
+  revalidateConnection: () => ipcRenderer.invoke('nyxo:connection:revalidate'),
+  touchBackend: profile => ipcRenderer.invoke('nyxo:backend:touch', profile),
+  getGatewayWsUrl: profile => ipcRenderer.invoke('nyxo:gateway:ws-url', profile),
+  openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('nyxo:window:openSession', sessionId, opts),
+  openNewSessionWindow: () => ipcRenderer.invoke('nyxo:window:openNewSession'),
   petOverlay: {
     // Main renderer → main process: window lifecycle + drag. `request` is
     // `{ bounds, screen }`; resolves with the screen bounds it actually used.
-    open: request => ipcRenderer.invoke('hermes:pet-overlay:open', request),
-    close: () => ipcRenderer.invoke('hermes:pet-overlay:close'),
-    setBounds: bounds => ipcRenderer.send('hermes:pet-overlay:set-bounds', bounds),
-    setIgnoreMouse: ignore => ipcRenderer.send('hermes:pet-overlay:ignore-mouse', ignore),
+    open: request => ipcRenderer.invoke('nyxo:pet-overlay:open', request),
+    close: () => ipcRenderer.invoke('nyxo:pet-overlay:close'),
+    setBounds: bounds => ipcRenderer.send('nyxo:pet-overlay:set-bounds', bounds),
+    setIgnoreMouse: ignore => ipcRenderer.send('nyxo:pet-overlay:ignore-mouse', ignore),
     // Flip the overlay focusable (and focus it) while the composer needs keys.
-    setFocusable: focusable => ipcRenderer.send('hermes:pet-overlay:set-focusable', focusable),
+    setFocusable: focusable => ipcRenderer.send('nyxo:pet-overlay:set-focusable', focusable),
     // Main renderer → overlay (forwarded by main): push the latest pet state.
-    pushState: payload => ipcRenderer.send('hermes:pet-overlay:state', payload),
+    pushState: payload => ipcRenderer.send('nyxo:pet-overlay:state', payload),
     // Overlay → main renderer (forwarded by main): pop back in / composer submit.
-    control: payload => ipcRenderer.send('hermes:pet-overlay:control', payload),
+    control: payload => ipcRenderer.send('nyxo:pet-overlay:control', payload),
     // Overlay subscribes to state pushes.
     onState: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:pet-overlay:state', listener)
-      return () => ipcRenderer.removeListener('hermes:pet-overlay:state', listener)
+      ipcRenderer.on('nyxo:pet-overlay:state', listener)
+      return () => ipcRenderer.removeListener('nyxo:pet-overlay:state', listener)
     },
     // Main renderer subscribes to overlay control messages.
     onControl: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:pet-overlay:control', listener)
-      return () => ipcRenderer.removeListener('hermes:pet-overlay:control', listener)
+      ipcRenderer.on('nyxo:pet-overlay:control', listener)
+      return () => ipcRenderer.removeListener('nyxo:pet-overlay:control', listener)
     }
   },
-  getBootProgress: () => ipcRenderer.invoke('hermes:boot-progress:get'),
-  getConnectionConfig: profile => ipcRenderer.invoke('hermes:connection-config:get', profile),
-  saveConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:save', payload),
-  applyConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:apply', payload),
-  testConnectionConfig: payload => ipcRenderer.invoke('hermes:connection-config:test', payload),
-  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:probe', remoteUrl),
-  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-login', remoteUrl),
-  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-logout', remoteUrl),
+  getBootProgress: () => ipcRenderer.invoke('nyxo:boot-progress:get'),
+  getConnectionConfig: profile => ipcRenderer.invoke('nyxo:connection-config:get', profile),
+  saveConnectionConfig: payload => ipcRenderer.invoke('nyxo:connection-config:save', payload),
+  applyConnectionConfig: payload => ipcRenderer.invoke('nyxo:connection-config:apply', payload),
+  testConnectionConfig: payload => ipcRenderer.invoke('nyxo:connection-config:test', payload),
+  probeConnectionConfig: remoteUrl => ipcRenderer.invoke('nyxo:connection-config:probe', remoteUrl),
+  oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('nyxo:connection-config:oauth-login', remoteUrl),
+  oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('nyxo:connection-config:oauth-logout', remoteUrl),
   profile: {
-    get: () => ipcRenderer.invoke('hermes:profile:get'),
-    set: name => ipcRenderer.invoke('hermes:profile:set', name)
+    get: () => ipcRenderer.invoke('nyxo:profile:get'),
+    set: name => ipcRenderer.invoke('nyxo:profile:set', name)
   },
-  api: request => ipcRenderer.invoke('hermes:api', request),
-  notify: payload => ipcRenderer.invoke('hermes:notify', payload),
-  requestMicrophoneAccess: () => ipcRenderer.invoke('hermes:requestMicrophoneAccess'),
-  readFileDataUrl: filePath => ipcRenderer.invoke('hermes:readFileDataUrl', filePath),
-  readFileText: filePath => ipcRenderer.invoke('hermes:readFileText', filePath),
-  selectPaths: options => ipcRenderer.invoke('hermes:selectPaths', options),
-  writeClipboard: text => ipcRenderer.invoke('hermes:writeClipboard', text),
-  saveImageFromUrl: url => ipcRenderer.invoke('hermes:saveImageFromUrl', url),
-  saveImageBuffer: (data, ext) => ipcRenderer.invoke('hermes:saveImageBuffer', { data, ext }),
-  saveClipboardImage: () => ipcRenderer.invoke('hermes:saveClipboardImage'),
+  api: request => ipcRenderer.invoke('nyxo:api', request),
+  notify: payload => ipcRenderer.invoke('nyxo:notify', payload),
+  requestMicrophoneAccess: () => ipcRenderer.invoke('nyxo:requestMicrophoneAccess'),
+  readFileDataUrl: filePath => ipcRenderer.invoke('nyxo:readFileDataUrl', filePath),
+  readFileText: filePath => ipcRenderer.invoke('nyxo:readFileText', filePath),
+  selectPaths: options => ipcRenderer.invoke('nyxo:selectPaths', options),
+  writeClipboard: text => ipcRenderer.invoke('nyxo:writeClipboard', text),
+  saveImageFromUrl: url => ipcRenderer.invoke('nyxo:saveImageFromUrl', url),
+  saveImageBuffer: (data, ext) => ipcRenderer.invoke('nyxo:saveImageBuffer', { data, ext }),
+  saveClipboardImage: () => ipcRenderer.invoke('nyxo:saveClipboardImage'),
   getPathForFile: file => {
     try {
       return webUtils.getPathForFile(file) || ''
@@ -62,40 +62,40 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
       return ''
     }
   },
-  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('hermes:normalizePreviewTarget', target, baseDir),
-  watchPreviewFile: url => ipcRenderer.invoke('hermes:watchPreviewFile', url),
-  stopPreviewFileWatch: id => ipcRenderer.invoke('hermes:stopPreviewFileWatch', id),
-  setTitleBarTheme: payload => ipcRenderer.send('hermes:titlebar-theme', payload),
-  setNativeTheme: mode => ipcRenderer.send('hermes:native-theme', mode),
-  setTranslucency: payload => ipcRenderer.send('hermes:translucency', payload),
-  setPreviewShortcutActive: active => ipcRenderer.send('hermes:previewShortcutActive', Boolean(active)),
-  openExternal: url => ipcRenderer.invoke('hermes:openExternal', url),
-  openPreviewInBrowser: url => ipcRenderer.invoke('hermes:openPreviewInBrowser', url),
-  fetchLinkTitle: url => ipcRenderer.invoke('hermes:fetchLinkTitle', url),
-  sanitizeWorkspaceCwd: cwd => ipcRenderer.invoke('hermes:workspace:sanitize', cwd),
+  normalizePreviewTarget: (target, baseDir) => ipcRenderer.invoke('nyxo:normalizePreviewTarget', target, baseDir),
+  watchPreviewFile: url => ipcRenderer.invoke('nyxo:watchPreviewFile', url),
+  stopPreviewFileWatch: id => ipcRenderer.invoke('nyxo:stopPreviewFileWatch', id),
+  setTitleBarTheme: payload => ipcRenderer.send('nyxo:titlebar-theme', payload),
+  setNativeTheme: mode => ipcRenderer.send('nyxo:native-theme', mode),
+  setTranslucency: payload => ipcRenderer.send('nyxo:translucency', payload),
+  setPreviewShortcutActive: active => ipcRenderer.send('nyxo:previewShortcutActive', Boolean(active)),
+  openExternal: url => ipcRenderer.invoke('nyxo:openExternal', url),
+  openPreviewInBrowser: url => ipcRenderer.invoke('nyxo:openPreviewInBrowser', url),
+  fetchLinkTitle: url => ipcRenderer.invoke('nyxo:fetchLinkTitle', url),
+  sanitizeWorkspaceCwd: cwd => ipcRenderer.invoke('nyxo:workspace:sanitize', cwd),
   settings: {
-    getDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:get'),
-    setDefaultProjectDir: dir => ipcRenderer.invoke('hermes:setting:defaultProjectDir:set', dir),
-    pickDefaultProjectDir: () => ipcRenderer.invoke('hermes:setting:defaultProjectDir:pick')
+    getDefaultProjectDir: () => ipcRenderer.invoke('nyxo:setting:defaultProjectDir:get'),
+    setDefaultProjectDir: dir => ipcRenderer.invoke('nyxo:setting:defaultProjectDir:set', dir),
+    pickDefaultProjectDir: () => ipcRenderer.invoke('nyxo:setting:defaultProjectDir:pick')
   },
-  revealLogs: () => ipcRenderer.invoke('hermes:logs:reveal'),
-  getRecentLogs: () => ipcRenderer.invoke('hermes:logs:recent'),
-  readDir: dirPath => ipcRenderer.invoke('hermes:fs:readDir', dirPath),
-  gitRoot: startPath => ipcRenderer.invoke('hermes:fs:gitRoot', startPath),
-  worktrees: cwds => ipcRenderer.invoke('hermes:fs:worktrees', cwds),
+  revealLogs: () => ipcRenderer.invoke('nyxo:logs:reveal'),
+  getRecentLogs: () => ipcRenderer.invoke('nyxo:logs:recent'),
+  readDir: dirPath => ipcRenderer.invoke('nyxo:fs:readDir', dirPath),
+  gitRoot: startPath => ipcRenderer.invoke('nyxo:fs:gitRoot', startPath),
+  worktrees: cwds => ipcRenderer.invoke('nyxo:fs:worktrees', cwds),
   terminal: {
-    dispose: id => ipcRenderer.invoke('hermes:terminal:dispose', id),
-    resize: (id, size) => ipcRenderer.invoke('hermes:terminal:resize', id, size),
-    start: options => ipcRenderer.invoke('hermes:terminal:start', options),
-    write: (id, data) => ipcRenderer.invoke('hermes:terminal:write', id, data),
+    dispose: id => ipcRenderer.invoke('nyxo:terminal:dispose', id),
+    resize: (id, size) => ipcRenderer.invoke('nyxo:terminal:resize', id, size),
+    start: options => ipcRenderer.invoke('nyxo:terminal:start', options),
+    write: (id, data) => ipcRenderer.invoke('nyxo:terminal:write', id, data),
     onData: (id, callback) => {
-      const channel = `hermes:terminal:${id}:data`
+      const channel = `nyxo:terminal:${id}:data`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
       return () => ipcRenderer.removeListener(channel, listener)
     },
     onExit: (id, callback) => {
-      const channel = `hermes:terminal:${id}:exit`
+      const channel = `nyxo:terminal:${id}:exit`
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on(channel, listener)
       return () => ipcRenderer.removeListener(channel, listener)
@@ -103,88 +103,88 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   },
   onClosePreviewRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:close-preview-requested', listener)
-    return () => ipcRenderer.removeListener('hermes:close-preview-requested', listener)
+    ipcRenderer.on('nyxo:close-preview-requested', listener)
+    return () => ipcRenderer.removeListener('nyxo:close-preview-requested', listener)
   },
   onOpenUpdatesRequested: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:open-updates', listener)
-    return () => ipcRenderer.removeListener('hermes:open-updates', listener)
+    ipcRenderer.on('nyxo:open-updates', listener)
+    return () => ipcRenderer.removeListener('nyxo:open-updates', listener)
   },
   onDeepLink: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:deep-link', listener)
-    return () => ipcRenderer.removeListener('hermes:deep-link', listener)
+    ipcRenderer.on('nyxo:deep-link', listener)
+    return () => ipcRenderer.removeListener('nyxo:deep-link', listener)
   },
-  signalDeepLinkReady: () => ipcRenderer.invoke('hermes:deep-link-ready'),
+  signalDeepLinkReady: () => ipcRenderer.invoke('nyxo:deep-link-ready'),
   onWindowStateChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:window-state-changed', listener)
-    return () => ipcRenderer.removeListener('hermes:window-state-changed', listener)
+    ipcRenderer.on('nyxo:window-state-changed', listener)
+    return () => ipcRenderer.removeListener('nyxo:window-state-changed', listener)
   },
   onFocusSession: callback => {
     const listener = (_event, sessionId) => callback(sessionId)
-    ipcRenderer.on('hermes:focus-session', listener)
-    return () => ipcRenderer.removeListener('hermes:focus-session', listener)
+    ipcRenderer.on('nyxo:focus-session', listener)
+    return () => ipcRenderer.removeListener('nyxo:focus-session', listener)
   },
   onNotificationAction: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:notification-action', listener)
-    return () => ipcRenderer.removeListener('hermes:notification-action', listener)
+    ipcRenderer.on('nyxo:notification-action', listener)
+    return () => ipcRenderer.removeListener('nyxo:notification-action', listener)
   },
   onPreviewFileChanged: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:preview-file-changed', listener)
-    return () => ipcRenderer.removeListener('hermes:preview-file-changed', listener)
+    ipcRenderer.on('nyxo:preview-file-changed', listener)
+    return () => ipcRenderer.removeListener('nyxo:preview-file-changed', listener)
   },
   onBackendExit: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:backend-exit', listener)
-    return () => ipcRenderer.removeListener('hermes:backend-exit', listener)
+    ipcRenderer.on('nyxo:backend-exit', listener)
+    return () => ipcRenderer.removeListener('nyxo:backend-exit', listener)
   },
   onPowerResume: callback => {
     const listener = () => callback()
-    ipcRenderer.on('hermes:power-resume', listener)
-    return () => ipcRenderer.removeListener('hermes:power-resume', listener)
+    ipcRenderer.on('nyxo:power-resume', listener)
+    return () => ipcRenderer.removeListener('nyxo:power-resume', listener)
   },
   onBootProgress: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:boot-progress', listener)
-    return () => ipcRenderer.removeListener('hermes:boot-progress', listener)
+    ipcRenderer.on('nyxo:boot-progress', listener)
+    return () => ipcRenderer.removeListener('nyxo:boot-progress', listener)
   },
   // First-launch bootstrap progress -- emitted by the install.ps1 stage
   // runner in main.cjs (apps/desktop/electron/bootstrap-runner.cjs).
   // Renderer's install overlay subscribes to live events and queries the
   // current snapshot via getBootstrapState() to recover after a devtools
   // reload mid-bootstrap.
-  getBootstrapState: () => ipcRenderer.invoke('hermes:bootstrap:get'),
-  resetBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:reset'),
-  repairBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:repair'),
-  cancelBootstrap: () => ipcRenderer.invoke('hermes:bootstrap:cancel'),
+  getBootstrapState: () => ipcRenderer.invoke('nyxo:bootstrap:get'),
+  resetBootstrap: () => ipcRenderer.invoke('nyxo:bootstrap:reset'),
+  repairBootstrap: () => ipcRenderer.invoke('nyxo:bootstrap:repair'),
+  cancelBootstrap: () => ipcRenderer.invoke('nyxo:bootstrap:cancel'),
   onBootstrapEvent: callback => {
     const listener = (_event, payload) => callback(payload)
-    ipcRenderer.on('hermes:bootstrap:event', listener)
-    return () => ipcRenderer.removeListener('hermes:bootstrap:event', listener)
+    ipcRenderer.on('nyxo:bootstrap:event', listener)
+    return () => ipcRenderer.removeListener('nyxo:bootstrap:event', listener)
   },
-  getVersion: () => ipcRenderer.invoke('hermes:version'),
-  getRemoteDisplayReason: () => ipcRenderer.invoke('hermes:get-remote-display-reason'),
+  getVersion: () => ipcRenderer.invoke('nyxo:version'),
+  getRemoteDisplayReason: () => ipcRenderer.invoke('nyxo:get-remote-display-reason'),
   uninstall: {
-    summary: () => ipcRenderer.invoke('hermes:uninstall:summary'),
-    run: mode => ipcRenderer.invoke('hermes:uninstall:run', { mode })
+    summary: () => ipcRenderer.invoke('nyxo:uninstall:summary'),
+    run: mode => ipcRenderer.invoke('nyxo:uninstall:run', { mode })
   },
   updates: {
-    check: () => ipcRenderer.invoke('hermes:updates:check'),
-    apply: opts => ipcRenderer.invoke('hermes:updates:apply', opts),
-    getBranch: () => ipcRenderer.invoke('hermes:updates:branch:get'),
-    setBranch: name => ipcRenderer.invoke('hermes:updates:branch:set', name),
+    check: () => ipcRenderer.invoke('nyxo:updates:check'),
+    apply: opts => ipcRenderer.invoke('nyxo:updates:apply', opts),
+    getBranch: () => ipcRenderer.invoke('nyxo:updates:branch:get'),
+    setBranch: name => ipcRenderer.invoke('nyxo:updates:branch:set', name),
     onProgress: callback => {
       const listener = (_event, payload) => callback(payload)
-      ipcRenderer.on('hermes:updates:progress', listener)
-      return () => ipcRenderer.removeListener('hermes:updates:progress', listener)
+      ipcRenderer.on('nyxo:updates:progress', listener)
+      return () => ipcRenderer.removeListener('nyxo:updates:progress', listener)
     }
   },
   themes: {
-    fetchMarketplace: id => ipcRenderer.invoke('hermes:vscode-theme:fetch', id),
-    searchMarketplace: query => ipcRenderer.invoke('hermes:vscode-theme:search', query)
+    fetchMarketplace: id => ipcRenderer.invoke('nyxo:vscode-theme:fetch', id),
+    searchMarketplace: query => ipcRenderer.invoke('nyxo:vscode-theme:search', query)
   }
 })

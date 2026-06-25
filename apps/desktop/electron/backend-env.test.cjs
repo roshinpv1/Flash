@@ -7,22 +7,22 @@ const {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
-  normalizeHermesHomeRoot,
+  normalizeNyxoHomeRoot,
   pathEnvKey
 } = require('./backend-env.cjs')
 
-test('desktop backend PATH adds Hermes-managed bins and missing POSIX sane entries', () => {
+test('desktop backend PATH adds Nyxo-managed bins and missing POSIX sane entries', () => {
   const result = buildDesktopBackendPath({
-    hermesHome: '/Users/test/.hermes',
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    nyxoHome: '/Users/test/.nyxo',
+    venvRoot: '/Users/test/.nyxo/nyxo-agent/venv',
     currentPath: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin',
     platform: 'darwin',
     pathModule: path.posix
   })
 
   const entries = result.split(':')
-  assert.equal(entries[0], '/Users/test/.hermes/node/bin')
-  assert.equal(entries[1], '/Users/test/.hermes/hermes-agent/venv/bin')
+  assert.equal(entries[0], '/Users/test/.nyxo/node/bin')
+  assert.equal(entries[1], '/Users/test/.nyxo/nyxo-agent/venv/bin')
   assert.ok(entries.includes('/opt/homebrew/bin'), 'Apple Silicon Homebrew bin is added')
   assert.ok(entries.includes('/opt/homebrew/sbin'), 'Apple Silicon Homebrew sbin is added')
   assert.ok(entries.includes('/usr/local/sbin'), 'missing standard sbin is added')
@@ -34,8 +34,8 @@ test('desktop backend PATH adds Hermes-managed bins and missing POSIX sane entri
 
 test('desktop backend PATH preserves first occurrence and avoids duplicates', () => {
   const result = buildDesktopBackendPath({
-    hermesHome: '/Users/test/.hermes',
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    nyxoHome: '/Users/test/.nyxo',
+    venvRoot: '/Users/test/.nyxo/nyxo-agent/venv',
     currentPath: '/opt/homebrew/bin:/usr/bin:/opt/homebrew/bin:/bin',
     platform: 'darwin',
     pathModule: path.posix
@@ -51,9 +51,9 @@ test('desktop backend PATH preserves first occurrence and avoids duplicates', ()
 
 test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () => {
   const env = buildDesktopBackendEnv({
-    hermesHome: '/Users/test/.hermes',
-    pythonPathEntries: ['/repo/hermes-agent'],
-    venvRoot: '/Users/test/.hermes/hermes-agent/venv',
+    nyxoHome: '/Users/test/.nyxo',
+    pythonPathEntries: ['/repo/nyxo-agent'],
+    venvRoot: '/Users/test/.nyxo/nyxo-agent/venv',
     currentEnv: {
       PATH: '/usr/bin:/bin',
       PYTHONPATH: '/existing/pythonpath'
@@ -62,31 +62,31 @@ test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () =
     pathModule: path.posix
   })
 
-  assert.equal(env.PYTHONPATH, '/repo/hermes-agent:/existing/pythonpath')
-  assert.ok(env.PATH.startsWith('/Users/test/.hermes/node/bin:/Users/test/.hermes/hermes-agent/venv/bin:'))
+  assert.equal(env.PYTHONPATH, '/repo/nyxo-agent:/existing/pythonpath')
+  assert.ok(env.PATH.startsWith('/Users/test/.nyxo/node/bin:/Users/test/.nyxo/nyxo-agent/venv/bin:'))
   assert.ok(env.PATH.includes('/opt/homebrew/bin'))
 })
 
-test('normalizeHermesHomeRoot maps profile homes back to the global Hermes root', () => {
+test('normalizeNyxoHomeRoot maps profile homes back to the global Nyxo root', () => {
   assert.equal(
-    normalizeHermesHomeRoot('/Users/test/.hermes/profiles/oracle', { pathModule: path.posix }),
-    '/Users/test/.hermes'
+    normalizeNyxoHomeRoot('/Users/test/.nyxo/profiles/oracle', { pathModule: path.posix }),
+    '/Users/test/.nyxo'
   )
   assert.equal(
-    normalizeHermesHomeRoot('C:\\Users\\test\\AppData\\Local\\hermes\\profiles\\oracle', { pathModule: path.win32 }),
-    'C:\\Users\\test\\AppData\\Local\\hermes'
+    normalizeNyxoHomeRoot('C:\\Users\\test\\AppData\\Local\\nyxo\\profiles\\oracle', { pathModule: path.win32 }),
+    'C:\\Users\\test\\AppData\\Local\\nyxo'
   )
   assert.equal(
-    normalizeHermesHomeRoot('/Users/test/.hermes', { pathModule: path.posix }),
-    '/Users/test/.hermes'
+    normalizeNyxoHomeRoot('/Users/test/.nyxo', { pathModule: path.posix }),
+    '/Users/test/.nyxo'
   )
 })
 
 test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {
   const env = buildDesktopBackendEnv({
-    hermesHome: 'C:\\Users\\test\\AppData\\Local\\hermes',
-    pythonPathEntries: ['C:\\repo\\hermes-agent'],
-    venvRoot: 'C:\\Users\\test\\AppData\\Local\\hermes\\hermes-agent\\venv',
+    nyxoHome: 'C:\\Users\\test\\AppData\\Local\\nyxo',
+    pythonPathEntries: ['C:\\repo\\nyxo-agent'],
+    venvRoot: 'C:\\Users\\test\\AppData\\Local\\nyxo\\nyxo-agent\\venv',
     currentEnv: {
       Path: 'C:\\Windows\\System32;C:\\Windows',
       PYTHONPATH: 'C:\\existing\\pythonpath'
@@ -97,7 +97,7 @@ test('Windows PATH casing and delimiter are preserved without POSIX sane entries
 
   assert.equal(pathEnvKey({ Path: 'x' }, 'win32'), 'Path')
   assert.equal(env.PATH, undefined)
-  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\hermes\\node\\bin;'))
+  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\nyxo\\node\\bin;'))
   assert.ok(env.Path.includes('\\venv\\Scripts;'))
   assert.ok(env.Path.includes(';C:\\Windows\\System32;C:\\Windows'))
   assert.equal(env.Path.includes('/opt/homebrew/bin'), false)

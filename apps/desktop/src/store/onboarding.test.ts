@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { OAuthProvider } from '@/types/hermes'
+import type { OAuthProvider } from '@/types/nyxo'
 
 import * as notifications from '@/store/notifications'
 
@@ -16,7 +16,7 @@ import {
 
 function provider(id: string, name = id): OAuthProvider {
   return {
-    cli_command: `hermes login ${id}`,
+    cli_command: `nyxo login ${id}`,
     docs_url: `https://example.com/${id}`,
     flow: 'pkce',
     id,
@@ -41,7 +41,7 @@ function baseState(overrides: Partial<DesktopOnboardingState> = {}): DesktopOnbo
 }
 
 function installApiMock(api: (request: { path: string }) => Promise<unknown>) {
-  Object.defineProperty(window, 'hermesDesktop', {
+  Object.defineProperty(window, 'nyxoDesktop', {
     configurable: true,
     value: { api }
   })
@@ -139,7 +139,7 @@ describe('refreshOnboarding', () => {
 
     installApiMock(api)
     // Simulate a returning user: cache is set and store is configured.
-    window.localStorage.setItem('hermes-desktop-onboarded-v1', '1')
+    window.localStorage.setItem('nyxo-desktop-onboarded-v1', '1')
     $desktopOnboarding.set(
       baseState({
         configured: true,
@@ -156,7 +156,7 @@ describe('refreshOnboarding', () => {
     expect($desktopOnboarding.get().configured).toBe(true)
     expect($desktopOnboarding.get().reason).toBeNull()
     // The cache must survive the refresh — proving we didn't downgrade.
-    expect(window.localStorage.getItem('hermes-desktop-onboarded-v1')).toBe('1')
+    expect(window.localStorage.getItem('nyxo-desktop-onboarded-v1')).toBe('1')
   })
 
   it('shows a non-blocking notification when preserving configured on fallback', async () => {

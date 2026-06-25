@@ -31,10 +31,10 @@ interface InsertRefsDetail {
   target: ComposerTarget
 }
 
-const FOCUS_EVENT = 'hermes:composer-focus'
-const INSERT_EVENT = 'hermes:composer-insert'
-const INSERT_REFS_EVENT = 'hermes:composer-insert-refs'
-const VOICE_TOGGLE_EVENT = 'hermes:composer-voice-toggle'
+const FOCUS_EVENT = 'nyxo:composer-focus'
+const INSERT_EVENT = 'nyxo:composer-insert'
+const INSERT_REFS_EVENT = 'nyxo:composer-insert-refs'
+const VOICE_TOGGLE_EVENT = 'nyxo:composer-voice-toggle'
 
 let activeTarget: ComposerTarget = 'main'
 

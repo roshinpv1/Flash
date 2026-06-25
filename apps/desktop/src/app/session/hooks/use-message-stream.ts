@@ -53,7 +53,7 @@ import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents, pruneDelegateFallbackSubagents, upsertSubagent } from '@/store/subagents'
 import { setSessionTodos } from '@/store/todos'
 import { recordToolDiff } from '@/store/tool-diffs'
-import type { RpcEvent } from '@/types/hermes'
+import type { RpcEvent } from '@/types/nyxo'
 
 import type { ClientSessionState } from '../../types'
 
@@ -65,7 +65,7 @@ interface MessageStreamOptions {
     runtimeSessionId?: string | null
   ) => Promise<void>
   queryClient: QueryClient
-  refreshHermesConfig: () => Promise<void>
+  refreshNyxoConfig: () => Promise<void>
   refreshSessions: () => Promise<void>
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
   updateSessionState: (
@@ -259,7 +259,7 @@ export function useMessageStream({
   activeSessionIdRef,
   hydrateFromStoredSession,
   queryClient,
-  refreshHermesConfig,
+  refreshNyxoConfig,
   refreshSessions,
   sessionStateByRuntimeIdRef,
   updateSessionState
@@ -672,7 +672,7 @@ export function useMessageStream({
         const streamId = state.streamId ?? `assistant-error-${Date.now()}`
         const groupId = state.pendingBranchGroup ?? undefined
         const prev = state.messages
-        const error = errorMessage.trim() || 'Hermes reported an error'
+        const error = errorMessage.trim() || 'Nyxo reported an error'
 
         const nextMessages = prev.some(m => m.id === streamId)
           ? prev.map(message =>
@@ -824,7 +824,7 @@ export function useMessageStream({
           requestDesktopOnboarding(payload.credential_warning)
         }
 
-        void refreshHermesConfig()
+        void refreshNyxoConfig()
 
         if (modelChanged || providerChanged) {
           void queryClient.invalidateQueries({
@@ -1140,7 +1140,7 @@ export function useMessageStream({
           }))
         }
       } else if (event.type === 'error') {
-        const errorMessage = payload?.message || 'Hermes reported an error'
+        const errorMessage = payload?.message || 'Nyxo reported an error'
         const looksLikeProviderSetup = isProviderSetupErrorMessage(errorMessage)
 
         // A turn that errors out has also ended — drop any open blocking prompt
@@ -1174,7 +1174,7 @@ export function useMessageStream({
           notify({
             id: `gateway-error:${errorMessage}`,
             kind: 'error',
-            title: 'Hermes error',
+            title: 'Nyxo error',
             message: errorMessage
           })
         }
@@ -1197,7 +1197,7 @@ export function useMessageStream({
       failAssistantMessage,
       flushQueuedDeltas,
       queryClient,
-      refreshHermesConfig,
+      refreshNyxoConfig,
       sessionInterrupted,
       updateSessionState,
       upsertToolCall

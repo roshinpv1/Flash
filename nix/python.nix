@@ -96,6 +96,6 @@ let
         pythonPackageOverrides
       ]);
 in
-pythonSet.mkVirtualEnv "hermes-agent-env" {
-  hermes-agent = dependency-groups;
+pythonSet.mkVirtualEnv "nyxo-agent-env" {
+  nyxo-agent = dependency-groups;
 }

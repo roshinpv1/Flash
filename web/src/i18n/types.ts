@@ -146,8 +146,8 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateHermes: string;
-    updatingHermes: string;
+    updateNyxo: string;
+    updatingNyxo: string;
     waitingForOutput: string;
   };
 
@@ -561,7 +561,7 @@ export interface Translations {
     fontMono?: string;
   };
 
-  // ── Achievements plugin (plugins/hermes-achievements) ──
+  // ── Achievements plugin (plugins/nyxo-achievements) ──
   achievements: {
     hero: {
       kicker: string;
