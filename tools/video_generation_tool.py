@@ -12,19 +12,17 @@ video generation provider. Mirrors the ``image_generate`` design:
 - Each provider lives under ``plugins/video_gen/<name>/``.
 
 The tool itself is intentionally backend-agnostic and ships **no in-tree
-provider** — turn on a backend by enabling a plugin (``nyxo plugins
-enable video_gen/<name>``) and selecting it in ``nyxo tools`` → Video
+provider** — turn on a backend by enabling a plugin (``hermes plugins
+enable video_gen/<name>``) and selecting it in ``hermes tools`` → Video
 Generation.
 
 Unified surface
 ---------------
-One tool covers the common cases — text-to-video, image-to-video, video
-edit, video extend — with a compact schema:
+One tool covers the common cases - text-to-video, image-to-video, and
+reference-to-video - with a compact schema:
 
-    prompt                   text instruction (required for generate/edit)
-    operation                "generate" | "edit" | "extend"
-    image_url                drives image-to-video when operation=generate
-    video_url                source video for edit/extend
+    prompt                   text instruction (required)
+    image_url                drives image-to-video
     reference_image_urls     list, up to provider-declared cap
     duration                 seconds (provider clamps)
     aspect_ratio             "16:9" | "9:16" | "1:1" | ...
@@ -38,6 +36,9 @@ Providers ignore parameters they do not support. The tool layer does
 **lightweight** validation (type/required-prompt) and lets each provider
 do its own clamping inside :meth:`VideoGenProvider.generate` — that keeps
 the tool surface stable as new providers ship with different capabilities.
+
+Video edit and video extend are intentionally not exposed here; providers with
+those workflows should expose separate tools.
 """
 
 from __future__ import annotations
@@ -65,7 +66,7 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
     # actual capabilities (which modalities / resolutions / duration
     # ranges the user's currently-selected model supports).
     # See _build_dynamic_video_schema() below and the dynamic-tool-schemas
-    # skill at github/nyxo-agent-dev/references/dynamic-tool-schemas.md.
+    # skill at github/hermes-agent-dev/references/dynamic-tool-schemas.md.
     "description": "(rebuilt at get_definitions() time — see _build_dynamic_video_schema)",
     "parameters": {
         "type": "object",
@@ -80,21 +81,20 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
             "image_url": {
                 "type": "string",
                 "description": (
-                    "Optional public URL of a still image. When provided, "
+                    "Optional public HTTPS URL of a still image. When provided, "
                     "the active backend routes to its image-to-video "
                     "endpoint (animate the image); when omitted, it routes "
-                    "to text-to-video. Pass either a URL the user supplied "
-                    "or a path/URL from the conversation."
+                    "to text-to-video. For xAI chaining, use the `image` or "
+                    "`public_url` HTTPS URL from a prior Imagine result."
                 ),
             },
             "reference_image_urls": {
                 "type": "array",
                 "items": {"type": "string"},
                 "description": (
-                    "Optional list of reference image URLs (style or "
-                    "character refs). Only supported by some backends; "
-                    "the active backend's description below indicates whether "
-                    "this is honored and what the max is."
+                    "Optional list of public HTTPS reference image URLs "
+                    "(style or character refs). For xAI chaining, use "
+                    "`image` or `public_url` from prior Imagine results."
                 ),
             },
             "duration": {
@@ -149,7 +149,7 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
                 "type": "string",
                 "description": (
                     "Optional model override. If omitted, the user's "
-                    "configured ``video_gen.model`` (set via `nyxo tools` "
+                    "configured ``video_gen.model`` (set via `hermes tools` "
                     "→ Video Generation) is used. Models that the active "
                     "provider does not know are rejected."
                 ),
@@ -167,7 +167,7 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
 
 def _read_video_gen_section() -> Dict[str, Any]:
     try:
-        from nyxo_cli.config import load_config
+        from hermes_cli.config import load_config
 
         cfg = load_config()
         section = cfg.get("video_gen") if isinstance(cfg, dict) else None
@@ -204,7 +204,7 @@ def check_video_generation_requirements() -> bool:
     """
     try:
         from agent.video_gen_registry import list_providers
-        from nyxo_cli.plugins import _ensure_plugins_discovered
+        from hermes_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         for provider in list_providers():
@@ -231,7 +231,7 @@ def _resolve_active_provider():
     """
     try:
         from agent.video_gen_registry import get_active_provider
-        from nyxo_cli.plugins import _ensure_plugins_discovered
+        from hermes_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_active_provider()
@@ -248,8 +248,8 @@ def _missing_provider_error(configured: Optional[str]) -> str:
     if configured:
         msg = (
             f"video_gen.provider='{configured}' is set but no plugin "
-            f"registered that name. Run `nyxo plugins list` to see "
-            f"installed video gen backends, or `nyxo tools` → Video "
+            f"registered that name. Run `hermes plugins list` to see "
+            f"installed video gen backends, or `hermes tools` → Video "
             f"Generation to pick one."
         )
         return json.dumps(error_response(
@@ -257,7 +257,7 @@ def _missing_provider_error(configured: Optional[str]) -> str:
             provider=configured,
         ))
     msg = (
-        "No video generation backend is configured. Run `nyxo tools` → "
+        "No video generation backend is configured. Run `hermes tools` → "
         "Video Generation to enable one (xAI, FAL, or Google Veo)."
     )
     return json.dumps(error_response(
@@ -324,6 +324,11 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
     # endpoint but our surface always needs a prompt.
     if not prompt:
         return tool_error("prompt is required for video generation")
+    if "operation" in args or "video_url" in args:
+        return tool_error(
+            "video_generate only supports text-to-video, image-to-video, and "
+            "reference-to-video; use a provider-specific tool for video edit/extend"
+        )
 
     # Resolve the active provider.
     configured = _read_configured_video_provider()
@@ -398,26 +403,27 @@ def _handle_video_generate(args: Dict[str, Any], **_kw: Any) -> str:
 # Dynamic schema — reflect the active backend's actual capabilities
 # ---------------------------------------------------------------------------
 #
-# Why dynamic: the user's configured backend determines which operations
-# (generate/edit/extend), modalities (text / image / refs), aspect ratios,
-# resolutions, durations, and audio/negative-prompt flags are real. A model
-# that calls video_generate without knowing the active backend wastes a
-# turn on something like "fal-ai/veo3.1/image-to-video requires image_url".
-# Surfacing the per-model surface in the description means the model
-# usually gets the call right on the first try.
+# Why dynamic: the user's configured backend determines which modalities
+# (text / image / refs), aspect ratios, resolutions, durations, and
+# audio/negative-prompt flags are real. A model that calls video_generate
+# without knowing the active backend wastes a turn on something like
+# "fal-ai/veo3.1/image-to-video requires image_url". Surfacing the per-model
+# surface in the description means the model usually gets the call right on
+# the first try.
 #
 # Memoization: model_tools.get_tool_definitions() keys its cache on
 # config.yaml mtime, so when the user changes provider/model via
-# `nyxo tools` or `/skills`, the schema rebuilds automatically.
+# `hermes tools` or `/skills`, the schema rebuilds automatically.
 
 
 _GENERIC_DESCRIPTION = (
-    "Generate a video from a text prompt (text-to-video) or animate a "
-    "still image (image-to-video) using the user's configured video "
-    "generation backend. Pass `image_url` to animate that image; omit it "
-    "to generate from text alone. The backend auto-routes to the right "
-    "endpoint. The backend and model family are user-configured via "
-    "`nyxo tools` → Video Generation; the agent does not pick them. "
+    "Generate a video from a text prompt (text-to-video), animate a "
+    "still image (image-to-video), or guide generation with reference images. "
+    "Pass `image_url` to animate an image or `reference_image_urls` for "
+    "reference-to-video. Video edit/extend workflows are not part of this "
+    "unified surface; use a dedicated provider-specific tool when one is "
+    "available. The backend and model family are user-configured via "
+    "`hermes tools` → Video Generation; the agent does not pick them. "
     "Long-running generations may take 30 seconds to several minutes — "
     "the call blocks until the video is ready. Returns the result in the "
     "`video` field — either an HTTP URL or an absolute file path. To show "
@@ -472,13 +478,13 @@ def _build_dynamic_video_schema() -> Dict[str, Any]:
     if not configured:
         parts.append(
             "\nNo video backend is configured. Calls will return an error "
-            "until the user picks one via `nyxo tools` → Video Generation."
+            "until the user picks one via `hermes tools` → Video Generation."
         )
         return {"description": "\n".join(parts)}
 
     try:
         from agent.video_gen_registry import get_provider
-        from nyxo_cli.plugins import _ensure_plugins_discovered
+        from hermes_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider(configured)
@@ -542,6 +548,21 @@ def _build_dynamic_video_schema() -> Dict[str, Any]:
     max_refs = caps.get("max_reference_images") or 0
     if max_refs:
         parts.append(f"- reference_image_urls: up to {max_refs} images")
+    if configured == "xai":
+        parts.append(
+            "- chaining: for edit/extend pass the public HTTPS MP4 in `video` "
+            "or `public_url` from the prior Imagine result (files-cdn). For "
+            "image-to-video / reference-to-video pass public image URLs the "
+            "same way"
+        )
+        try:
+            from tools.xai_http import xai_storage_notice_text
+
+            notice = xai_storage_notice_text("video_gen")
+        except Exception:
+            notice = ""
+        if notice:
+            parts.append(f"- storage: {notice}")
 
     return {"description": "\n".join(parts)}
 

@@ -7,7 +7,7 @@ lifting them into a mixin that ``GatewayRunner`` inherits keeps every
 ``self._handle_*_command`` dispatch + test reference working via the MRO, while
 removing the bulk from run.py.
 
-Module-level run.py helpers a handler needs (``_nyxo_home``,
+Module-level run.py helpers a handler needs (``_flash_home``,
 ``_load_gateway_config``, ``_resolve_gateway_model``, etc.) are imported lazily
 inside the handler body — a deferred ``from gateway.run import ...`` resolves at
 call time (run.py fully loaded by then), avoiding an import cycle.
@@ -33,11 +33,15 @@ from agent.account_usage import fetch_account_usage, render_account_usage_lines
 from agent.i18n import t
 from gateway.config import HomeChannel, Platform, PlatformConfig
 from gateway.platforms.base import EphemeralReply, MessageEvent, MessageType
-from gateway.session import SessionSource, build_session_key
-from nyxo_cli.config import cfg_get, clear_model_endpoint_credentials
+from gateway.session import (
+    AsyncSessionStore,
+    SessionSource,
+    build_session_key,
+    is_shared_multi_user_session,
+)
+from flash_cli.config import atomic_config_write, cfg_get, clear_model_endpoint_credentials
 from utils import (
     atomic_json_write,
-    atomic_yaml_write,
     base_url_host_matches,
     is_truthy_value,
 )
@@ -75,7 +79,7 @@ def _model_switch_skew_guard() -> Optional[str]:
         error=(
             f"This gateway is running code from {boot_rev} but the checkout on "
             f"disk is now {disk_rev}. Switching models would risk a stale-module "
-            f"crash — restart the gateway to load the new code: nyxo gateway restart"
+            f"crash — restart the gateway to load the new code: flash gateway restart"
         ),
     )
 
@@ -83,8 +87,10 @@ def _model_switch_skew_guard() -> Optional[str]:
 class GatewaySlashCommandsMixin:
     """In-session slash-command handlers for GatewayRunner."""
 
+    async_session_store: AsyncSessionStore
+
     def _typed_command_prefix_for(self, platform) -> str:
-        """Return the prefix users can always type to reach Nyxo commands.
+        """Return the prefix users can always type to reach Hermes commands.
 
         Reads the adapter's ``typed_command_prefix`` capability flag
         (default "/"). Slack and Matrix return "!" because typed "/"
@@ -164,6 +170,24 @@ class GatewaySlashCommandsMixin:
         if _qe is not None:
             _qe.pop(session_key, None)
 
+        # The old conversation's in-flight async delegations end WITH it
+        # (#55578): after the reset rotates the session id, their completions
+        # would have no live owner — a dangling subagent can only burn tokens
+        # and park an orphaned payload on the shared queue. Interrupt by the
+        # expiring durable session id (delegations dispatched from gateway
+        # chats are pinned to it via parent_session_id) and by the routing
+        # key as a fallback for older records.
+        try:
+            from tools.async_delegation import interrupt_for_session
+
+            interrupt_for_session(
+                session_key=session_key,
+                parent_session_id=str(getattr(old_entry, "session_id", "") or ""),
+                reason="session_reset",
+            )
+        except Exception:
+            pass
+
         try:
             from tools.env_passthrough import clear_env_passthrough
             clear_env_passthrough()
@@ -177,7 +201,7 @@ class GatewaySlashCommandsMixin:
             pass
 
         # Reset the session
-        new_entry = self.session_store.reset_session(session_key)
+        new_entry = await self.async_session_store.reset_session(session_key)
 
         # Clear any session-scoped model/reasoning overrides so the next agent
         # picks up configured defaults instead of previous session switches.
@@ -185,6 +209,13 @@ class GatewaySlashCommandsMixin:
         self._set_session_reasoning_override(session_key, None)
         if hasattr(self, "_pending_model_notes"):
             self._pending_model_notes.pop(session_key, None)
+
+        # Clear the per-session last-resolved-model cache so the next turn
+        # reads from current config instead of falling back to a stale model
+        # after a config change (#58403).
+        _lrm = getattr(self, "_last_resolved_model", None)
+        if _lrm is not None:
+            _lrm.pop(session_key, None)
 
         # Clear session-scoped dangerous-command approvals and /yolo state.
         # /new is a conversation-boundary operation — approval state from the
@@ -195,7 +226,7 @@ class GatewaySlashCommandsMixin:
 
         # Fire plugin on_session_finalize hook (session boundary)
         try:
-            from nyxo_cli.plugins import invoke_hook as _invoke_hook
+            from flash_cli.plugins import invoke_hook as _invoke_hook
             _invoke_hook(
                 "on_session_finalize",
                 session_id=_old_sid,
@@ -221,24 +252,28 @@ class GatewaySlashCommandsMixin:
             "session_key": session_key,
         })
 
-        # Resolve session config info to surface to the user
+        # Resolve session config info to surface to the user, scoped to the
+        # profile serving this source so a multiplexed /reset //new banner
+        # reports the profile's model, not the base config's (#59003).
         try:
-            session_info = self._format_session_info()
+            session_info = await asyncio.to_thread(
+                self._reset_notice_session_info, source
+            )
         except Exception:
             session_info = ""
 
         if new_entry:
-            header = self._telegram_topic_new_header(source) or t("gateway.reset.header_default")
+            header = await asyncio.to_thread(self._telegram_topic_new_header, source) or t("gateway.reset.header_default")
         else:
             # No existing session, just create one
-            new_entry = self.session_store.get_or_create_session(source, force_new=True)
-            header = self._telegram_topic_new_header(source) or t("gateway.reset.header_new")
+            new_entry = await self.async_session_store.get_or_create_session(source, force_new=True)
+            header = await asyncio.to_thread(self._telegram_topic_new_header, source) or t("gateway.reset.header_new")
 
         # Set session title if provided with /new <title>
         _title_arg = event.get_command_args().strip()
         _title_note = ""
         if _title_arg and self._session_db and new_entry:
-            from nyxo_state import SessionDB
+            from flash_state import SessionDB
             try:
                 sanitized = SessionDB.sanitize_title(_title_arg)
             except ValueError as e:
@@ -246,7 +281,7 @@ class GatewaySlashCommandsMixin:
                 _title_note = t("gateway.reset.title_rejected", error=str(e))
             if sanitized:
                 try:
-                    self._session_db.set_session_title(new_entry.session_id, sanitized)
+                    await self._session_db.set_session_title(new_entry.session_id, sanitized)
                     header = t("gateway.reset.header_titled", title=sanitized)
                 except ValueError as e:
                     _title_note = t("gateway.reset.title_error_untitled", error=str(e))
@@ -262,15 +297,15 @@ class GatewaySlashCommandsMixin:
         # uses the freshly-created session. Without this, the binding
         # still points at the old session and the binding-lookup at the
         # top of _handle_message_with_agent would switch right back.
-        if self._is_telegram_topic_lane(source) and new_entry is not None:
+        if await asyncio.to_thread(self._is_telegram_topic_lane, source) and new_entry is not None:
             try:
-                self._record_telegram_topic_binding(source, new_entry)
+                await asyncio.to_thread(self._record_telegram_topic_binding, source, new_entry)
             except Exception:
                 logger.debug("Failed to rebind Telegram topic after /new", exc_info=True)
 
         # Fire plugin on_session_reset hook (new session guaranteed to exist)
         try:
-            from nyxo_cli.plugins import invoke_hook as _invoke_hook
+            from flash_cli.plugins import invoke_hook as _invoke_hook
             _new_sid = new_entry.session_id if new_entry else None
             _invoke_hook(
                 "on_session_reset",
@@ -285,7 +320,7 @@ class GatewaySlashCommandsMixin:
 
         # Append a random tip to the reset message
         try:
-            from nyxo_cli.tips import get_random_tip
+            from flash_cli.tips import get_random_tip
             _tip_line = t("gateway.reset.tip", tip=get_random_tip())
         except Exception:
             _tip_line = ""
@@ -296,10 +331,10 @@ class GatewaySlashCommandsMixin:
 
     async def _handle_profile_command(self, event: MessageEvent) -> str:
         """Handle /profile — show active profile name and home directory."""
-        from nyxo_constants import display_nyxo_home
-        from nyxo_cli.profiles import get_active_profile_name
+        from flash_constants import display_flash_home
+        from flash_cli.profiles import get_active_profile_name
 
-        display = display_nyxo_home()
+        display = display_flash_home()
         profile_name = get_active_profile_name()
 
         lines = [
@@ -377,7 +412,7 @@ class GatewaySlashCommandsMixin:
         import asyncio
         import re
         import shlex
-        from nyxo_cli.kanban import run_slash
+        from flash_cli.kanban import run_slash
 
         text = (event.text or "").strip()
         # Strip the leading "/kanban" (with or without slash), leaving args.
@@ -431,7 +466,7 @@ class GatewaySlashCommandsMixin:
                     user_id = str(getattr(source, "user_id", "") or "") or None
                     if platform_str and chat_id:
                         def _sub():
-                            from nyxo_cli import kanban_db as _kb
+                            from flash_cli import kanban_db as _kb
                             conn = _kb.connect(board=requested_board)
                             try:
                                 _kb.add_notify_sub(
@@ -463,7 +498,7 @@ class GatewaySlashCommandsMixin:
         from gateway.run import _AGENT_PENDING_SENTINEL, _load_gateway_config, _resolve_gateway_model
 
         source = event.source
-        session_entry = self.session_store.get_or_create_session(source)
+        session_entry = await self.async_session_store.get_or_create_session(source)
 
         connected_platforms = [p.value for p in self.adapters.keys()]
 
@@ -498,11 +533,11 @@ class GatewaySlashCommandsMixin:
         db_total_tokens = 0
         if self._session_db:
             try:
-                title = self._session_db.get_session_title(session_entry.session_id)
+                title = await self._session_db.get_session_title(session_entry.session_id)
             except Exception:
                 title = None
             try:
-                row = self._session_db.get_session(session_entry.session_id)
+                row = await self._session_db.get_session(session_entry.session_id)
                 if isinstance(row, dict):
                     session_row = row
                     db_total_tokens = (
@@ -662,7 +697,268 @@ class GatewaySlashCommandsMixin:
             and origin.platform == Platform.MATRIX
             and current.platform == Platform.MATRIX
             and origin.chat_id == current.chat_id
+            # thread_id is part of the session key (build_session_key appends it
+            # for every chat type when present), and Matrix scopes the model's
+            # turn to the current room/thread. A live session in another thread
+            # of the SAME room is a DIFFERENT session, so a caller in thread A
+            # must not resume/enumerate a target whose origin is in thread B.
+            # Non-threaded rooms have empty thread_id on both sides ("" == ""),
+            # so room-level sharing is preserved unchanged.
+            and str(getattr(current, "thread_id", "") or "")
+            == str(getattr(origin, "thread_id", "") or "")
         )
+
+    def _same_origin_chat(self, current: SessionSource, origin: Optional[SessionSource]) -> bool:
+        """Platform-agnostic counterpart to ``_same_matrix_room``.
+
+        True when *origin* shares *current*'s platform and chat, and the same
+        participant whenever the session key for this source is per-user. Group
+        and thread sessions that ``build_session_key`` isolates per participant
+        (the default ``group_sessions_per_user=True``) must also be scoped by
+        participant here — otherwise a co-member could resume another member's
+        live per-user group session (IDOR). Only an explicitly shared
+        group/thread (``group_sessions_per_user=False`` /
+        ``thread_sessions_per_user``) lets co-members share, mirroring the key
+        contract via ``is_shared_multi_user_session``.
+        """
+        if origin is None or current is None:
+            return False
+        if origin.platform != current.platform:
+            return False
+        if origin.chat_id != current.chat_id:
+            return False
+        # thread_id is part of the session key for every chat type when present
+        # (build_session_key appends it unconditionally), so a session in one
+        # thread is a DIFFERENT session from another thread of the same parent
+        # chat. is_shared_multi_user_session only decides participant sharing
+        # WITHIN a thread, never across threads — require thread equality before
+        # any sharing logic so a live origin in thread A cannot match a caller in
+        # thread B of the same parent chat.
+        if str(getattr(current, "thread_id", "") or "") != str(
+            getattr(origin, "thread_id", "") or ""
+        ):
+            return False
+        chat_type = (getattr(current, "chat_type", "") or "").lower()
+        # DM-like chats are always per-user.
+        if chat_type in {"dm", "direct", "private", ""}:
+            # chat_id was already required equal above and, when present, IS the
+            # DM session key — so an equal non-empty chat_id is sufficient.
+            # build_session_key only falls back to the participant id
+            # (``user_id_alt or user_id`` — Signal/Feishu key on user_id_alt)
+            # when there is NO chat_id; mirror that and fail closed on a
+            # missing/different participant so two no-chat_id DM origins are
+            # never conflated (was: compared user_id only and allowed when
+            # either side was missing).
+            if str(getattr(current, "chat_id", "") or ""):
+                return True
+            cur_pid = str(current.user_id_alt or current.user_id or "")
+            org_pid = str(origin.user_id_alt or origin.user_id or "")
+            return bool(cur_pid) and cur_pid == org_pid
+        # Non-DM: scope by participant whenever the session key for this source
+        # is per-user. is_shared_multi_user_session mirrors build_session_key's
+        # isolation rules exactly, so the guard stays in lock-step with the key.
+        shared = is_shared_multi_user_session(
+            current,
+            group_sessions_per_user=getattr(self.config, "group_sessions_per_user", True),
+            thread_sessions_per_user=getattr(self.config, "thread_sessions_per_user", False),
+        )
+        if shared:
+            return True
+        # Per-user key: compare the participant id the key is actually built
+        # from (user_id_alt or user_id — Signal/Feishu key on user_id_alt).
+        cur_pid = current.user_id_alt or current.user_id
+        org_pid = origin.user_id_alt or origin.user_id
+        if cur_pid and org_pid:
+            return cur_pid == org_pid
+        # Per-user key but a participant id is missing on one side: cannot prove
+        # the same owner — fail closed.
+        return False
+
+    def _resume_caller_is_admin(self, source: SessionSource) -> bool:
+        """Whether *source* is an EXPLICITLY-configured admin allowed to make a
+        cross-origin /resume or /sessions listing.
+
+        Deliberately stricter than ``SlashAccessPolicy.is_admin()``: that returns
+        True for every allowed caller when slash gating is DISABLED (so commands
+        stay runnable by default), but cross-ORIGIN DATA ACCESS must require a
+        real, configured admin. Otherwise the default (no admin list) config
+        would treat every gateway caller as cross-origin-capable and re-open the
+        enumeration IDOR.
+        """
+        try:
+            from gateway.slash_access import policy_for_source
+            policy = policy_for_source(self.config, source)
+            uid = getattr(source, "user_id", None)
+            return bool(policy.enabled and uid and policy.is_admin(uid))
+        except Exception:
+            return False
+
+    async def _resume_target_allowed(
+        self, source: SessionSource, target_id: str, allow_override: bool = False
+    ) -> bool:
+        """Whether *source* may resume the persisted session *target_id*.
+
+        Generalizes the Matrix-only room guard to every adapter so a caller
+        cannot bind their gateway session to another user's/room's persisted
+        session id (IDOR). Uses the live origin when the target is active;
+        otherwise falls back to the DB row's source + user_id (the sessions
+        table has no chat_id). An identity-bearing caller is allowed only when
+        the row PROVES the same owner; a row that lacks enough ownership data
+        fails closed. An explicit admin ``--all`` override bypasses scoping.
+        """
+        if allow_override and self._resume_caller_is_admin(source):
+            return True
+        # Use the live origin only when it resolves to a real SessionSource; a
+        # store that can't resolve it (or an unexpected lookup error) must not
+        # silently allow/deny — fall through to the deterministic DB scoping.
+        try:
+            origin = self._gateway_session_origin_for_id(target_id)
+        except Exception:
+            origin = None
+        if isinstance(origin, SessionSource):
+            return self._same_origin_chat(source, origin)
+        # Inactive/persisted-only: best-effort scope by DB row source + user.
+        try:
+            row = await self._session_db.get_session(target_id) or {}
+        except Exception:
+            return False
+        caller_src = source.platform.value if source.platform else None
+        row_src = row.get("source")
+        if row_src and caller_src and str(row_src) != str(caller_src):
+            return False  # different platform / source
+        caller_uid = str(getattr(source, "user_id", "") or "")
+        row_uid = str(row.get("user_id") or "")
+        # Chat/thread origin recorded at session creation (see
+        # SessionDB._insert_session_row). The sessions table historically stored
+        # only source + user_id, so a same-user row could belong to a DIFFERENT
+        # chat; comparing the persisted origin closes that gap. Legacy rows
+        # created before origin capture have NULL here and therefore fail closed
+        # (they cannot prove the caller's chat) — resume them via a live session
+        # or an admin override.
+        caller_chat = str(getattr(source, "chat_id", "") or "")
+        row_chat = str(row.get("chat_id") or "")
+        caller_thread = str(getattr(source, "thread_id", "") or "")
+        row_thread = str(row.get("thread_id") or "")
+        chat_type = (getattr(source, "chat_type", "") or "").lower()
+        caller_is_dm = chat_type in {"dm", "direct", "private", ""}
+        # build_session_key keys the participant on ``user_id_alt or user_id``
+        # (Signal/Feishu carry the canonical participant in user_id_alt), but the
+        # sessions table only ever stored user_id — it has no user_id_alt column.
+        # So when the caller carries a user_id_alt, the row CANNOT prove the
+        # canonical participant that the live session key is built from: two
+        # members sharing one user_id but different user_id_alt map to DIFFERENT
+        # session keys, yet the persisted row's user_id would match both. The
+        # live-origin guard (_same_origin_chat) compares user_id_alt correctly;
+        # the persisted fallback cannot, so any per-user comparison that would
+        # otherwise rely on row_uid == caller_uid must fail closed here to stay
+        # in lock-step with the key boundary (CWE-639). Shared group/thread
+        # sessions are unaffected (they don't scope by participant at all), and
+        # an admin --all override still bypasses this above.
+        caller_keys_on_alt = bool(str(getattr(source, "user_id_alt", "") or ""))
+        if caller_uid:
+            # Identity-bearing caller: allow only when the row PROVES the same
+            # owner AND the same platform/origin AND the same chat/thread. A row
+            # with no/blank user_id cannot be proven to belong to this caller; a
+            # row with no/blank source cannot be proven to share the caller's
+            # platform (the row_src check above only rejects a *mismatching*
+            # non-blank source, so a blank/legacy source would otherwise slip
+            # through on user_id equality alone); and a row whose origin chat
+            # (or thread) differs from the caller's belongs to a different
+            # conversation. Any gap fails closed — an identified user must not
+            # bind to an unowned, other-owned, other-chat, or unproven-origin
+            # persisted session by id/title. (Legacy NULL-owner/blank-source/
+            # NULL-chat rows are intentionally not resumable this way; use a
+            # live session or an explicit admin override.)
+            # Common origin proof for any identity-bearing caller: a non-blank
+            # source that matches the caller's platform, and the same thread. A
+            # blank/legacy source can't prove the platform; a different thread is
+            # a different session (build_session_key appends thread_id).
+            origin_ok = (
+                bool(row_src) and bool(caller_src)
+                and str(row_src) == str(caller_src)
+                and row_thread == caller_thread
+            )
+            if not origin_ok:
+                return False
+            if caller_is_dm:
+                # DMs are keyed on user_id; require the same owner. chat_id is
+                # legitimately absent on both sides for a no-chat_id DM (scoped
+                # by user_id), but a mismatching chat_id (when present) is still
+                # rejected.
+                #
+                # A no-chat_id DM is keyed PURELY on the participant
+                # (``user_id_alt or user_id``). If the caller keys on user_id_alt
+                # the persisted row (user_id only) cannot prove that participant,
+                # so fail closed. When chat_id is present on both sides it is the
+                # DM key and equal chat_id is sufficient, so the alt gap doesn't
+                # apply there.
+                if caller_keys_on_alt and not (bool(row_chat) and bool(caller_chat)):
+                    return False
+                return (
+                    bool(row_uid) and row_uid == caller_uid
+                    and row_chat == caller_chat
+                )
+            # Non-DM (group/channel/forum/thread): build_session_key includes
+            # chat_id, so a row (or caller) with NO chat provenance cannot prove
+            # same-chat. Require both sides non-blank and equal — a legacy
+            # NULL-chat row (or a caller missing its chat_id) fails closed even
+            # when both normalize to "". (CWE-639)
+            if not (bool(row_chat) and bool(caller_chat) and row_chat == caller_chat):
+                return False
+            # Within the same non-DM chat/thread, mirror build_session_key's
+            # participant scoping: a SHARED group/thread session
+            # (group_sessions_per_user=False, or a shared thread) is one session
+            # for every participant, so the same-chat proof above is sufficient —
+            # do NOT also require user-id equality (otherwise a co-member is
+            # wrongly blocked from their own shared session). A per-user session
+            # still requires the same owner.
+            shared = is_shared_multi_user_session(
+                source,
+                group_sessions_per_user=getattr(self.config, "group_sessions_per_user", True),
+                thread_sessions_per_user=getattr(self.config, "thread_sessions_per_user", False),
+            )
+            if shared:
+                return True
+            # Per-user non-DM: the session key includes the participant
+            # (``user_id_alt or user_id``). If the caller keys on user_id_alt,
+            # the persisted row (user_id only) cannot prove the canonical
+            # participant, so fail closed rather than matching on user_id alone.
+            if caller_keys_on_alt:
+                return False
+            return bool(row_uid) and row_uid == caller_uid
+        # No caller identity: the persisted row carries only source + user_id
+        # (the sessions table has no chat_id), so a same-platform row can belong
+        # to a DIFFERENT chat or user. Same-platform alone is therefore NOT
+        # ownership proof — an identity-less caller must not bind to, or
+        # enumerate, a persisted session by id/title. Fail closed. A legitimate
+        # same-chat resume of an ACTIVE session still works through the
+        # live-origin branch above (which compares chat_id), and an operator can
+        # use the admin --all override. (CWE-639: IDOR on session routing.)
+        return False
+
+    async def _resume_row_visible(
+        self, source: SessionSource, row: dict, allow_all: bool
+    ) -> bool:
+        """Whether a titled-session listing *row* belongs to the caller's origin.
+
+        Prevents cross-origin enumeration of session ids/previews via the
+        numbered /resume list. Preserves the existing Matrix room-scoping
+        semantics; scopes every other platform to the caller's own sessions
+        unless an admin passes ``--all``.
+        """
+        sid = str(row.get("id") or "")
+        if source.platform == Platform.MATRIX:
+            # Cross-room enumeration is cross-ORIGIN data access: gate the
+            # ``--all`` short-circuit behind a real configured admin, exactly
+            # like the non-Matrix branch below. A non-admin Matrix ``--all``
+            # falls back to same-room scoping rather than exposing every Matrix
+            # titled session.
+            if allow_all and self._resume_caller_is_admin(source):
+                return True
+            return self._same_matrix_room(source, self._gateway_session_origin_for_id(sid))
+        if allow_all and self._resume_caller_is_admin(source):
+            return True
+        return await self._resume_target_allowed(source, sid, allow_override=False)
 
     async def _handle_agents_command(self, event: MessageEvent) -> str:
         """Handle /agents command - list active agents and running tasks."""
@@ -768,7 +1064,7 @@ class GatewaySlashCommandsMixin:
         """
         from gateway.run import _AGENT_PENDING_SENTINEL, _INTERRUPT_REASON_STOP
         source = event.source
-        session_entry = self.session_store.get_or_create_session(source)
+        session_entry = await self.async_session_store.get_or_create_session(source)
         session_key = session_entry.session_key
 
         agent = self._running_agents.get(session_key)
@@ -888,7 +1184,7 @@ class GatewaySlashCommandsMixin:
                 return (
                     f"✓ {platform.value} paused. "
                     f"Resume with `/platform resume {platform.value}` or "
-                    f"`nyxo gateway restart` to reset."
+                    f"`flash gateway restart` to reset."
                 )
             # action == "resume"
             if platform not in failed:
@@ -913,7 +1209,7 @@ class GatewaySlashCommandsMixin:
 
     async def _handle_restart_command(self, event: MessageEvent) -> Union[str, EphemeralReply]:
         """Handle /restart command - drain active work, then restart the gateway."""
-        from gateway.run import _nyxo_home
+        from gateway.run import _flash_home
         # Defensive idempotency check: if the previous gateway process
         # recorded this same /restart (same platform + update_id) and the new
         # process is seeing it *again*, this is a re-delivery caused by PTB's
@@ -963,7 +1259,7 @@ class GatewaySlashCommandsMixin:
                 except Exception:
                     self._restart_command_source = event.source
             atomic_json_write(
-                _nyxo_home / ".restart_notify.json",
+                _flash_home / ".restart_notify.json",
                 notify_data,
                 indent=None,
             )
@@ -983,7 +1279,7 @@ class GatewaySlashCommandsMixin:
             if event.platform_update_id is not None:
                 dedup_data["update_id"] = event.platform_update_id
             atomic_json_write(
-                _nyxo_home / ".restart_last_processed.json",
+                _flash_home / ".restart_last_processed.json",
                 dedup_data,
                 indent=None,
             )
@@ -1016,15 +1312,15 @@ class GatewaySlashCommandsMixin:
         return EphemeralReply(t("gateway.restart.restarting"))
 
     async def _handle_version_command(self, event: MessageEvent) -> str:
-        """Handle /version — show the running Nyxo Agent version."""
-        from nyxo_cli.banner import format_banner_version_label
+        """Handle /version — show the running Hermes Agent version."""
+        from flash_cli.banner import format_banner_version_label
 
         return format_banner_version_label()
 
     async def _handle_help_command(self, event: MessageEvent) -> str:
         """Handle /help command - list available commands."""
         from gateway.run import _telegramize_command_mentions
-        from nyxo_cli.commands import gateway_help_lines
+        from flash_cli.commands import gateway_help_lines
         lines = [
             t("gateway.help.header"),
             *gateway_help_lines(),
@@ -1049,7 +1345,7 @@ class GatewaySlashCommandsMixin:
 
     async def _handle_commands_command(self, event: MessageEvent) -> str:
         from gateway.run import _telegramize_command_mentions
-        from nyxo_cli.commands import gateway_help_lines
+        from flash_cli.commands import gateway_help_lines
 
         raw_args = event.get_command_args().strip()
         if raw_args:
@@ -1114,15 +1410,15 @@ class GatewaySlashCommandsMixin:
           /model <name> --provider <provider> — switch provider + model
           /model --provider <provider>        — switch to provider, auto-detect model
         """
-        from gateway.run import _nyxo_home, _load_gateway_config
+        from gateway.run import _flash_home, _load_gateway_config
         import yaml
-        from nyxo_cli.model_switch import (
+        from flash_cli.model_switch import (
             switch_model as _switch_model, parse_model_flags,
             resolve_persist_behavior,
             list_authenticated_providers,
             list_picker_providers,
         )
-        from nyxo_cli.providers import get_label
+        from flash_cli.providers import get_label
 
         raw_args = event.get_command_args().strip()
 
@@ -1139,7 +1435,7 @@ class GatewaySlashCommandsMixin:
         # --refresh: bust the disk cache so the picker shows live data.
         if force_refresh:
             try:
-                from nyxo_cli.models import clear_provider_models_cache
+                from flash_cli.models import clear_provider_models_cache
                 clear_provider_models_cache()
             except Exception:
                 pass
@@ -1151,7 +1447,7 @@ class GatewaySlashCommandsMixin:
         current_api_key = ""
         user_provs = None
         custom_provs = None
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
         try:
             cfg = _load_gateway_config()
             if cfg:
@@ -1162,7 +1458,7 @@ class GatewaySlashCommandsMixin:
                     current_base_url = model_cfg.get("base_url", "")
                 user_provs = cfg.get("providers")
                 try:
-                    from nyxo_cli.config import get_compatible_custom_providers
+                    from flash_cli.config import get_compatible_custom_providers
                     custom_provs = get_compatible_custom_providers(cfg)
                 except Exception:
                     custom_provs = cfg.get("custom_providers")
@@ -1175,7 +1471,7 @@ class GatewaySlashCommandsMixin:
         # (Telegram DM topic recovery) before deriving the override key, so
         # the override is stored under the key the next message turn reads
         # (#30479).
-        source = self._normalize_source_for_session_key(source)
+        source = await asyncio.to_thread(self._normalize_source_for_session_key, source)
         session_key = self._session_key_for_source(source)
         override = self._session_model_overrides.get(session_key, {})
         if override:
@@ -1206,6 +1502,7 @@ class GatewaySlashCommandsMixin:
                         user_providers=user_provs,
                         custom_providers=custom_provs,
                         max_models=50,
+                        include_moa=True,
                     )
                 except Exception:
                     providers = []
@@ -1227,7 +1524,12 @@ class GatewaySlashCommandsMixin:
                         skew_error = _model_switch_skew_guard()
                         if skew_error:
                             return skew_error
-                        result = _switch_model(
+                        # Offload the switch off the event loop — switch_model()
+                        # can fall through to a synchronous models.dev HTTP fetch
+                        # (requests.get, 15s timeout) on a cold/expired cache,
+                        # which freezes the gateway otherwise. See #20525, #41289.
+                        result = await asyncio.to_thread(
+                            _switch_model,
                             raw_input=model_id,
                             current_provider=_cur_provider,
                             current_model=_cur_model,
@@ -1242,7 +1544,7 @@ class GatewaySlashCommandsMixin:
                             return t("gateway.model.error_prefix", error=result.error_message)
 
                         try:
-                            from nyxo_cli.context_switch_guard import (
+                            from flash_cli.context_switch_guard import (
                                 enrich_model_switch_warnings_for_gateway,
                             )
 
@@ -1299,10 +1601,10 @@ class GatewaySlashCommandsMixin:
                         _sess_db = getattr(_self, "_session_db", None)
                         if _sess_db is not None:
                             try:
-                                _sess_entry = _self.session_store.get_or_create_session(
+                                _sess_entry = await _self.async_session_store.get_or_create_session(
                                     event.source
                                 )
-                                _sess_db.update_session_model(
+                                await _sess_db.update_session_model(
                                     _sess_entry.session_id, result.new_model
                                 )
                             except Exception as exc:
@@ -1325,6 +1627,20 @@ class GatewaySlashCommandsMixin:
                             "base_url": result.base_url,
                             "api_mode": result.api_mode,
                         }
+
+                        # Write-through the non-secret parts to the session
+                        # store so the picked model survives a gateway restart
+                        # (api_key is never persisted).
+                        try:
+                            await _self.async_session_store.set_model_override(
+                                _session_key,
+                                _self._session_model_overrides[_session_key],
+                            )
+                        except Exception:
+                            logger.debug(
+                                "Failed to persist session model override",
+                                exc_info=True,
+                            )
 
                         # Evict cached agent so the next turn creates a fresh
                         # agent from the override rather than relying on the
@@ -1355,8 +1671,8 @@ class GatewaySlashCommandsMixin:
                                 if result.base_url:
                                     _persist_model_cfg["base_url"] = result.base_url
                                 if str(result.target_provider or "").strip().lower() != "custom":
-                                    clear_model_endpoint_credentials(_persist_model_cfg)
-                                from nyxo_cli.config import save_config
+                                    clear_model_endpoint_credentials(_persist_model_cfg, clear_base_url=True)
+                                from flash_cli.config import save_config
                                 save_config(_persist_cfg)
                             except Exception as e:
                                 logger.warning("Failed to persist model switch: %s", e)
@@ -1366,7 +1682,7 @@ class GatewaySlashCommandsMixin:
                         lines = [t("gateway.model.switched", model=result.new_model)]
                         lines.append(t("gateway.model.provider_label", provider=plabel))
                         mi = result.model_info
-                        from nyxo_cli.model_switch import resolve_display_context_length
+                        from flash_cli.model_switch import resolve_display_context_length
                         _sw_config_ctx = None
                         try:
                             _sw_cfg = _load_gateway_config()
@@ -1391,8 +1707,6 @@ class GatewaySlashCommandsMixin:
                         if mi:
                             if mi.max_output:
                                 lines.append(t("gateway.model.max_output_label", tokens=f"{mi.max_output:,}"))
-                            if mi.has_cost_data():
-                                lines.append(t("gateway.model.cost_label", cost=mi.format_cost()))
                             lines.append(t("gateway.model.capabilities_label", capabilities=mi.format_capabilities()))
                         if result.warning_message:
                             lines.append(t("gateway.model.warning_prefix", warning=result.warning_message))
@@ -1453,7 +1767,12 @@ class GatewaySlashCommandsMixin:
         skew_error = _model_switch_skew_guard()
         if skew_error:
             return skew_error
-        result = _switch_model(
+        # Offload the switch off the event loop — switch_model() can fall
+        # through to a synchronous models.dev HTTP fetch (requests.get, 15s
+        # timeout) on a cold/expired cache, which freezes the gateway
+        # otherwise. See #20525, #41289.
+        result = await asyncio.to_thread(
+            _switch_model,
             raw_input=model_input,
             current_provider=current_provider,
             current_model=current_model,
@@ -1469,7 +1788,7 @@ class GatewaySlashCommandsMixin:
             return t("gateway.model.error_prefix", error=result.error_message)
 
         try:
-            from nyxo_cli.context_switch_guard import (
+            from flash_cli.context_switch_guard import (
                 enrich_model_switch_warnings_for_gateway,
             )
 
@@ -1524,13 +1843,13 @@ class GatewaySlashCommandsMixin:
             _sess_db = getattr(self, "_session_db", None)
             if _sess_db is not None:
                 try:
-                    _sess_entry = self.session_store.get_or_create_session(source)
+                    _sess_entry = await self.async_session_store.get_or_create_session(source)
                     # If this session was auto-reset, consume the flag so the
                     # next regular message's cleanup does not wipe the model
                     # override just stored below (Closes #48031).
                     if getattr(_sess_entry, "was_auto_reset", False):
                         _sess_entry.was_auto_reset = False
-                    _sess_db.update_session_model(
+                    await _sess_db.update_session_model(
                         _sess_entry.session_id, result.new_model
                     )
                 except Exception as exc:
@@ -1556,6 +1875,20 @@ class GatewaySlashCommandsMixin:
                 "base_url": result.base_url,
                 "api_mode": result.api_mode,
             }
+
+            # Write-through the non-secret parts (model/provider/base_url) to
+            # the session store so the override survives a gateway restart.
+            # api_key/api_mode are never persisted — they are re-resolved via
+            # runtime provider resolution on rehydration.
+            try:
+                await self.async_session_store.set_model_override(
+                    session_key,
+                    self._session_model_overrides[session_key],
+                )
+            except Exception:
+                logger.debug(
+                    "Failed to persist session model override", exc_info=True
+                )
 
             # Evict cached agent so the next turn creates a fresh agent from the
             # override rather than relying on cache signature mismatch detection.
@@ -1589,8 +1922,8 @@ class GatewaySlashCommandsMixin:
                     if result.base_url:
                         model_cfg["base_url"] = result.base_url
                     if str(result.target_provider or "").strip().lower() != "custom":
-                        clear_model_endpoint_credentials(model_cfg)
-                    from nyxo_cli.config import save_config
+                        clear_model_endpoint_credentials(model_cfg, clear_base_url=True)
+                    from flash_cli.config import save_config
                     save_config(cfg)
                 except Exception as e:
                     logger.warning("Failed to persist model switch: %s", e)
@@ -1603,7 +1936,7 @@ class GatewaySlashCommandsMixin:
             # Context: always resolve via the provider-aware chain so Codex OAuth,
             # Copilot, and Nous-enforced caps win over the raw models.dev entry.
             mi = result.model_info
-            from nyxo_cli.model_switch import resolve_display_context_length
+            from flash_cli.model_switch import resolve_display_context_length
             _sw2_config_ctx = None
             try:
                 _sw2_cfg = _load_gateway_config()
@@ -1628,8 +1961,6 @@ class GatewaySlashCommandsMixin:
             if mi:
                 if mi.max_output:
                     lines.append(t("gateway.model.max_output_label", tokens=f"{mi.max_output:,}"))
-                if mi.has_cost_data():
-                    lines.append(t("gateway.model.cost_label", cost=mi.format_cost()))
                 lines.append(t("gateway.model.capabilities_label", capabilities=mi.format_capabilities()))
 
             # Cache notice
@@ -1658,7 +1989,7 @@ class GatewaySlashCommandsMixin:
         # on a cache miss, so run it off the event loop.
         _cost_warning = None
         try:
-            from nyxo_cli.model_cost_guard import expensive_model_warning
+            from flash_cli.model_cost_guard import expensive_model_warning
 
             _cost_warning = await asyncio.to_thread(
                 expensive_model_warning,
@@ -1702,14 +2033,14 @@ class GatewaySlashCommandsMixin:
 
         Same surface as the CLI handler in cli.py:
             /codex-runtime                  — show current state
-            /codex-runtime auto             — Nyxo default runtime
+            /codex-runtime auto             — Hermes default runtime
             /codex-runtime codex_app_server — codex subprocess runtime
             /codex-runtime on / off         — synonyms
 
         On change, the cached agent for this session is evicted so the next
         message creates a fresh AIAgent with the new api_mode wired in
         (avoids prompt-cache invalidation mid-session)."""
-        from nyxo_cli import codex_runtime_switch as crs
+        from flash_cli import codex_runtime_switch as crs
 
         raw_args = event.get_command_args().strip() if event else ""
         new_value, errors = crs.parse_args(raw_args)
@@ -1718,7 +2049,7 @@ class GatewaySlashCommandsMixin:
 
         # Load + persist via the same helpers used for /model and /yolo
         try:
-            from nyxo_cli.config import load_config, save_config
+            from flash_cli.config import load_config, save_config
         except Exception as exc:
             return f"❌ Could not load config: {exc}"
         cfg = load_config()
@@ -1744,11 +2075,11 @@ class GatewaySlashCommandsMixin:
 
     async def _handle_personality_command(self, event: MessageEvent) -> str:
         """Handle /personality command - list or set a personality."""
-        from gateway.run import _nyxo_home, _load_gateway_config
-        from nyxo_constants import display_nyxo_home
+        from gateway.run import _flash_home, _load_gateway_config
+        from flash_constants import display_flash_home
 
         args = event.get_command_args().strip().lower()
-        config_path = _nyxo_home / 'config.yaml'
+        config_path = _flash_home / 'config.yaml'
 
         try:
             config = _load_gateway_config()
@@ -1758,7 +2089,7 @@ class GatewaySlashCommandsMixin:
             personalities = {}
 
         if not personalities:
-            return t("gateway.personality.none_configured", path=display_nyxo_home())
+            return t("gateway.personality.none_configured", path=display_flash_home())
 
         if not args:
             lines = [t("gateway.personality.header")]
@@ -1787,7 +2118,7 @@ class GatewaySlashCommandsMixin:
                 if "agent" not in config or not isinstance(config.get("agent"), dict):
                     config["agent"] = {}
                 config["agent"]["system_prompt"] = ""
-                atomic_yaml_write(config_path, config)
+                atomic_config_write(config_path, config)
             except Exception as e:
                 return t("gateway.personality.save_failed", error=str(e))
             self._ephemeral_system_prompt = ""
@@ -1800,7 +2131,7 @@ class GatewaySlashCommandsMixin:
                 if "agent" not in config or not isinstance(config.get("agent"), dict):
                     config["agent"] = {}
                 config["agent"]["system_prompt"] = new_prompt
-                atomic_yaml_write(config_path, config)
+                atomic_config_write(config_path, config)
             except Exception as e:
                 return t("gateway.personality.save_failed", error=str(e))
 
@@ -1815,8 +2146,8 @@ class GatewaySlashCommandsMixin:
     async def _handle_retry_command(self, event: MessageEvent) -> str:
         """Handle /retry command - re-send the last user message."""
         source = event.source
-        session_entry = self.session_store.get_or_create_session(source)
-        history = self.session_store.load_transcript(session_entry.session_id)
+        session_entry = await self.async_session_store.get_or_create_session(source)
+        history = await self.async_session_store.load_transcript(session_entry.session_id)
         
         # Find the last user message
         last_user_msg = None
@@ -1832,10 +2163,10 @@ class GatewaySlashCommandsMixin:
         
         # Truncate history to before the last user message and persist
         truncated = history[:last_user_idx]
-        self.session_store.rewrite_transcript(session_entry.session_id, truncated)
+        await self.async_session_store.rewrite_transcript(session_entry.session_id, truncated)
         # Reset stored token count — transcript was truncated
         session_entry.last_prompt_tokens = 0
-        
+
         # Re-send by creating a fake text event with the old message
         retry_event = MessageEvent(
             text=last_user_msg,
@@ -1862,7 +2193,7 @@ class GatewaySlashCommandsMixin:
         args = (event.get_command_args() or "").strip()
         lower = args.lower()
 
-        mgr, session_entry = self._get_goal_manager_for_event(event)
+        mgr, session_entry = await self._get_goal_manager_for_event(event)
         if mgr is None:
             return t("gateway.goal.unavailable")
 
@@ -1937,7 +2268,7 @@ class GatewaySlashCommandsMixin:
                 return "Usage: /goal draft <objective in plain language>"
             try:
                 import asyncio
-                from nyxo_cli.goals import draft_contract
+                from flash_cli.goals import draft_contract
 
                 draft_contract_obj = await asyncio.get_running_loop().run_in_executor(
                     None, draft_contract, objective
@@ -1951,7 +2282,7 @@ class GatewaySlashCommandsMixin:
             # Inline `field: value` lines parse into a completion contract;
             # the remaining prose is the goal headline. Plain free-form goals
             # (no such lines) behave exactly as before.
-            from nyxo_cli.goals import parse_contract
+            from flash_cli.goals import parse_contract
 
             headline, parsed = parse_contract(args)
             args = headline or args
@@ -1996,7 +2327,7 @@ class GatewaySlashCommandsMixin:
         to invoke while the agent is running.
         """
         args = (event.get_command_args() or "").strip()
-        mgr, _session_entry = self._get_goal_manager_for_event(event)
+        mgr, _session_entry = await self._get_goal_manager_for_event(event)
         if mgr is None:
             return t("gateway.goal.unavailable")
         if not mgr.has_goal():
@@ -2063,8 +2394,8 @@ class GatewaySlashCommandsMixin:
             if n < 1:
                 n = 1
 
-        session_entry = self.session_store.get_or_create_session(source)
-        result = self.session_store.rewind_session(session_entry.session_id, n)
+        session_entry = await self.async_session_store.get_or_create_session(source)
+        result = await self.async_session_store.rewind_session(session_entry.session_id, n)
 
         if result is None:
             return t("gateway.undo.nothing")
@@ -2102,7 +2433,7 @@ class GatewaySlashCommandsMixin:
 
         # Save to .env so it persists across restarts
         try:
-            from nyxo_cli.config import save_env_value
+            from flash_cli.config import save_env_value
             save_env_value(env_key, str(chat_id))
             # Keep thread/topic routing explicit and clear stale values when
             # /sethome is run from the parent chat instead of a thread.
@@ -2209,14 +2540,14 @@ class GatewaySlashCommandsMixin:
 
     async def _handle_rollback_command(self, event: MessageEvent) -> str:
         """Handle /rollback command — list or restore filesystem checkpoints."""
-        from gateway.run import _nyxo_home
+        from gateway.run import _flash_home
         from tools.checkpoint_manager import CheckpointManager, format_checkpoint_list
 
         # Read checkpoint config from config.yaml
         cp_cfg = {}
         try:
             import yaml as _y
-            _cfg_path = _nyxo_home / "config.yaml"
+            _cfg_path = _flash_home / "config.yaml"
             if _cfg_path.exists():
                 with open(_cfg_path, encoding="utf-8") as _f:
                     _data = _y.safe_load(_f) or {}
@@ -2315,16 +2646,16 @@ class GatewaySlashCommandsMixin:
             /reasoning show|on               Show model reasoning in responses
             /reasoning hide|off              Hide model reasoning from responses
         """
-        from gateway.run import _nyxo_home, _platform_config_key
+        from gateway.run import _flash_home, _platform_config_key
         import yaml
 
         raw_args = event.get_command_args().strip()
         args, persist_global = self._parse_reasoning_command_args(raw_args)
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
         # Normalize the source (Telegram DM topic recovery) before deriving
         # the override key so storage matches the key the next message turn
         # reads — same fix as /model (#30479).
-        _reasoning_source = self._normalize_source_for_session_key(event.source)
+        _reasoning_source = await asyncio.to_thread(self._normalize_source_for_session_key, event.source)
         session_key = self._session_key_for_source(_reasoning_source)
         self._show_reasoning = self._load_show_reasoning()
         self._reasoning_config = self._resolve_session_reasoning_config(
@@ -2346,7 +2677,7 @@ class GatewaySlashCommandsMixin:
                         current[k] = {}
                     current = current[k]
                 current[keys[-1]] = value
-                atomic_yaml_write(config_path, user_config)
+                atomic_config_write(config_path, user_config)
                 return True
             except Exception as e:
                 logger.error("Failed to save config key %s: %s", key_path, e)
@@ -2402,7 +2733,7 @@ class GatewaySlashCommandsMixin:
             return t("gateway.reasoning.reset_done")
         if effort == "none":
             parsed = {"enabled": False}
-        elif effort in {"minimal", "low", "medium", "high", "xhigh"}:
+        elif effort in {"minimal", "low", "medium", "high", "xhigh", "max", "ultra"}:
             parsed = {"enabled": True, "effort": effort}
         else:
             return t(
@@ -2432,15 +2763,15 @@ class GatewaySlashCommandsMixin:
         Gate changes persist to config.yaml and evict the cached agent so the
         new setting takes effect on the next message.
         """
-        from gateway.run import _nyxo_home
-        from nyxo_cli.write_approval_commands import handle_pending_subcommand
+        from gateway.run import _flash_home
+        from flash_cli.write_approval_commands import handle_pending_subcommand
         from tools import write_approval as wa
         from tools.memory_tool import load_on_disk_store
 
         raw_args = event.get_command_args().strip()
         args = raw_args.split() if raw_args else []
         session_key = self._session_key_for_source(event.source)
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
 
         def _set_approval(enabled: bool):
             import yaml
@@ -2449,7 +2780,7 @@ class GatewaySlashCommandsMixin:
                 with open(config_path, encoding="utf-8") as f:
                     user_config = yaml.safe_load(f) or {}
             user_config.setdefault("memory", {})["write_approval"] = bool(enabled)
-            atomic_yaml_write(config_path, user_config)
+            atomic_config_write(config_path, user_config)
             # New setting must take effect next message → drop cached agent.
             self._evict_cached_agent(session_key)
 
@@ -2478,18 +2809,18 @@ class GatewaySlashCommandsMixin:
         stranded).
 
         ``diff`` output is truncated for chat bubbles — the full diff lives in
-        the pending JSON file under ``~/.nyxo/pending/skills/``. (Note this is
+        the pending JSON file under ``~/.flash/pending/skills/``. (Note this is
         the write-approval ``diff <id>``; the CLI also has an unrelated
-        ``nyxo skills diff <name>`` that diffs a bundled skill vs stock.)
+        ``flash skills diff <name>`` that diffs a bundled skill vs stock.)
         """
-        from gateway.run import _nyxo_home
-        from nyxo_cli.write_approval_commands import handle_pending_subcommand
+        from gateway.run import _flash_home
+        from flash_cli.write_approval_commands import handle_pending_subcommand
         from tools import write_approval as wa
 
         raw_args = event.get_command_args().strip()
         args = raw_args.split() if raw_args else []
         session_key = self._session_key_for_source(event.source)
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
 
         gate_on = wa.write_approval_enabled(wa.SKILLS)
         wants_toggle = bool(args) and args[0].lower() in {"approval", "mode"}
@@ -2505,7 +2836,7 @@ class GatewaySlashCommandsMixin:
                 with open(config_path, encoding="utf-8") as f:
                     user_config = yaml.safe_load(f) or {}
             user_config.setdefault("skills", {})["write_approval"] = bool(enabled)
-            atomic_yaml_write(config_path, user_config)
+            atomic_config_write(config_path, user_config)
             # New setting must take effect next message → drop cached agent.
             self._evict_cached_agent(session_key)
 
@@ -2518,24 +2849,24 @@ class GatewaySlashCommandsMixin:
                     "(Search/install are CLI-only.)")
 
         # Chat bubbles can't hold a full skill diff — truncate and point at
-        # the real review surface. (Note: `nyxo skills diff <name>` is a
+        # the real review surface. (Note: `flash skills diff <name>` is a
         # *different* command — it diffs a bundled skill against its stock
         # version — so we point at the pending JSON file, not that command.)
         if args and args[0].lower() == "diff" and len(out) > 3000:
             pending_id = args[1] if len(args) > 1 else "<id>"
             out = (out[:3000]
                    + "\n… (truncated — full diff in "
-                     f"~/.nyxo/pending/skills/{pending_id}.json)")
+                     f"~/.flash/pending/skills/{pending_id}.json)")
         return out
 
     async def _handle_fast_command(self, event: MessageEvent) -> str:
         """Handle /fast — mirror the CLI Priority Processing toggle in gateway chats."""
-        from gateway.run import _nyxo_home, _load_gateway_config, _resolve_gateway_model
+        from gateway.run import _flash_home, _load_gateway_config, _resolve_gateway_model
         import yaml
-        from nyxo_cli.models import model_supports_fast_mode
+        from flash_cli.models import model_supports_fast_mode
 
         args = event.get_command_args().strip().lower()
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
         self._service_tier = self._load_service_tier()
 
         user_config = _load_gateway_config()
@@ -2557,7 +2888,7 @@ class GatewaySlashCommandsMixin:
                         current[k] = {}
                     current = current[k]
                 current[keys[-1]] = value
-                atomic_yaml_write(config_path, user_config)
+                atomic_config_write(config_path, user_config)
                 return True
             except Exception as e:
                 logger.error("Failed to save config key %s: %s", key_path, e)
@@ -2608,9 +2939,9 @@ class GatewaySlashCommandsMixin:
         ``display.platforms.<platform>.tool_progress`` so each channel can
         have its own verbosity level independently.
         """
-        from gateway.run import _nyxo_home, _load_gateway_config, _platform_config_key
+        from gateway.run import _flash_home, _load_gateway_config, _platform_config_key
 
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
         platform_key = _platform_config_key(event.source.platform)
 
         # --- check config gate ------------------------------------------------
@@ -2627,12 +2958,13 @@ class GatewaySlashCommandsMixin:
             return t("gateway.verbose.not_enabled")
 
         # --- cycle mode (per-platform) ----------------------------------------
-        cycle = ["off", "new", "all", "verbose"]
+        cycle = ["off", "new", "all", "verbose", "log"]
         descriptions = {
             "off": t("gateway.verbose.mode_off"),
             "new": t("gateway.verbose.mode_new"),
             "all": t("gateway.verbose.mode_all"),
             "verbose": t("gateway.verbose.mode_verbose"),
+            "log": t("gateway.verbose.mode_log"),
         }
 
         # Read current effective mode for this platform via the resolver
@@ -2653,7 +2985,7 @@ class GatewaySlashCommandsMixin:
             if platform_key not in display["platforms"] or not isinstance(display["platforms"].get(platform_key), dict):
                 display["platforms"][platform_key] = {}
             display["platforms"][platform_key]["tool_progress"] = new_mode
-            atomic_yaml_write(config_path, user_config)
+            atomic_config_write(config_path, user_config)
             return (
                 f"{descriptions[new_mode]}\n"
                 + t("gateway.verbose.saved_suffix", platform=platform_key)
@@ -2676,10 +3008,10 @@ class GatewaySlashCommandsMixin:
         are respected but not modified here — edit config.yaml directly for
         per-platform control.
         """
-        from gateway.run import _nyxo_home, _load_gateway_config, _platform_config_key, _resolve_gateway_model
+        from gateway.run import _flash_home, _load_gateway_config, _platform_config_key, _resolve_gateway_model
         from gateway.runtime_footer import resolve_footer_config
 
-        config_path = _nyxo_home / "config.yaml"
+        config_path = _flash_home / "config.yaml"
         platform_key = _platform_config_key(event.source.platform)
 
         # --- parse argument -------------------------------------------------
@@ -2728,7 +3060,7 @@ class GatewaySlashCommandsMixin:
             if not isinstance(display.get("runtime_footer"), dict):
                 display["runtime_footer"] = {}
             display["runtime_footer"]["enabled"] = new_state
-            atomic_yaml_write(config_path, user_config)
+            atomic_config_write(config_path, user_config)
         except Exception as e:
             logger.warning("Failed to save runtime_footer.enabled: %s", e)
             return t("gateway.config_save_failed", error=e)
@@ -2762,21 +3094,52 @@ class GatewaySlashCommandsMixin:
         https://code.claude.com/docs/en/whats-new/2026-w20).
         """
         source = event.source
-        session_entry = self.session_store.get_or_create_session(source)
-        history = self.session_store.load_transcript(session_entry.session_id)
+        session_entry = await self.async_session_store.get_or_create_session(source)
+        history = await self.async_session_store.load_transcript(session_entry.session_id)
 
         if not history or len(history) < 4:
             return t("gateway.compress.not_enough")
 
         # Parse args: either a focus topic (full compress) or the
         # boundary-aware "here [N]" form (partial compress).
-        from nyxo_cli.partial_compress import (
+        from flash_cli.partial_compress import (
+            extract_compress_flags,
             parse_partial_compress_args,
             rejoin_compressed_head_and_tail,
             split_history_for_partial_compress,
+            summarize_compress_preview,
         )
         _raw_args = (event.get_command_args() or "").strip()
+        # Strip --preview/--dry-run/--aggressive before positional parsing
+        # so the flags coexist with 'here [N]' / focus-topic forms.
+        _raw_args, _preview, _aggressive = extract_compress_flags(_raw_args)
         partial, keep_last, focus_topic = parse_partial_compress_args(_raw_args)
+
+        _agg_note = ""
+        if _aggressive:
+            # LLM-free hard truncation is not supported on this surface —
+            # it would need its own transcript-persistence branch outside
+            # the guarded _compress_context rotation machinery (#44794).
+            _agg_note = t("gateway.compress.aggressive_unsupported")
+            if not _preview:
+                return _agg_note
+
+        if _preview:
+            # Report what WOULD be compressed — no agent, no writes.
+            from agent.model_metadata import estimate_request_tokens_rough
+            _pv_msgs = [
+                {"role": m.get("role"), "content": m.get("content")}
+                for m in history
+                if m.get("role") in {"user", "assistant"} and m.get("content")
+            ]
+            approx_tokens = estimate_request_tokens_rough(_pv_msgs)
+            report = summarize_compress_preview(
+                _pv_msgs, partial, keep_last, focus_topic, approx_tokens
+            )
+            lines = [f"🗜️ {line}" for line in report["lines"]]
+            if _aggressive:
+                lines.append(_agg_note)
+            return "\n".join(lines)
 
         try:
             from run_agent import AIAgent
@@ -2784,6 +3147,17 @@ class GatewaySlashCommandsMixin:
             from agent.model_metadata import estimate_request_tokens_rough
 
             session_key = self._session_key_for_source(source)
+            # Preserve the same platform + stable gateway session identity that a
+            # normal gateway turn passes (gateway/run.py main turn), so external
+            # context engines bind this temporary compression agent to the
+            # original platform conversation instead of falling back to an
+            # unbound/default "cli" host source — see #50422. _platform_config_key
+            # maps LOCAL->"cli" exactly like the live turn, avoiding a new
+            # "local" vs "cli" mismatch.
+            from gateway.run import _platform_config_key
+            platform_key = (
+                _platform_config_key(source.platform) if source.platform else None
+            )
             model, runtime_kwargs = self._resolve_session_agent_runtime(
                 source=source,
                 session_key=session_key,
@@ -2791,10 +3165,14 @@ class GatewaySlashCommandsMixin:
             if not runtime_kwargs.get("api_key"):
                 return t("gateway.compress.no_provider")
 
+            # Pass the FULL transcript (tool results included) — same
+            # rationale as the session-hygiene auto-compress in
+            # gateway/run.py (#3854): filtering to user/assistant-only
+            # starves the compressor's tool-result pruning and can trip the
+            # protect-first/last early-return on short filtered histories.
             msgs = [
-                {"role": m.get("role"), "content": m.get("content")}
-                for m in history
-                if m.get("role") in {"user", "assistant"} and m.get("content")
+                m for m in history
+                if m.get("role") in {"user", "assistant", "tool"}
             ]
 
             # Boundary-aware split: only the head is summarized; the most
@@ -2810,6 +3188,21 @@ class GatewaySlashCommandsMixin:
                     partial = False
                     head = msgs
 
+            # Bind the temporary compression agent to the originating source's
+            # platform + stable gateway session key. These are *authoritative*
+            # identity invariants (derived from `source`), so assign them into
+            # runtime_kwargs directly rather than via setdefault: a value already
+            # present there from the resolver would be a placeholder/stale
+            # identity and must not win. Assigning (vs passing a second explicit
+            # kwarg) also keeps each key single-valued, avoiding a "got multiple
+            # values for keyword argument" TypeError. platform is only set when
+            # known: for a source without platform metadata we leave it unset so
+            # AIAgent's default (platform=None -> source "cli") applies, exactly
+            # the prior behavior. _resolve_session_agent_runtime does not set
+            # either key today, so in practice this just adds them.
+            if platform_key is not None:
+                runtime_kwargs["platform"] = platform_key
+            runtime_kwargs["gateway_session_key"] = session_key
             tmp_agent = AIAgent(
                 **runtime_kwargs,
                 model=model,
@@ -2818,9 +3211,14 @@ class GatewaySlashCommandsMixin:
                 skip_memory=True,
                 enabled_toolsets=["memory"],
                 session_id=session_entry.session_id,
+                session_db=getattr(self._session_db, "_db", self._session_db),
             )
             try:
                 tmp_agent._print_fn = lambda *a, **kw: None
+                # Prevent close() from ending the newly rotated session —
+                # the gateway session entry now points at the new id and
+                # must remain open for the next user turn.
+                tmp_agent._end_session_on_close = False
 
                 # Estimate with system prompt + tool schemas included so the
                 # figure reflects real request pressure, not a transcript-only
@@ -2854,29 +3252,54 @@ class GatewaySlashCommandsMixin:
                 # transcript replaced with the compacted set).
                 new_session_id = tmp_agent.session_id
                 rotated = new_session_id != session_entry.session_id
-                _in_place = bool(getattr(tmp_agent, "compression_in_place", False))
+                _in_place = bool(getattr(tmp_agent, "_last_compaction_in_place", False))
+
+                # Persist the compressed transcript BEFORE repointing the live
+                # session onto the new session_id. Order matters: if we
+                # repointed first and the canonical DB write then failed (lock
+                # contention under concurrent writes, ENOSPC, a disk/IO error),
+                # the session entry would already reference a brand-new, empty
+                # session_id while the handler still reported success — the
+                # user's active conversation would silently vanish from view.
+                # Writing first, and treating a write failure as fatal, keeps
+                # the old history reachable (on rotation the entry still points
+                # at it; in place the original transcript is untouched) and lets
+                # the outer handler surface a "compress failed" banner instead.
+                #
+                # Only rewrite the transcript when rotation produced a NEW
+                # session id.  In-place compaction does NOT need a rewrite:
+                # archive_and_compact() has already soft-archived the previous
+                # active rows and inserted the compacted messages as the new
+                # active set inside _compress_context().  Calling
+                # rewrite_transcript() after in-place compaction would invoke
+                # replace_messages(active_only=False) which DELETEs ALL rows —
+                # including the archived turns that archive_and_compact()
+                # deliberately preserved (silent data loss, #61145).
+                #
+                # The third case: _compress_context could NOT rotate AND was
+                # not in-place (e.g. legacy mode but _session_db unavailable /
+                # the DB split raised) — there session_id is unchanged for a
+                # FAILURE reason, and rewrite_transcript() would DELETE the
+                # original messages and replace them with only the compressed
+                # summary (permanent data loss #44794, #39704).
                 if rotated:
+                    if not await self.async_session_store.rewrite_transcript(
+                        new_session_id, compressed
+                    ):
+                        raise RuntimeError(
+                            f"failed to persist compressed transcript for "
+                            f"session {new_session_id}"
+                        )
                     session_entry.session_id = new_session_id
-                    self.session_store._save()
-                    self._sync_telegram_topic_binding(
+                    await self.async_session_store._save()
+                    await asyncio.to_thread(
+                        self._sync_telegram_topic_binding,
                         source, session_entry, reason="compress-command",
                     )
-
-                # Rewrite the transcript when EITHER rotation produced a new id
-                # OR in-place compaction succeeded. The danger this guards
-                # against is the THIRD case: _compress_context could NOT rotate
-                # AND was not in-place (e.g. legacy mode but _session_db
-                # unavailable / the DB split raised) — there session_id is
-                # unchanged for a FAILURE reason, and rewrite_transcript() would
-                # DELETE the original messages and replace them with only the
-                # compressed summary (permanent data loss #44794, #39704). In
-                # in-place mode the unchanged id is SUCCESS, so the rewrite is
-                # exactly right (and is the durable write when the throwaway
-                # /compress agent has no _session_db of its own).
-                if rotated or _in_place:
-                    self.session_store.rewrite_transcript(
-                        new_session_id, compressed
-                    )
+                elif _in_place:
+                    # archive_and_compact() already persisted the compacted
+                    # transcript inside _compress_context — nothing to do.
+                    pass
                 else:
                     logger.warning(
                         "Manual /compress: session rotation did not occur "
@@ -2885,7 +3308,7 @@ class GatewaySlashCommandsMixin:
                         "it (#44794)."
                     )
                 # Reset stored token count — transcript changed, old value is stale
-                self.session_store.update_session(
+                await self.async_session_store.update_session(
                     session_entry.session_key, last_prompt_tokens=0
                 )
                 new_tokens = estimate_request_tokens_rough(
@@ -2948,7 +3371,7 @@ class GatewaySlashCommandsMixin:
         if source.platform != Platform.TELEGRAM or source.chat_type != "dm":
             return t("gateway.topic.not_telegram_dm")
         if not self._session_db:
-            from nyxo_state import format_session_db_unavailable
+            from flash_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         # Authorization: /topic activates multi-session mode and mutates
@@ -2971,7 +3394,7 @@ class GatewaySlashCommandsMixin:
 
         # /topic off — clean disable path so users don't have to edit the DB.
         if args.lower() in {"off", "disable", "stop"}:
-            return self._disable_telegram_topic_mode_for_chat(source)
+            return await self._disable_telegram_topic_mode_for_chat(source)
 
         if args:
             if not source.thread_id:
@@ -2992,7 +3415,7 @@ class GatewaySlashCommandsMixin:
                 return t("gateway.topic.topics_user_disallowed")
 
         try:
-            self._session_db.enable_telegram_topic_mode(
+            await self._session_db.enable_telegram_topic_mode(
                 chat_id=str(source.chat_id),
                 user_id=str(source.user_id),
                 has_topics_enabled=capabilities.get("has_topics_enabled"),
@@ -3007,7 +3430,7 @@ class GatewaySlashCommandsMixin:
 
         if source.thread_id:
             try:
-                binding = self._session_db.get_telegram_topic_binding(
+                binding = await self._session_db.get_telegram_topic_binding(
                     chat_id=str(source.chat_id),
                     thread_id=str(source.thread_id),
                 )
@@ -3018,7 +3441,7 @@ class GatewaySlashCommandsMixin:
                 session_id = str(binding.get("session_id") or "")
                 title = None
                 try:
-                    title = self._session_db.get_session_title(session_id)
+                    title = await self._session_db.get_session_title(session_id)
                 except Exception:
                     title = None
                 session_label = title or t("gateway.topic.untitled_session")
@@ -3029,28 +3452,34 @@ class GatewaySlashCommandsMixin:
                 )
             return t("gateway.topic.thread_ready")
 
-        return self._telegram_topic_root_status_message(source)
+        return await self._telegram_topic_root_status_message(source)
 
     async def _handle_title_command(self, event: MessageEvent) -> str:
         """Handle /title command — set or show the current session's title."""
         source = event.source
-        session_entry = self.session_store.get_or_create_session(source)
+        session_entry = await self.async_session_store.get_or_create_session(source)
         session_id = session_entry.session_id
 
         if not self._session_db:
-            from nyxo_state import format_session_db_unavailable
+            from flash_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         # Ensure session exists in SQLite DB (it may only exist in session_store
         # if this is the first command in a new session)
-        existing_title = self._session_db.get_session_title(session_id)
+        existing_title = await self._session_db.get_session_title(session_id)
         if existing_title is None:
             # Session doesn't exist in DB yet — create it
             try:
-                self._session_db.create_session(
+                await self._session_db.create_session(
                     session_id=session_id,
                     source=source.platform.value if source.platform else "unknown",
                     user_id=source.user_id,
+                    # Persist the messaging origin so a later /resume of this
+                    # titled-but-now-inactive session can prove it belongs to the
+                    # caller's chat/thread (IDOR scoping).
+                    chat_id=source.chat_id,
+                    chat_type=source.chat_type,
+                    thread_id=source.thread_id,
                 )
             except Exception:
                 pass  # Session might already exist, ignore errors
@@ -3059,14 +3488,15 @@ class GatewaySlashCommandsMixin:
         if title_arg:
             # Sanitize the title before setting
             try:
-                sanitized = self._session_db.sanitize_title(title_arg)
+                from flash_state import SessionDB
+                sanitized = SessionDB.sanitize_title(title_arg)
             except ValueError as e:
                 return t("gateway.shared.warn_passthrough", error=e)
             if not sanitized:
                 return t("gateway.title.empty_after_clean")
             # Set the title
             try:
-                if self._session_db.set_session_title(session_id, sanitized):
+                if await self._session_db.set_session_title(session_id, sanitized):
                     # Propagate the user-chosen title to the visible Telegram
                     # forum topic name too. Auto-generated titles already rename
                     # the topic; without this, /title only updated the DB title
@@ -3077,7 +3507,7 @@ class GatewaySlashCommandsMixin:
                     )
                     if callable(schedule_rename):
                         try:
-                            schedule_rename(source, session_id, sanitized)
+                            await asyncio.to_thread(schedule_rename, source, session_id, sanitized)
                         except Exception:
                             logger.debug(
                                 "Failed to rename Telegram topic from /title",
@@ -3090,7 +3520,7 @@ class GatewaySlashCommandsMixin:
                 return t("gateway.shared.warn_passthrough", error=e)
         else:
             # Show the current title and session ID
-            title = self._session_db.get_session_title(session_id)
+            title = await self._session_db.get_session_title(session_id)
             if title:
                 return t("gateway.title.current_with_title", session_id=session_id, title=title)
             else:
@@ -3099,7 +3529,7 @@ class GatewaySlashCommandsMixin:
     async def _handle_resume_command(self, event: MessageEvent) -> str:
         """Handle /resume command — list or switch to a previous session."""
         if not self._session_db:
-            from nyxo_state import format_session_db_unavailable
+            from flash_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         source = event.source
@@ -3123,22 +3553,19 @@ class GatewaySlashCommandsMixin:
         ):
             name = name[1:-1].strip()
 
-        def _list_titled_sessions() -> list[dict]:
+        async def _list_titled_sessions() -> list[dict]:
             user_source = source.platform.value if source.platform else None
-            sessions = self._session_db.list_sessions_rich(source=user_source, limit=10)
+            sessions = await self._session_db.list_sessions_rich(source=user_source, limit=10)
             return [s for s in sessions if s.get("title")][:10]
 
         if not name:
             # List recent titled sessions for this user/platform
             try:
-                titled = _list_titled_sessions()
-                if source.platform == Platform.MATRIX and not allow_all:
-                    scoped = []
-                    for s in titled:
-                        origin = self._gateway_session_origin_for_id(str(s.get("id") or ""))
-                        if self._same_matrix_room(source, origin):
-                            scoped.append(s)
-                    titled = scoped
+                titled = await _list_titled_sessions()
+                titled = [
+                    s for s in titled
+                    if await self._resume_row_visible(source, s, allow_all)
+                ]
                 if not titled:
                     if source.platform == Platform.MATRIX and not allow_all:
                         return t("gateway.resume.matrix_no_named_sessions")
@@ -3162,14 +3589,11 @@ class GatewaySlashCommandsMixin:
         # Resolve a numbered choice or a title to a session ID.
         if name.isdigit():
             try:
-                titled = _list_titled_sessions()
-                if source.platform == Platform.MATRIX and not allow_all:
-                    scoped = []
-                    for s in titled:
-                        origin = self._gateway_session_origin_for_id(str(s.get("id") or ""))
-                        if self._same_matrix_room(source, origin):
-                            scoped.append(s)
-                    titled = scoped
+                titled = await _list_titled_sessions()
+                titled = [
+                    s for s in titled
+                    if await self._resume_row_visible(source, s, allow_all)
+                ]
             except Exception as e:
                 logger.debug("Failed to list titled sessions for numeric resume: %s", e)
                 return t("gateway.resume.list_failed", error=e)
@@ -3182,17 +3606,17 @@ class GatewaySlashCommandsMixin:
         else:
             # Try direct session ID lookup first (so `/resume <session_id>`
             # works in the gateway, not just `/resume <title>`).
-            session = self._session_db.get_session(name)
+            session = await self._session_db.get_session(name)
             if session:
                 target_id = session["id"]
             else:
-                target_id = self._session_db.resolve_session_by_title(name)
+                target_id = await self._session_db.resolve_session_by_title(name)
         if not target_id:
             return t("gateway.resume.not_found", name=name)
         # Compression creates child continuations that hold the live transcript.
         # Follow that chain so gateway /resume matches CLI behavior (#15000).
         try:
-            target_id = self._session_db.resolve_resume_session_id(target_id)
+            target_id = await self._session_db.resolve_resume_session_id(target_id)
         except Exception as e:
             logger.debug("Failed to resolve resume continuation for %s: %s", target_id, e)
 
@@ -3206,9 +3630,17 @@ class GatewaySlashCommandsMixin:
                     room=target_origin.chat_name or target_origin.chat_id,
                     name=name,
                 )
+        elif not await self._resume_target_allowed(
+            source, target_id, allow_override=(allow_all or allow_cross_room)
+        ):
+            # IDOR guard: a session id/title is a routing handle, not authority.
+            # Bind /resume to the caller's own platform/user/chat on every
+            # non-Matrix adapter so one user can't attach to another's
+            # persisted transcript.
+            return t("gateway.resume.blocked_not_owner", name=name)
 
         # Check if already on that session
-        current_entry = self.session_store.get_or_create_session(source)
+        current_entry = await self.async_session_store.get_or_create_session(source)
         if current_entry.session_id == target_id:
             return t("gateway.resume.already_on", name=name)
 
@@ -3216,10 +3648,31 @@ class GatewaySlashCommandsMixin:
         self._release_running_agent_state(session_key)
 
         # Switch the session entry to point at the old session
-        new_entry = self.session_store.switch_session(session_key, target_id)
+        new_entry = await self.async_session_store.switch_session(session_key, target_id)
         if not new_entry:
             return t("gateway.resume.switch_failed")
         self._clear_session_boundary_security_state(session_key)
+
+        # Clear session-scoped model/reasoning overrides so the resumed
+        # conversation picks up configured defaults instead of a /model
+        # switch made in the previous session under the same chat
+        # session_key. /resume is a conversation boundary just like /new
+        # (which clears these too); without this, a stale override leaks
+        # across the switch. See #10702.
+        _overrides = getattr(self, "_session_model_overrides", None)
+        if isinstance(_overrides, dict):
+            _overrides.pop(session_key, None)
+        self._set_session_reasoning_override(session_key, None)
+        _pending_notes = getattr(self, "_pending_model_notes", None)
+        if isinstance(_pending_notes, dict):
+            _pending_notes.pop(session_key, None)
+        # Clear per-session model cache too, for the same reason — the
+        # resumed conversation must resolve from current config, not a
+        # stale value cached under this session_key before the switch
+        # (mirrors /new and the compression-exhausted auto-reset, #58403).
+        _lrm = getattr(self, "_last_resolved_model", None)
+        if isinstance(_lrm, dict):
+            _lrm.pop(session_key, None)
 
         # Evict any cached agent for this session so the next message
         # rebuilds with the correct session_id end-to-end — mirrors
@@ -3229,10 +3682,10 @@ class GatewaySlashCommandsMixin:
         self._evict_cached_agent(session_key)
 
         # Get the title for confirmation
-        title = self._session_db.get_session_title(target_id) or name
+        title = await self._session_db.get_session_title(target_id) or name
 
         # Count messages for context
-        history = self.session_store.load_transcript(target_id)
+        history = await self.async_session_store.load_transcript(target_id)
         msg_count = len([m for m in history if m.get("role") == "user"]) if history else 0
         msg_part = f" ({msg_count} message{'s' if msg_count != 1 else ''})" if msg_count else ""
 
@@ -3252,10 +3705,10 @@ class GatewaySlashCommandsMixin:
     async def _handle_sessions_command(self, event: MessageEvent) -> str:
         """Handle /sessions — list previous sessions for gateway chats."""
         if not self._session_db:
-            from nyxo_state import format_session_db_unavailable
+            from flash_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
-        from nyxo_cli.session_listing import (
+        from flash_cli.session_listing import (
             format_gateway_session_listing,
             parse_session_listing_args,
             query_session_listing,
@@ -3264,35 +3717,55 @@ class GatewaySlashCommandsMixin:
         source = event.source
         raw_args = event.get_command_args().strip()
         try:
-            include_all, include_unnamed, target = parse_session_listing_args(raw_args)
+            include_all, include_unnamed, target, search_query = (
+                parse_session_listing_args(raw_args)
+            )
         except ValueError as exc:
             return t("gateway.resume.parse_error", error=exc)
+
+        if search_query == "":
+            return "Usage: `/sessions search <query>`"
 
         if target:
             resume_event = dataclasses.replace(event, text=f"/resume {target}")
             return await self._handle_resume_command(resume_event)
 
-        current_entry = self.session_store.get_or_create_session(source)
-        rows = query_session_listing(
-            self._session_db,
+        # A cross-origin listing (`/sessions all`) is honored only for an
+        # admin, mirroring the `/resume --all` override. `all` is just a parsed
+        # user argument, so without this gate any caller could run
+        # `/sessions all` and enumerate other origins' session ids / titles /
+        # previews / sources — the enumeration half of the /resume IDOR.
+        cross_origin = include_all and self._resume_caller_is_admin(source)
+        current_entry = await self.async_session_store.get_or_create_session(source)
+        rows = await asyncio.to_thread(
+            query_session_listing,
+            getattr(self._session_db, "_db", self._session_db),
             source=source.platform.value if source.platform else None,
             current_session_id=current_entry.session_id,
-            include_all_sources=include_all,
+            include_all_sources=cross_origin,
             include_unnamed=include_unnamed,
-            limit=10,
+            search_query=search_query,
+            # Search filters at SQL level, so over-fetch before the visibility
+            # cut: origin-invisible matches would otherwise consume the page.
+            limit=50 if search_query else 10,
             exclude_sources=["tool"],
         )
-        if source.platform == Platform.MATRIX and not include_all:
+        if not cross_origin:
+            # Scope the listing to the caller's own origin on every adapter so
+            # session ids/previews from other users/rooms aren't enumerable.
             rows = [
                 row for row in rows
-                if self._same_matrix_room(
-                    source, self._gateway_session_origin_for_id(str(row.get("id") or ""))
-                )
+                if await self._resume_row_visible(source, row, allow_all=False)
             ]
+        rows = rows[:10]
+        if search_query:
+            title = f"Sessions matching “{search_query}”"
+        else:
+            title = "Sessions" if include_unnamed else "Named Sessions"
         return format_gateway_session_listing(
             rows,
-            include_source=include_all,
-            title="Sessions" if include_unnamed else "Named Sessions",
+            include_source=cross_origin,
+            title=title,
         )
 
     async def _handle_branch_command(self, event: MessageEvent) -> str:
@@ -3305,15 +3778,15 @@ class GatewaySlashCommandsMixin:
         import uuid as _uuid
 
         if not self._session_db:
-            from nyxo_state import format_session_db_unavailable
+            from flash_state import format_session_db_unavailable
             return format_session_db_unavailable(prefix=t("gateway.shared.session_db_unavailable_prefix"))
 
         source = event.source
         session_key = self._session_key_for_source(source)
 
         # Load the current session and its transcript
-        current_entry = self.session_store.get_or_create_session(source)
-        history = self.session_store.load_transcript(current_entry.session_id)
+        current_entry = await self.async_session_store.get_or_create_session(source)
+        history = await self.async_session_store.load_transcript(current_entry.session_id)
         if not history:
             return t("gateway.branch.no_conversation")
 
@@ -3330,9 +3803,9 @@ class GatewaySlashCommandsMixin:
         if branch_name:
             branch_title = branch_name
         else:
-            current_title = self._session_db.get_session_title(current_entry.session_id)
+            current_title = await self._session_db.get_session_title(current_entry.session_id)
             base = current_title or "branch"
-            branch_title = self._session_db.get_next_title_in_lineage(base)
+            branch_title = await self._session_db.get_next_title_in_lineage(base)
 
         parent_session_id = current_entry.session_id
 
@@ -3342,7 +3815,7 @@ class GatewaySlashCommandsMixin:
         # /sessions even after the parent is reopened and re-ended with a
         # different end_reason (e.g. tui_shutdown overwriting 'branched').
         try:
-            self._session_db.create_session(
+            await self._session_db.create_session(
                 session_id=new_session_id,
                 source=source.platform.value if source.platform else "gateway",
                 model=(self.config.get("model", {}) or {}).get("default") if isinstance(self.config, dict) else None,
@@ -3356,7 +3829,7 @@ class GatewaySlashCommandsMixin:
         # Copy conversation history to the new session
         for msg in history:
             try:
-                self._session_db.append_message(
+                await self._session_db.append_message(
                     session_id=new_session_id,
                     role=msg.get("role", "user"),
                     content=msg.get("content"),
@@ -3375,12 +3848,12 @@ class GatewaySlashCommandsMixin:
 
         # Set title
         try:
-            self._session_db.set_session_title(new_session_id, branch_title)
+            await self._session_db.set_session_title(new_session_id, branch_title)
         except Exception:
             pass
 
         # Switch the session store entry to the new session
-        new_entry = self.session_store.switch_session(session_key, new_session_id)
+        new_entry = await self.async_session_store.switch_session(session_key, new_session_id)
         if not new_entry:
             return t("gateway.branch.switch_failed")
         self._clear_session_boundary_security_state(session_key)
@@ -3426,6 +3899,47 @@ class GatewaySlashCommandsMixin:
             lines.append("Complete your top-up in the browser — credits will appear in /credits shortly.")
         return "\n".join(lines)
 
+    def _context_breakdown_lines(self, agent, source) -> list[str]:
+        """Render the per-category context breakdown for /usage.
+
+        Estimated (chars/4) — same engine the desktop popover uses. Returns an
+        empty list and never raises on failure so /usage stays robust.
+        """
+        try:
+            from agent.context_breakdown import compute_session_context_breakdown
+
+            history: list[dict] = []
+            try:
+                entry = self.session_store.get_or_create_session(source)
+                history = self.session_store.load_transcript(entry.session_id) or []
+            except Exception:
+                history = []
+
+            payload = compute_session_context_breakdown(agent, history)
+            categories = payload.get("categories") or []
+            if not categories:
+                return []
+
+            total = payload.get("estimated_total") or 0
+            out = [t("gateway.usage.breakdown_header")]
+            for cat in categories:
+                tokens = int(cat.get("tokens") or 0)
+                if tokens <= 0:
+                    continue
+                cat_id = str(cat.get("id") or "")
+                label = t(f"gateway.usage.breakdown_cat_{cat_id}")
+                # Missing key → t() echoes the key back; fall back to the
+                # English label the engine already provides.
+                if label.endswith(f"breakdown_cat_{cat_id}"):
+                    label = str(cat.get("label") or cat_id)
+                pct = round(tokens / total * 100) if total else 0
+                out.append(
+                    t("gateway.usage.breakdown_line", label=label, count=f"{tokens:,}", pct=pct)
+                )
+            return out if len(out) > 1 else []
+        except Exception:
+            return []
+
     async def _handle_usage_command(self, event: MessageEvent) -> str:
         """Handle /usage command -- show token usage for the current session.
 
@@ -3457,8 +3971,8 @@ class GatewaySlashCommandsMixin:
         api_key = getattr(agent, "api_key", None) if agent and agent is not _AGENT_PENDING_SENTINEL else None
         if not provider and getattr(self, "_session_db", None) is not None:
             try:
-                _entry_for_billing = self.session_store.get_or_create_session(source)
-                persisted = self._session_db.get_session(_entry_for_billing.session_id) or {}
+                _entry_for_billing = await self.async_session_store.get_or_create_session(source)
+                persisted = await self._session_db.get_session(_entry_for_billing.session_id) or {}
             except Exception:
                 persisted = {}
             provider = provider or persisted.get("billing_provider")
@@ -3509,49 +4023,33 @@ class GatewaySlashCommandsMixin:
             # Session token usage — detailed breakdown matching CLI
             input_tokens = getattr(agent, "session_input_tokens", 0) or 0
             output_tokens = getattr(agent, "session_output_tokens", 0) or 0
-            cache_read = getattr(agent, "session_cache_read_tokens", 0) or 0
-            cache_write = getattr(agent, "session_cache_write_tokens", 0) or 0
 
             lines.append(t("gateway.usage.header_session"))
             lines.append(t("gateway.usage.label_model", model=agent.model))
             lines.append(t("gateway.usage.label_input_tokens", count=f"{input_tokens:,}"))
-            if cache_read:
-                lines.append(t("gateway.usage.label_cache_read", count=f"{cache_read:,}"))
-            if cache_write:
-                lines.append(t("gateway.usage.label_cache_write", count=f"{cache_write:,}"))
             lines.append(t("gateway.usage.label_output_tokens", count=f"{output_tokens:,}"))
             lines.append(t("gateway.usage.label_total", count=f"{agent.session_total_tokens:,}"))
             lines.append(t("gateway.usage.label_api_calls", count=agent.session_api_calls))
 
-            # Cost estimation
-            try:
-                from agent.usage_pricing import CanonicalUsage, estimate_usage_cost
-                cost_result = estimate_usage_cost(
-                    agent.model,
-                    CanonicalUsage(
-                        input_tokens=input_tokens,
-                        output_tokens=output_tokens,
-                        cache_read_tokens=cache_read,
-                        cache_write_tokens=cache_write,
-                    ),
-                    provider=getattr(agent, "provider", None),
-                    base_url=getattr(agent, "base_url", None),
-                )
-                if cost_result.amount_usd is not None:
-                    prefix = "~" if cost_result.status == "estimated" else ""
-                    lines.append(t("gateway.usage.label_cost", prefix=prefix, amount=f"{float(cost_result.amount_usd):.4f}"))
-                elif cost_result.status == "included":
-                    lines.append(t("gateway.usage.label_cost_included"))
-            except Exception:
-                pass
-
             # Context window and compressions
             ctx = agent.context_compressor
-            if ctx.last_prompt_tokens:
-                pct = min(100, ctx.last_prompt_tokens / ctx.context_length * 100) if ctx.context_length else 0
-                lines.append(t("gateway.usage.label_context", used=f"{ctx.last_prompt_tokens:,}", total=f"{ctx.context_length:,}", pct=f"{pct:.0f}"))
+            _lpt = ctx.last_prompt_tokens if ctx.last_prompt_tokens > 0 else 0
+            if _lpt:
+                pct = min(100, _lpt / ctx.context_length * 100) if ctx.context_length else 0
+                lines.append(t("gateway.usage.label_context", used=f"{_lpt:,}", total=f"{ctx.context_length:,}", pct=f"{pct:.0f}"))
             if ctx.compression_count:
                 lines.append(t("gateway.usage.label_compressions", count=ctx.compression_count))
+
+            # Per-category context breakdown (estimated — chars/4 heuristic).
+            # Same engine the desktop popover uses (PR #54907). The system
+            # prompt / tools / skills / memory slices read off the live agent;
+            # the conversation slice is estimated from the session transcript.
+            breakdown_lines = await asyncio.to_thread(
+                self._context_breakdown_lines, agent, source
+            )
+            if breakdown_lines:
+                lines.append("")
+                lines.extend(breakdown_lines)
 
             if account_lines:
                 lines.append("")
@@ -3563,8 +4061,8 @@ class GatewaySlashCommandsMixin:
             return "\n".join(lines)
 
         # No agent at all -- check session history for a rough count
-        session_entry = self.session_store.get_or_create_session(source)
-        history = self.session_store.load_transcript(session_entry.session_id)
+        session_entry = await self.async_session_store.get_or_create_session(source)
+        history = await self.async_session_store.load_transcript(session_entry.session_id)
         if history:
             from agent.model_metadata import estimate_messages_tokens_rough
             msgs = [m for m in history if m.get("role") in {"user", "assistant"} and m.get("content")]
@@ -3623,7 +4121,7 @@ class GatewaySlashCommandsMixin:
                     i += 1
 
         try:
-            from nyxo_state import SessionDB
+            from flash_state import SessionDB
             from agent.insights import InsightsEngine
 
             loop = asyncio.get_running_loop()
@@ -3822,7 +4320,7 @@ class GatewaySlashCommandsMixin:
             return (
                 "No skill bundles installed.\n"
                 "Create one on the host with:\n"
-                "  `nyxo bundles create <name> --skill <s1> --skill <s2>`\n"
+                "  `flash bundles create <name> --skill <s1> --skill <s2>`\n"
                 f"Directory: `{_bundles_dir()}`"
             )
 
@@ -3904,6 +4402,9 @@ class GatewaySlashCommandsMixin:
         a definitive BLOCKED message, same as the CLI deny flow.
 
         ``/deny`` denies the oldest; ``/deny all`` denies everything.
+        ``/deny <reason>`` (or ``/deny all <reason>``) attaches a one-line
+        reason that is relayed back to the agent so it can adapt instead of
+        only hearing "denied". Ported from qwibitai/nanoclaw#2832.
         """
         source = event.source
         session_key = self._session_key_for_source(source)
@@ -3918,10 +4419,24 @@ class GatewaySlashCommandsMixin:
                 return t("gateway.deny.stale")
             return t("gateway.deny.no_pending")
 
-        args = event.get_command_args().strip().lower()
-        resolve_all = "all" in args
+        # Parse args: a leading "all" token denies every pending command;
+        # anything after it (or the whole arg string when "all" is absent) is
+        # captured verbatim as the optional deny reason relayed to the agent.
+        raw_args = event.get_command_args().strip()
+        tokens = raw_args.split()
+        resolve_all = bool(tokens) and tokens[0].lower() == "all"
+        if resolve_all:
+            reason = raw_args[len(tokens[0]):].strip()
+        else:
+            reason = raw_args
+        # Cap to a sane one-liner; the agent only needs a short hint.
+        if reason:
+            reason = reason[:280].strip()
 
-        count = resolve_gateway_approval(session_key, "deny", resolve_all=resolve_all)
+        count = resolve_gateway_approval(
+            session_key, "deny", resolve_all=resolve_all,
+            reason=reason or None,
+        )
         if not count:
             return t("gateway.deny.no_pending")
 
@@ -3930,7 +4445,14 @@ class GatewaySlashCommandsMixin:
         if _adapter:
             _adapter.resume_typing_for_chat(source.chat_id)
 
-        logger.info("User denied %d dangerous command(s) via /deny", count)
+        logger.info(
+            "User denied %d dangerous command(s) via /deny%s",
+            count, " (with reason)" if reason else "",
+        )
+        if reason:
+            if count > 1:
+                return t("gateway.deny.denied_reason_plural", count=count, reason=reason)
+            return t("gateway.deny.denied_reason_singular", reason=reason)
         if count > 1:
             return t("gateway.deny.denied_plural", count=count)
         return t("gateway.deny.denied_singular")
@@ -3940,10 +4462,10 @@ class GatewaySlashCommandsMixin:
 
         Gateway uploads ONLY the summary report (system info + log tails),
         NOT full log files, to protect conversation privacy.  Users who need
-        full log uploads should use ``nyxo debug share`` from the CLI.
+        full log uploads should use ``flash debug share`` from the CLI.
         """
         import asyncio
-        from nyxo_cli.debug import (
+        from flash_cli.debug import (
             _capture_dump, collect_debug_report,
             upload_to_pastebin, _schedule_auto_delete,
             _GATEWAY_PRIVACY_NOTICE, _best_effort_sweep_expired_pastes,
@@ -3980,19 +4502,19 @@ class GatewaySlashCommandsMixin:
         return await loop.run_in_executor(None, _collect_and_upload)
 
     async def _handle_update_command(self, event: MessageEvent) -> str:
-        """Handle /update command — update Nyxo Agent to the latest version.
+        """Handle /update command — update Hermes Agent to the latest version.
 
-        Spawns ``nyxo update`` in a detached session (via ``setsid``) so it
-        survives the gateway restart that ``nyxo update`` may trigger. Marker
+        Spawns ``flash update`` in a detached session (via ``setsid``) so it
+        survives the gateway restart that ``flash update`` may trigger. Marker
         files are written so either the current gateway process or the next one
         can notify the user when the update finishes.
         """
-        from gateway.run import _nyxo_home, _resolve_nyxo_bin
+        from gateway.run import _flash_home, _resolve_flash_bin
         import json
         import shutil
         import subprocess
         from datetime import datetime
-        from nyxo_cli.config import is_managed, format_managed_message
+        from flash_cli.config import is_managed, format_managed_message
 
         # Block non-messaging platforms (API server, webhooks, ACP)
         platform = event.source.platform
@@ -4008,7 +4530,7 @@ class GatewaySlashCommandsMixin:
                 return t("gateway.update.platform_not_messaging")
 
         if is_managed():
-            return f"✗ {format_managed_message('update Nyxo Agent')}"
+            return f"✗ {format_managed_message('update Hermes Agent')}"
 
         project_root = Path(__file__).parent.parent.resolve()
         git_dir = project_root / '.git'
@@ -4016,13 +4538,13 @@ class GatewaySlashCommandsMixin:
         if not git_dir.exists():
             return t("gateway.update.not_git_repo")
 
-        nyxo_cmd = _resolve_nyxo_bin()
-        if not nyxo_cmd:
-            return t("gateway.update.nyxo_cmd_not_found")
+        flash_cmd = _resolve_flash_bin()
+        if not flash_cmd:
+            return t("gateway.update.flash_cmd_not_found")
 
-        pending_path = _nyxo_home / ".update_pending.json"
-        output_path = _nyxo_home / ".update_output.txt"
-        exit_code_path = _nyxo_home / ".update_exit_code"
+        pending_path = _flash_home / ".update_pending.json"
+        output_path = _flash_home / ".update_output.txt"
+        exit_code_path = _flash_home / ".update_exit_code"
         session_key = self._session_key_for_source(event.source)
         pending = {
             "platform": event.source.platform.value,
@@ -4041,7 +4563,7 @@ class GatewaySlashCommandsMixin:
         _tmp_pending.replace(pending_path)
         exit_code_path.unlink(missing_ok=True)
 
-        # Spawn `nyxo update --gateway` detached so it survives gateway restart.
+        # Spawn `flash update --gateway` detached so it survives gateway restart.
         # --gateway enables file-based IPC for interactive prompts (stash
         # restore, config migration) so the gateway can forward them to the
         # user instead of silently skipping them.
@@ -4049,7 +4571,7 @@ class GatewaySlashCommandsMixin:
         # where systemd-run --user fails due to missing D-Bus session).
         # PYTHONUNBUFFERED ensures output is flushed line-by-line so the
         # gateway can stream it to the messenger in near-real-time.
-        # Spawn `nyxo update --gateway` detached so it survives gateway restart.
+        # Spawn `flash update --gateway` detached so it survives gateway restart.
         # --gateway enables file-based IPC for interactive prompts (stash
         # restore, config migration) so the gateway can forward them to the
         # user instead of silently skipping them.
@@ -4058,7 +4580,7 @@ class GatewaySlashCommandsMixin:
         # PYTHONUNBUFFERED ensures output is flushed line-by-line so the
         # gateway can stream it to the messenger in near-real-time.
         #
-        # Windows: no bash/setsid chain.  Run `nyxo update --gateway`
+        # Windows: no bash/setsid chain.  Run `flash update --gateway`
         # directly via sys.executable; redirect stdout/stderr to the same
         # output files via Popen file handles; write the exit code in a
         # follow-up write.  A tiny Python watcher would be cleaner but
@@ -4068,9 +4590,9 @@ class GatewaySlashCommandsMixin:
         try:
             if sys.platform == "win32":
                 import textwrap
-                from nyxo_cli._subprocess_compat import windows_detach_popen_kwargs
+                from flash_cli._subprocess_compat import windows_detach_popen_kwargs
 
-                # nyxo_cmd is a list of argv parts we can pass directly
+                # flash_cmd is a list of argv parts we can pass directly
                 # (no shell-quoting needed).
                 helper = textwrap.dedent(
                     """
@@ -4091,16 +4613,16 @@ class GatewaySlashCommandsMixin:
                     [
                         sys.executable, "-c", helper,
                         str(output_path), str(exit_code_path),
-                        *nyxo_cmd, "update", "--gateway",
+                        *flash_cmd, "update", "--gateway",
                     ],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     **windows_detach_popen_kwargs(),
                 )
             else:
-                nyxo_cmd_str = " ".join(shlex.quote(part) for part in nyxo_cmd)
+                flash_cmd_str = " ".join(shlex.quote(part) for part in flash_cmd)
                 update_cmd = (
-                    f"PYTHONUNBUFFERED=1 {nyxo_cmd_str} update --gateway"
+                    f"PYTHONUNBUFFERED=1 {flash_cmd_str} update --gateway"
                     f" > {shlex.quote(str(output_path))} 2>&1; "
                     # Avoid `status=$?`: `status` is a read-only special parameter
                     # in zsh, and this command string is copied/reused in macOS/zsh

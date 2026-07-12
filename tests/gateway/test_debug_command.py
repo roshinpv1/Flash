@@ -35,11 +35,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("nyxo_cli.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
-             patch("nyxo_cli.debug._capture_dump", return_value="dump"), \
-             patch("nyxo_cli.debug.collect_debug_report", return_value="report"), \
-             patch("nyxo_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
-             patch("nyxo_cli.debug._schedule_auto_delete"):
+        with patch("flash_cli.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
+             patch("flash_cli.debug._capture_dump", return_value="dump"), \
+             patch("flash_cli.debug.collect_debug_report", return_value="report"), \
+             patch("flash_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
+             patch("flash_cli.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         mock_sweep.assert_called_once()
@@ -50,11 +50,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("nyxo_cli.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
-             patch("nyxo_cli.debug._capture_dump", return_value="dump"), \
-             patch("nyxo_cli.debug.collect_debug_report", return_value="report"), \
-             patch("nyxo_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
-             patch("nyxo_cli.debug._schedule_auto_delete"):
+        with patch("flash_cli.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
+             patch("flash_cli.debug._capture_dump", return_value="dump"), \
+             patch("flash_cli.debug.collect_debug_report", return_value="report"), \
+             patch("flash_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
+             patch("flash_cli.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         assert "https://paste.rs/report" in result

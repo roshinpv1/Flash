@@ -28,9 +28,9 @@ def _make_adapter(require_mention=None, mention_patterns=None, free_response_cha
     adapter.platform = Platform.WHATSAPP
     adapter.config = PlatformConfig(enabled=True, extra=extra)
     adapter._message_handler = AsyncMock()
-    adapter._dm_policy = str(extra.get("dm_policy", "open")).strip().lower()
+    adapter._dm_policy = str(extra.get("dm_policy", "pairing")).strip().lower()
     adapter._allow_from = WhatsAppAdapter._coerce_allow_list(extra.get("allow_from"))
-    adapter._group_policy = str(extra.get("group_policy", "open")).strip().lower()
+    adapter._group_policy = str(extra.get("group_policy", "pairing")).strip().lower()
     adapter._group_allow_from = WhatsAppAdapter._coerce_allow_list(extra.get("group_allow_from"))
     adapter._mention_patterns = adapter._compile_mention_patterns()
     adapter._free_response_chats = adapter._whatsapp_free_response_chats()
@@ -66,13 +66,13 @@ def _dm_message(body="hello", **overrides):
 # --- Existing tests (unchanged logic, updated helper) ---
 
 def test_group_messages_can_be_opened_via_config():
-    adapter = _make_adapter(require_mention=False)
+    adapter = _make_adapter(require_mention=False, group_policy="open")
 
     assert adapter._should_process_message(_group_message("hello everyone")) is True
 
 
 def test_group_messages_can_require_direct_trigger_via_config():
-    adapter = _make_adapter(require_mention=True)
+    adapter = _make_adapter(require_mention=True, group_policy="open")
 
     assert adapter._should_process_message(_group_message("hello everyone")) is False
     assert adapter._should_process_message(
@@ -91,7 +91,11 @@ def test_group_messages_can_require_direct_trigger_via_config():
 
 
 def test_regex_mention_patterns_allow_custom_wake_words():
-    adapter = _make_adapter(require_mention=True, mention_patterns=[r"^\s*chompy\b"])
+    adapter = _make_adapter(
+        require_mention=True,
+        mention_patterns=[r"^\s*chompy\b"],
+        group_policy="open",
+    )
 
     assert adapter._should_process_message(_group_message("chompy status")) is True
     assert adapter._should_process_message(_group_message("   chompy help")) is True
@@ -99,16 +103,20 @@ def test_regex_mention_patterns_allow_custom_wake_words():
 
 
 def test_invalid_regex_patterns_are_ignored():
-    adapter = _make_adapter(require_mention=True, mention_patterns=[r"(", r"^\s*chompy\b"])
+    adapter = _make_adapter(
+        require_mention=True,
+        mention_patterns=[r"(", r"^\s*chompy\b"],
+        group_policy="open",
+    )
 
     assert adapter._should_process_message(_group_message("chompy status")) is True
     assert adapter._should_process_message(_group_message("hello everyone")) is False
 
 
 def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "whatsapp:\n"
         "  require_mention: true\n"
         "  mention_patterns:\n"
@@ -116,7 +124,7 @@ def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("WHATSAPP_REQUIRE_MENTION", raising=False)
     monkeypatch.delenv("WHATSAPP_MENTION_PATTERNS", raising=False)
 
@@ -133,6 +141,7 @@ def test_free_response_chats_bypass_mention_gating():
     adapter = _make_adapter(
         require_mention=True,
         free_response_chats=["120363001234567890@g.us"],
+        group_policy="open",
     )
 
     assert adapter._should_process_message(_group_message("hello everyone")) is True
@@ -142,12 +151,13 @@ def test_free_response_chats_does_not_bypass_other_groups():
     adapter = _make_adapter(
         require_mention=True,
         free_response_chats=["999999999999@g.us"],
+        group_policy="open",
     )
 
     assert adapter._should_process_message(_group_message("hello everyone")) is False
 
 
-def test_dm_passes_with_default_open_policy():
+def test_dm_passes_with_default_pairing_policy():
     adapter = _make_adapter(require_mention=True)
 
     dm = _dm_message("hello")
@@ -180,7 +190,11 @@ def test_dm_policy_disabled_blocks_all_dms():
 
 
 def test_dm_policy_disabled_still_allows_groups():
-    adapter = _make_adapter(dm_policy="disabled", require_mention=False)
+    adapter = _make_adapter(
+        dm_policy="disabled",
+        require_mention=False,
+        group_policy="open",
+    )
 
     assert adapter._should_process_message(_group_message("hello")) is True
 
@@ -197,9 +211,31 @@ def test_dm_policy_allowlist_allows_listed_sender():
     assert adapter._should_process_message(_dm_message("hello")) is True
 
 
-def test_dm_policy_open_allows_all_dms():
+def test_dm_policy_open_allows_all_dms_with_opt_in(monkeypatch):
+    monkeypatch.setenv("GATEWAY_ALLOW_ALL_USERS", "true")
     adapter = _make_adapter(dm_policy="open")
 
+    assert adapter._should_process_message(_dm_message("hello")) is True
+
+
+def test_dm_policy_open_blocked_without_opt_in():
+    adapter = _make_adapter(dm_policy="open")
+
+    assert adapter._is_dm_allowed("6281234567890@s.whatsapp.net") is False
+    assert adapter._should_process_message(_dm_message("hello")) is False
+
+
+def test_dm_policy_pairing_strict_auth_denies_unknown():
+    adapter = _make_adapter()
+
+    assert adapter._dm_policy == "pairing"
+    assert adapter._is_dm_allowed("6281234567890@s.whatsapp.net") is False
+
+
+def test_dm_policy_pairing_still_forwards_to_gateway_intake():
+    adapter = _make_adapter()
+
+    assert adapter._is_dm_intake_allowed("6281234567890@s.whatsapp.net") is True
     assert adapter._should_process_message(_dm_message("hello")) is True
 
 
@@ -244,12 +280,20 @@ def test_group_policy_open_allows_all_groups():
     assert adapter._should_process_message(_group_message("/status")) is True
 
 
+def test_group_policy_pairing_default_blocks_groups():
+    adapter = _make_adapter()
+
+    assert adapter._group_policy == "pairing"
+    assert adapter._is_group_allowed("120363001234567890@g.us") is False
+    assert adapter._should_process_message(_group_message("hello")) is False
+
+
 # --- Config bridging tests ---
 
 def test_config_bridges_whatsapp_dm_and_group_policy(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "whatsapp:\n"
         "  dm_policy: disabled\n"
         "  group_policy: allowlist\n"
@@ -258,7 +302,7 @@ def test_config_bridges_whatsapp_dm_and_group_policy(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("WHATSAPP_DM_POLICY", raising=False)
     monkeypatch.delenv("WHATSAPP_GROUP_POLICY", raising=False)
     monkeypatch.delenv("WHATSAPP_GROUP_ALLOWED_USERS", raising=False)
@@ -275,9 +319,9 @@ def test_config_bridges_whatsapp_dm_and_group_policy(monkeypatch, tmp_path):
 
 
 def test_config_bridges_whatsapp_allow_from(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "whatsapp:\n"
         "  dm_policy: allowlist\n"
         "  allow_from:\n"
@@ -285,7 +329,7 @@ def test_config_bridges_whatsapp_allow_from(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("WHATSAPP_DM_POLICY", raising=False)
     monkeypatch.delenv("WHATSAPP_ALLOWED_USERS", raising=False)
 
@@ -347,7 +391,7 @@ def test_broadcast_filter_runs_before_allowlist():
 
 def test_real_dm_still_processed_after_broadcast_filter():
     """Sanity check: the broadcast filter doesn't accidentally drop real DMs."""
-    adapter = _make_adapter(dm_policy="open")
+    adapter = _make_adapter(dm_policy="pairing")
 
     msg = _dm_message(
         body="hello",

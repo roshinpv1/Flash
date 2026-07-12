@@ -1,13 +1,13 @@
-"""Tests for the cross-Nyxo-profile write guard in agent/file_safety.
+"""Tests for the cross-Hermes-profile write guard in agent/file_safety.
 
-The guard fires when a tool tries to write into another Nyxo profile's
+The guard fires when a tool tries to write into another Hermes profile's
 skills/plugins/cron/memories directory. It's a soft guard — defense in
 depth, NOT a security boundary — but it prevents the agent from silently
 corrupting a profile that belongs to a different session.
 
-Reference: May 2026 incident — a nyxo-security profile session
-accidentally edited skills under both ~/.nyxo/profiles/nyxo-security/skills/
-AND ~/.nyxo/skills/ (the default profile's skills), realizing only
+Reference: May 2026 incident — a flash-security profile session
+accidentally edited skills under both ~/.flash/profiles/flash-security/skills/
+AND ~/.flash/skills/ (the default profile's skills), realizing only
 afterwards that the second path belonged to a different profile.
 """
 from __future__ import annotations
@@ -18,14 +18,14 @@ import pytest
 
 
 # ---------------------------------------------------------------------------
-# Helpers — set up a fake Nyxo root with two profiles, monkeypatch the
+# Helpers — set up a fake Hermes root with two profiles, monkeypatch the
 # resolver helpers so the classifier sees the test layout.
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
-def fake_nyxo(tmp_path, monkeypatch):
-    """Build a fake Nyxo layout:
+def fake_flash(tmp_path, monkeypatch):
+    """Build a fake Hermes layout:
 
         <tmp>/
           skills/foo/SKILL.md           # default profile
@@ -33,20 +33,20 @@ def fake_nyxo(tmp_path, monkeypatch):
           cron/<state>
           memories/MEMORY.md
           profiles/
-            nyxo-security/
+            flash-security/
               skills/foo/SKILL.md       # named profile
               plugins/...
             coder/
               skills/foo/SKILL.md       # another named profile
     """
-    root = tmp_path / "fake-nyxo"
+    root = tmp_path / "fake-flash"
     (root / "skills" / "foo").mkdir(parents=True)
     (root / "skills" / "foo" / "SKILL.md").write_text("# default skill\n")
     (root / "plugins" / "foo").mkdir(parents=True)
     (root / "memories").mkdir(parents=True)
     (root / "cron").mkdir(parents=True)
 
-    sec_home = root / "profiles" / "nyxo-security"
+    sec_home = root / "profiles" / "flash-security"
     (sec_home / "skills" / "foo").mkdir(parents=True)
     (sec_home / "skills" / "foo" / "SKILL.md").write_text("# sec skill\n")
     (sec_home / "plugins").mkdir(parents=True)
@@ -57,12 +57,12 @@ def fake_nyxo(tmp_path, monkeypatch):
 
     # Monkeypatch the resolver functions used by file_safety so each test
     # can choose which profile is "active".
-    import nyxo_constants
-    monkeypatch.setattr(nyxo_constants, "get_default_nyxo_root", lambda: root)
+    import flash_constants
+    monkeypatch.setattr(flash_constants, "get_default_flash_root", lambda: root)
 
     # The reloads below ensure get_cross_profile_warning/classify see the patched root.
     import agent.file_safety as fs
-    monkeypatch.setattr(fs, "_nyxo_root_path", lambda: root)
+    monkeypatch.setattr(fs, "_flash_root_path", lambda: root)
 
     return {
         "root": root,
@@ -72,10 +72,10 @@ def fake_nyxo(tmp_path, monkeypatch):
     }
 
 
-def _set_active_home(monkeypatch, nyxo_home: Path):
-    """Point file_safety._nyxo_home_path at a specific profile dir."""
+def _set_active_home(monkeypatch, flash_home: Path):
+    """Point file_safety._flash_home_path at a specific profile dir."""
     import agent.file_safety as fs
-    monkeypatch.setattr(fs, "_nyxo_home_path", lambda: nyxo_home)
+    monkeypatch.setattr(fs, "_flash_home_path", lambda: flash_home)
 
 
 # ---------------------------------------------------------------------------
@@ -84,24 +84,24 @@ def _set_active_home(monkeypatch, nyxo_home: Path):
 
 
 class TestResolveActiveProfileName:
-    def test_default_when_home_is_root(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["default_home"])
+    def test_default_when_home_is_root(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["default_home"])
         from agent.file_safety import _resolve_active_profile_name
         assert _resolve_active_profile_name() == "default"
 
-    def test_named_profile(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_named_profile(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import _resolve_active_profile_name
-        assert _resolve_active_profile_name() == "nyxo-security"
+        assert _resolve_active_profile_name() == "flash-security"
 
-    def test_falls_back_to_default_on_resolution_failure(self, fake_nyxo, monkeypatch):
-        """If NYXO_HOME resolution raises, return 'default' rather than crashing the tool."""
+    def test_falls_back_to_default_on_resolution_failure(self, fake_flash, monkeypatch):
+        """If HERMES_HOME resolution raises, return 'default' rather than crashing the tool."""
         import agent.file_safety as fs
 
         def _boom():
             raise RuntimeError("simulated")
 
-        monkeypatch.setattr(fs, "_nyxo_home_path", _boom)
+        monkeypatch.setattr(fs, "_flash_home_path", _boom)
         # Should not raise — falls back to "default"
         assert fs._resolve_active_profile_name() == "default"
 
@@ -112,69 +112,69 @@ class TestResolveActiveProfileName:
 
 
 class TestClassifyCrossProfileTarget:
-    def test_same_profile_write_returns_none(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_same_profile_write_returns_none(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
         result = classify_cross_profile_target(
-            str(fake_nyxo["security_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["security_home"] / "skills" / "foo" / "SKILL.md")
         )
         assert result is None
 
-    def test_security_writing_default_skill(self, fake_nyxo, monkeypatch):
+    def test_security_writing_default_skill(self, fake_flash, monkeypatch):
         """The exact incident from May 2026."""
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
         result = classify_cross_profile_target(
-            str(fake_nyxo["default_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["default_home"] / "skills" / "foo" / "SKILL.md")
         )
         assert result is not None
-        assert result["active_profile"] == "nyxo-security"
+        assert result["active_profile"] == "flash-security"
         assert result["target_profile"] == "default"
         assert result["area"] == "skills"
 
-    def test_default_writing_security_skill(self, fake_nyxo, monkeypatch):
+    def test_default_writing_security_skill(self, fake_flash, monkeypatch):
         """Inverse direction — default-profile session reaching into a named profile."""
-        _set_active_home(monkeypatch, fake_nyxo["default_home"])
+        _set_active_home(monkeypatch, fake_flash["default_home"])
         from agent.file_safety import classify_cross_profile_target
         result = classify_cross_profile_target(
-            str(fake_nyxo["security_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["security_home"] / "skills" / "foo" / "SKILL.md")
         )
         assert result is not None
         assert result["active_profile"] == "default"
-        assert result["target_profile"] == "nyxo-security"
+        assert result["target_profile"] == "flash-security"
 
-    def test_named_to_named_cross_profile(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_named_to_named_cross_profile(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
         result = classify_cross_profile_target(
-            str(fake_nyxo["coder_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["coder_home"] / "skills" / "foo" / "SKILL.md")
         )
         assert result is not None
         assert result["target_profile"] == "coder"
 
     @pytest.mark.parametrize("area", ["skills", "plugins", "cron", "memories"])
-    def test_all_profile_scoped_areas_classified(self, fake_nyxo, monkeypatch, area):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_all_profile_scoped_areas_classified(self, fake_flash, monkeypatch, area):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
-        target = fake_nyxo["default_home"] / area / "foo.txt"
+        target = fake_flash["default_home"] / area / "foo.txt"
         result = classify_cross_profile_target(str(target))
         assert result is not None
         assert result["area"] == area
 
-    def test_non_nyxo_path_returns_none(self, fake_nyxo, monkeypatch, tmp_path):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_non_flash_path_returns_none(self, fake_flash, monkeypatch, tmp_path):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
-        # Path outside any Nyxo root
+        # Path outside any Hermes root
         assert classify_cross_profile_target(str(tmp_path / "random.txt")) is None
 
-    def test_nyxo_config_not_classified_as_cross_profile(self, fake_nyxo, monkeypatch):
+    def test_flash_config_not_classified_as_cross_profile(self, fake_flash, monkeypatch):
         """Files under <root>/config.yaml or <root>/.env are NOT profile-scoped
         (already covered by build_write_denied_paths). Don't double-warn."""
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import classify_cross_profile_target
         # config.yaml at root level is not in PROFILE_SCOPED_AREAS
         result = classify_cross_profile_target(
-            str(fake_nyxo["default_home"] / "config.yaml")
+            str(fake_flash["default_home"] / "config.yaml")
         )
         assert result is None
 
@@ -185,33 +185,33 @@ class TestClassifyCrossProfileTarget:
 
 
 class TestGetCrossProfileWarning:
-    def test_in_profile_returns_none(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_in_profile_returns_none(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import get_cross_profile_warning
         assert get_cross_profile_warning(
-            str(fake_nyxo["security_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["security_home"] / "skills" / "foo" / "SKILL.md")
         ) is None
 
-    def test_cross_profile_warning_names_both_profiles(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_cross_profile_warning_names_both_profiles(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import get_cross_profile_warning
         warn = get_cross_profile_warning(
-            str(fake_nyxo["default_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["default_home"] / "skills" / "foo" / "SKILL.md")
         )
         assert warn is not None
         # Must name BOTH profiles so the model knows which is which.
         assert "default" in warn
-        assert "nyxo-security" in warn
+        assert "flash-security" in warn
         # Must name the bypass kwarg.
         assert "cross_profile=True" in warn
         # Must reference the area.
         assert "skills" in warn
 
-    def test_warning_is_defense_in_depth_not_boundary(self, fake_nyxo, monkeypatch):
-        _set_active_home(monkeypatch, fake_nyxo["security_home"])
+    def test_warning_is_defense_in_depth_not_boundary(self, fake_flash, monkeypatch):
+        _set_active_home(monkeypatch, fake_flash["security_home"])
         from agent.file_safety import get_cross_profile_warning
         warn = get_cross_profile_warning(
-            str(fake_nyxo["default_home"] / "skills" / "foo" / "SKILL.md")
+            str(fake_flash["default_home"] / "skills" / "foo" / "SKILL.md")
         )
         # Must self-document as defense-in-depth so future reviewers
         # don't promote it to a hard block.

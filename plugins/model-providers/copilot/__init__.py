@@ -30,13 +30,13 @@ class CopilotProfile(ProviderProfile):
         extra_body: dict[str, Any] = {}
         if supports_reasoning and model:
             try:
-                from nyxo_cli.models import github_model_reasoning_efforts
+                from hermes_cli.models import github_model_reasoning_efforts
 
                 supported_efforts = github_model_reasoning_efforts(model)
                 if supported_efforts and reasoning_config:
                     effort = reasoning_config.get("effort", "medium")
-                    # Normalize non-standard effort levels to the nearest supported
-                    if effort == "xhigh":
+                    # Normalize stronger generic levels to the nearest supported.
+                    if effort in {"xhigh", "max", "ultra"}:
                         effort = "high"
                     if effort in supported_efforts:
                         extra_body["reasoning"] = {"effort": effort}

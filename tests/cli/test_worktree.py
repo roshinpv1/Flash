@@ -118,8 +118,8 @@ def _setup_worktree(repo_root):
     """Test version of _setup_worktree — creates a worktree."""
     import uuid
     short_id = uuid.uuid4().hex[:8]
-    wt_name = f"nyxo-{short_id}"
-    branch_name = f"nyxo/{wt_name}"
+    wt_name = f"flash-{short_id}"
+    branch_name = f"flash/{wt_name}"
 
     worktrees_dir = Path(repo_root) / ".worktrees"
     worktrees_dir.mkdir(parents=True, exist_ok=True)
@@ -223,7 +223,7 @@ class TestWorktreeCreation:
         info = _setup_worktree(str(git_repo))
         assert info is not None
         assert Path(info["path"]).exists()
-        assert info["branch"].startswith("nyxo/nyxo-")
+        assert info["branch"].startswith("flash/flash-")
         assert info["repo_root"] == str(git_repo)
 
         # Verify it's a valid git worktree
@@ -364,7 +364,7 @@ class TestWorktreeCleanup:
         """Cleanup should handle already-removed worktrees gracefully."""
         info = {
             "path": str(git_repo / ".worktrees" / "nonexistent"),
-            "branch": "nyxo/nonexistent",
+            "branch": "flash/nonexistent",
             "repo_root": str(git_repo),
         }
         # Should not raise
@@ -563,7 +563,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("nyxo-"):
+            if not entry.is_dir() or not entry.name.startswith("flash-"):
                 continue
             try:
                 mtime = entry.stat().st_mtime
@@ -609,7 +609,7 @@ class TestStaleWorktreePruning:
 
         pruned = False
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("nyxo-"):
+            if not entry.is_dir() or not entry.name.startswith("flash-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -658,7 +658,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("nyxo-"):
+            if not entry.is_dir() or not entry.name.startswith("flash-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -700,7 +700,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("nyxo-"):
+            if not entry.is_dir() or not entry.name.startswith("flash-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -863,22 +863,22 @@ class TestTerminalCWDIntegration:
 
 
 class TestOrphanedBranchPruning:
-    """Test cleanup of orphaned nyxo/* and pr-* branches."""
+    """Test cleanup of orphaned flash/* and pr-* branches."""
 
-    def test_prunes_orphaned_nyxo_branch(self, git_repo):
-        """nyxo/nyxo-* branches with no worktree should be deleted."""
+    def test_prunes_orphaned_flash_branch(self, git_repo):
+        """flash/flash-* branches with no worktree should be deleted."""
         # Create a branch that looks like a worktree branch but has no worktree
         subprocess.run(
-            ["git", "branch", "nyxo/nyxo-deadbeef", "HEAD"],
+            ["git", "branch", "flash/flash-deadbeef", "HEAD"],
             cwd=str(git_repo), capture_output=True,
         )
 
         # Verify it exists
         result = subprocess.run(
-            ["git", "branch", "--list", "nyxo/nyxo-deadbeef"],
+            ["git", "branch", "--list", "flash/flash-deadbeef"],
             capture_output=True, text=True, cwd=str(git_repo),
         )
-        assert "nyxo/nyxo-deadbeef" in result.stdout
+        assert "flash/flash-deadbeef" in result.stdout
 
         # Simulate _prune_orphaned_branches logic
         result = subprocess.run(
@@ -899,9 +899,9 @@ class TestOrphanedBranchPruning:
         orphaned = [
             b for b in all_branches
             if b not in active_branches
-            and (b.startswith("nyxo/nyxo-") or b.startswith("pr-"))
+            and (b.startswith("flash/flash-") or b.startswith("pr-"))
         ]
-        assert "nyxo/nyxo-deadbeef" in orphaned
+        assert "flash/flash-deadbeef" in orphaned
 
         # Delete them
         if orphaned:
@@ -912,10 +912,10 @@ class TestOrphanedBranchPruning:
 
         # Verify gone
         result = subprocess.run(
-            ["git", "branch", "--list", "nyxo/nyxo-deadbeef"],
+            ["git", "branch", "--list", "flash/flash-deadbeef"],
             capture_output=True, text=True, cwd=str(git_repo),
         )
-        assert "nyxo/nyxo-deadbeef" not in result.stdout
+        assert "flash/flash-deadbeef" not in result.stdout
 
     def test_prunes_orphaned_pr_branch(self, git_repo):
         """pr-* branches should be deleted during pruning."""
@@ -984,7 +984,7 @@ class TestOrphanedBranchPruning:
         orphaned = [
             b for b in all_branches
             if b not in active_branches
-            and (b.startswith("nyxo/nyxo-") or b.startswith("pr-"))
+            and (b.startswith("flash/flash-") or b.startswith("pr-"))
         ]
         assert "main" not in orphaned
 
@@ -1011,3 +1011,138 @@ class TestSystemPromptInjection:
         assert info["repo_root"] in wt_note
         assert "isolated git worktree" in wt_note
         assert "commit and push" in wt_note
+
+
+class TestWorktreeLockReaping:
+    """Exercise the REAL cli._prune_stale_worktrees lock/dirty/unpushed logic.
+
+    Unlike the reimplementation-based tests above, these import the actual
+    production functions so the behavior contract is enforced against the
+    shipped code:
+
+    - live-locked (owning pid running)  -> never reaped, any age
+    - dead-locked clean (owning pid gone) -> unlocked + reaped (fixes the
+      accumulation bug: `git worktree remove --force` refuses a locked tree)
+    - dirty (uncommitted) at >72h        -> preserved
+    - unpushed commits at any age        -> preserved
+    - clean/unlocked stale               -> reaped (aggressive cleanup intact)
+    """
+
+    @staticmethod
+    def _age(path, hours):
+        import time
+        t = time.time() - (hours * 3600)
+        os.utime(path, (t, t))
+
+    @staticmethod
+    def _mk(cli, repo, name, pid=None, dirty=False, unpushed=False, age_h=100):
+        p = repo / ".worktrees" / name
+        (repo / ".worktrees").mkdir(exist_ok=True)
+        subprocess.run(
+            ["git", "worktree", "add", str(p), "-b", f"flash/{name}", "HEAD"],
+            cwd=repo, capture_output=True,
+        )
+        if pid is not None:
+            subprocess.run(
+                ["git", "worktree", "lock", "--reason", f"flash pid={pid}", str(p)],
+                cwd=repo, capture_output=True,
+            )
+        if unpushed:
+            (p / "work.txt").write_text("x")
+            subprocess.run(["git", "add", "work.txt"], cwd=p, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "wip"], cwd=p, capture_output=True)
+        if dirty:
+            (p / "dirty.txt").write_text("uncommitted")
+        TestWorktreeLockReaping._age(p, age_h)
+        return p
+
+    def test_live_locked_survives_at_any_age(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-live", pid=os.getpid())
+        cli._prune_stale_worktrees(str(git_repo))
+        assert wt.exists(), "live-locked worktree (this pid) must never be reaped"
+
+    def test_dead_locked_clean_is_reaped(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-dead", pid=999999)
+        # sanity: this is the accumulation bug — remove --force alone can't do it
+        assert cli._worktree_lock_is_live(str(git_repo), str(wt)) == "dead"
+        cli._prune_stale_worktrees(str(git_repo))
+        assert not wt.exists(), "dead-locked clean worktree should be unlocked + reaped"
+
+    def test_dead_locked_dirty_survives(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-deaddirty", pid=999999, dirty=True)
+        cli._prune_stale_worktrees(str(git_repo))
+        assert wt.exists(), "dead-locked worktree with uncommitted work must survive"
+
+    def test_dead_locked_unpushed_survives(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-deadunp", pid=999999, unpushed=True)
+        cli._prune_stale_worktrees(str(git_repo))
+        assert wt.exists(), "dead-locked worktree with unpushed commits must survive"
+
+    def test_unlocked_clean_stale_is_reaped(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-nolock", pid=None)
+        cli._prune_stale_worktrees(str(git_repo))
+        assert not wt.exists(), "clean unlocked stale worktree should be reaped"
+
+    def test_dirty_survives_over_72h(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-dirty72", pid=None, dirty=True, age_h=100)
+        cli._prune_stale_worktrees(str(git_repo))
+        assert wt.exists(), "dirty worktree must survive even past the 72h tier"
+
+    def test_recent_worktree_untouched(self, git_repo):
+        import cli
+        wt = self._mk(cli, git_repo, "flash-fresh", pid=None, age_h=1)
+        cli._prune_stale_worktrees(str(git_repo))
+        assert wt.exists(), "worktree under 24h must never be pruned"
+
+
+class TestWorktreeLockPredicate:
+    """_worktree_lock_is_live classification (real cli helper)."""
+
+    def _mk_locked(self, repo, name, reason):
+        p = repo / ".worktrees" / name
+        (repo / ".worktrees").mkdir(exist_ok=True)
+        subprocess.run(
+            ["git", "worktree", "add", str(p), "-b", f"flash/{name}", "HEAD"],
+            cwd=repo, capture_output=True,
+        )
+        subprocess.run(
+            ["git", "worktree", "lock", "--reason", reason, str(p)],
+            cwd=repo, capture_output=True,
+        )
+        return p
+
+    def test_unlocked_returns_none(self, git_repo):
+        import cli
+        p = git_repo / ".worktrees" / "flash-x"
+        (git_repo / ".worktrees").mkdir(exist_ok=True)
+        subprocess.run(
+            ["git", "worktree", "add", str(p), "-b", "flash/flash-x", "HEAD"],
+            cwd=git_repo, capture_output=True,
+        )
+        assert cli._worktree_lock_is_live(str(git_repo), str(p)) is None
+
+    def test_live_pid_returns_live(self, git_repo):
+        import cli
+        p = self._mk_locked(git_repo, "flash-live", f"flash pid={os.getpid()}")
+        assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "live"
+
+    def test_dead_pid_returns_dead(self, git_repo):
+        import cli
+        p = self._mk_locked(git_repo, "flash-dead", "flash pid=999999")
+        assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "dead"
+
+    def test_foreign_lock_reason_returns_dead(self, git_repo):
+        import cli
+        p = self._mk_locked(git_repo, "flash-foreign", "some other tool")
+        assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "dead"
+
+    def test_bad_repo_root_fails_safe_to_live(self, tmp_path):
+        import cli
+        # Not a git repo -> git query fails -> must report "live" (never delete)
+        assert cli._worktree_lock_is_live(str(tmp_path), str(tmp_path / "x")) == "live"

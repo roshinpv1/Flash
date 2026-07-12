@@ -187,7 +187,7 @@ describe('supportsFastEchoTerminal', () => {
     expect(
       supportsFastEchoTerminal({
         TMUX: '/tmp/tmux-1000/default,1234,0',
-        NYXO_TUI_TERMUX_FAST_ECHO: '1',
+        HERMES_TUI_TERMUX_FAST_ECHO: '1',
         TERMUX_VERSION: '0.118.0'
       } as NodeJS.ProcessEnv)
     ).toBe(false)
@@ -217,14 +217,17 @@ describe('supportsFastEchoTerminal', () => {
 
   it('disables fast-echo by default in Termux mode', () => {
     expect(
-      supportsFastEchoTerminal({ TERMUX_VERSION: '0.118.0', PREFIX: '/data/data/com.termux/files/usr' } as NodeJS.ProcessEnv)
+      supportsFastEchoTerminal({
+        TERMUX_VERSION: '0.118.0',
+        PREFIX: '/data/data/com.termux/files/usr'
+      } as NodeJS.ProcessEnv)
     ).toBe(false)
   })
 
   it('allows explicit Termux fast-echo opt-in via env override', () => {
     expect(
       supportsFastEchoTerminal({
-        NYXO_TUI_TERMUX_FAST_ECHO: '1',
+        HERMES_TUI_TERMUX_FAST_ECHO: '1',
         TERMUX_VERSION: '0.118.0'
       } as NodeJS.ProcessEnv)
     ).toBe(true)

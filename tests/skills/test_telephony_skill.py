@@ -27,7 +27,7 @@ def load_module():
 
 def test_save_twilio_writes_env_and_state(tmp_path: Path, monkeypatch):
     mod = load_module()
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path / ".nyxo"))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".flash"))
 
     result = mod.save_twilio(
         "AC123",
@@ -36,8 +36,8 @@ def test_save_twilio_writes_env_and_state(tmp_path: Path, monkeypatch):
         phone_sid="PN123",
     )
 
-    env_text = (tmp_path / ".nyxo" / ".env").read_text(encoding="utf-8")
-    state = json.loads((tmp_path / ".nyxo" / "telephony_state.json").read_text(encoding="utf-8"))
+    env_text = (tmp_path / ".flash" / ".env").read_text(encoding="utf-8")
+    state = json.loads((tmp_path / ".flash" / "telephony_state.json").read_text(encoding="utf-8"))
 
     assert result["success"] is True
     assert "TWILIO_ACCOUNT_SID=AC123" in env_text
@@ -198,8 +198,8 @@ def test_vapi_import_twilio_number_saves_phone_number_id(tmp_path: Path):
 
 def test_diagnose_includes_decision_tree_and_saved_state(tmp_path: Path, monkeypatch):
     mod = load_module()
-    nyxo_home = tmp_path / ".nyxo"
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    flash_home = tmp_path / ".flash"
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     mod._save_state(
         {
             "version": 1,
@@ -211,10 +211,10 @@ def test_diagnose_includes_decision_tree_and_saved_state(tmp_path: Path, monkeyp
                 "phone_number_id": "vapi-abc",
             },
         },
-        nyxo_home / "telephony_state.json",
+        flash_home / "telephony_state.json",
     )
-    (nyxo_home / ".env").parent.mkdir(parents=True, exist_ok=True)
-    (nyxo_home / ".env").write_text(
+    (flash_home / ".env").parent.mkdir(parents=True, exist_ok=True)
+    (flash_home / ".env").write_text(
         "TWILIO_ACCOUNT_SID=AC123\nTWILIO_AUTH_TOKEN=token\nBLAND_API_KEY=bland\n",
         encoding="utf-8",
     )

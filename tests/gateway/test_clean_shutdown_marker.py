@@ -1,6 +1,6 @@
 """Tests for the clean shutdown marker that prevents unwanted session auto-resets.
 
-When the gateway shuts down gracefully (nyxo update, gateway restart, /restart),
+When the gateway shuts down gracefully (flash update, gateway restart, /restart),
 it writes a .clean_shutdown marker.  On the next startup, if the marker exists,
 suspend_recently_active() is skipped so users don't lose their sessions.
 
@@ -91,7 +91,7 @@ class TestCleanShutdownMarker:
 
     def test_marker_written_on_graceful_stop(self, tmp_path, monkeypatch):
         """stop() should write .clean_shutdown marker."""
-        monkeypatch.setattr("gateway.run._nyxo_home", tmp_path)
+        monkeypatch.setattr("gateway.run._flash_home", tmp_path)
         marker = tmp_path / ".clean_shutdown"
         assert not marker.exists()
 
@@ -133,7 +133,7 @@ class TestCleanShutdownMarker:
 
     def test_marker_skips_suspension_on_startup(self, tmp_path, monkeypatch):
         """If .clean_shutdown exists, suspend_recently_active should NOT be called."""
-        monkeypatch.setattr("gateway.run._nyxo_home", tmp_path)
+        monkeypatch.setattr("gateway.run._flash_home", tmp_path)
 
         # Create the marker
         marker = tmp_path / ".clean_shutdown"
@@ -162,7 +162,7 @@ class TestCleanShutdownMarker:
 
     def test_no_marker_triggers_suspension(self, tmp_path, monkeypatch):
         """Without .clean_shutdown marker (crash), suspension should fire."""
-        monkeypatch.setattr("gateway.run._nyxo_home", tmp_path)
+        monkeypatch.setattr("gateway.run._flash_home", tmp_path)
 
         marker = tmp_path / ".clean_shutdown"
         assert not marker.exists()
@@ -187,7 +187,7 @@ class TestCleanShutdownMarker:
 
     def test_marker_written_on_restart_stop(self, tmp_path, monkeypatch):
         """stop(restart=True) should also write the marker."""
-        monkeypatch.setattr("gateway.run._nyxo_home", tmp_path)
+        monkeypatch.setattr("gateway.run._flash_home", tmp_path)
         marker = tmp_path / ".clean_shutdown"
 
         from gateway.run import GatewayRunner
@@ -223,3 +223,97 @@ class TestCleanShutdownMarker:
             asyncio.get_event_loop().run_until_complete(runner.stop(restart=True))
 
         assert marker.exists(), ".clean_shutdown marker should exist after restart-stop too"
+
+
+    def test_shutdown_cleanup_does_not_end_gateway_session_rows(self, tmp_path, monkeypatch):
+        """Gateway process restart/stop must not mark live chats ended in state.db."""
+        monkeypatch.setattr("gateway.run._flash_home", tmp_path)
+        from gateway.run import GatewayRunner
+
+        runner = object.__new__(GatewayRunner)
+        agent = MagicMock()
+        agent._end_session_on_close = True
+
+        async def _run():
+            await GatewayRunner._cleanup_agent_resources_off_loop(
+                runner, agent, context="shutdown idle-cache"
+            )
+
+        import asyncio
+        asyncio.get_event_loop().run_until_complete(_run())
+
+        assert agent._end_session_on_close is False
+        agent.close.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# resume_pending freshness gate (#46934)
+# ---------------------------------------------------------------------------
+
+class TestResumePendingFreshnessGate:
+    """A resume_pending session is only returned while it is still fresh.
+
+    ``get_or_create_session`` returns a ``resume_pending`` session so its
+    transcript reloads intact after a restart.  But the idle/daily reset
+    policy keys on ``updated_at``, which is bumped to ``now`` on every
+    message — so a zombie session that keeps receiving messages never trips
+    it and would resume stale context forever.  The freshness gate keys on
+    ``last_resume_marked_at`` (set once at resume-mark, never bumped) so it
+    catches that case.
+    """
+
+    def _mark_resume_pending(self, store, source):
+        """Put the session into resume_pending and return the entry."""
+        store.get_or_create_session(source)
+        count = store.suspend_recently_active()
+        assert count == 1
+        with store._lock:
+            entry = store._entries[store._generate_session_key(source)]
+        assert entry.resume_pending
+        assert entry.last_resume_marked_at is not None
+        return entry
+
+    def test_fresh_resume_pending_returns_same_session(self, tmp_path):
+        store = _make_store(tmp_path)
+        source = _make_source()
+        entry = self._mark_resume_pending(store, source)
+
+        # Within the freshness window (marked just now) → same session back.
+        refreshed = store.get_or_create_session(source)
+        assert refreshed.session_id == entry.session_id
+        assert refreshed.resume_pending
+
+    def test_stale_resume_pending_falls_through_to_reset(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_AUTO_CONTINUE_FRESHNESS", "3600")
+        store = _make_store(tmp_path)
+        source = _make_source()
+        entry = self._mark_resume_pending(store, source)
+
+        # Backdate the resume mark past the freshness window. Keep updated_at
+        # fresh (as a per-message zombie would have) so the idle/daily policy
+        # would NOT fire — only the freshness gate should catch this.
+        with store._lock:
+            entry.last_resume_marked_at = datetime.now() - timedelta(seconds=7200)
+            entry.updated_at = datetime.now()
+            store._save()
+
+        fresh = store.get_or_create_session(source)
+        # Zombie detected → brand-new session, not the stale transcript.
+        assert fresh.session_id != entry.session_id
+        assert not fresh.resume_pending
+
+    def test_freshness_gate_disabled_returns_stale_session(self, tmp_path, monkeypatch):
+        # Opt-out: window <= 0 restores the pre-fix "always fresh" behaviour.
+        monkeypatch.setenv("HERMES_AUTO_CONTINUE_FRESHNESS", "0")
+        store = _make_store(tmp_path)
+        source = _make_source()
+        entry = self._mark_resume_pending(store, source)
+
+        with store._lock:
+            entry.last_resume_marked_at = datetime.now() - timedelta(seconds=999999)
+            entry.updated_at = datetime.now()
+            store._save()
+
+        refreshed = store.get_or_create_session(source)
+        assert refreshed.session_id == entry.session_id
+        assert refreshed.resume_pending

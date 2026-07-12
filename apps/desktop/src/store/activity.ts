@@ -2,7 +2,7 @@ import { atom } from 'nanostores'
 
 import { sessionTitle } from '@/lib/chat-runtime'
 import type { PreviewServerRestart } from '@/store/preview'
-import type { ActionStatusResponse, SessionInfo } from '@/types/nyxo'
+import type { ActionStatusResponse, SessionInfo } from '@/types/flash'
 
 const HISTORY_LIMIT = 8
 const COMPLETED_TTL_MS = 5 * 60 * 1000
@@ -50,15 +50,15 @@ export function buildRailTasks(
 
   const previewTasks: RailTask[] = previewRestart
     ? [
-        {
-          id: `preview:${previewRestart.taskId}`,
-          label: 'Preview restart',
-          detail: previewRestart.message || previewRestart.url,
-          status:
-            previewRestart.status === 'error' ? 'error' : previewRestart.status === 'running' ? 'running' : 'success',
-          updatedAt: Date.now()
-        }
-      ]
+      {
+        id: `preview:${previewRestart.taskId}`,
+        label: 'Preview restart',
+        detail: previewRestart.message || previewRestart.url,
+        status:
+          previewRestart.status === 'error' ? 'error' : previewRestart.status === 'running' ? 'running' : 'success',
+        updatedAt: Date.now()
+      }
+    ]
     : []
 
   const actions: RailTask[] = Object.values(actionTasks).map(({ status, updatedAt }) => ({

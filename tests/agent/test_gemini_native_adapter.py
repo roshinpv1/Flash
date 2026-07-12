@@ -85,6 +85,59 @@ def test_build_native_request_uses_original_function_name_for_tool_result():
     assert tool_response["name"] == "get_weather"
 
 
+def test_parallel_tool_results_merge_into_one_user_content():
+    """Gemini requires strict user/model alternation; two consecutive `user`
+    contents are rejected with HTTP 400. Parallel tool calls produce two tool
+    results in a row, so their functionResponses must be grouped into a single
+    user content instead of two consecutive ones."""
+    from agent.gemini_native_adapter import _build_gemini_contents
+
+    messages = [
+        {"role": "user", "content": "Read a.txt and b.txt"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "read_file", "arguments": '{"path": "a.txt"}'}},
+                {"id": "call_2", "type": "function",
+                 "function": {"name": "read_file", "arguments": '{"path": "b.txt"}'}},
+            ],
+        },
+        {"role": "tool", "tool_call_id": "call_1", "content": "AAA"},
+        {"role": "tool", "tool_call_id": "call_2", "content": "BBB"},
+    ]
+
+    contents, _ = _build_gemini_contents(messages)
+    roles = [c["role"] for c in contents]
+
+    # No two adjacent contents may share a role.
+    assert all(roles[i] != roles[i - 1] for i in range(1, len(roles))), roles
+    assert roles == ["user", "model", "user"]
+
+    # Both parallel functionResponses land in the single trailing user content.
+    response_parts = [
+        p for p in contents[2]["parts"] if "functionResponse" in p
+    ]
+    outputs = [p["functionResponse"]["response"]["output"] for p in response_parts]
+    assert outputs == ["AAA", "BBB"]
+
+
+def test_consecutive_user_messages_merge_for_gemini_alternation():
+    """Back-to-back user messages must also be merged, not sent as two
+    consecutive user contents."""
+    from agent.gemini_native_adapter import _build_gemini_contents
+
+    messages = [
+        {"role": "user", "content": "first"},
+        {"role": "user", "content": "second"},
+        {"role": "assistant", "content": "ok"},
+    ]
+    contents, _ = _build_gemini_contents(messages)
+    roles = [c["role"] for c in contents]
+    assert roles == ["user", "model"], roles
+
+
 def test_build_native_request_strips_json_schema_only_fields_from_tool_parameters():
     from agent.gemini_native_adapter import build_gemini_request
 
@@ -134,7 +187,7 @@ def test_translate_native_response_surfaces_reasoning_and_tool_calls():
                 "content": {
                     "parts": [
                         {"thought": True, "text": "thinking..."},
-                        {"functionCall": {"name": "search", "args": {"q": "hermes"}}},
+                        {"functionCall": {"name": "search", "args": {"q": "flash"}}},
                     ]
                 },
                 "finishReason": "STOP",
@@ -152,7 +205,7 @@ def test_translate_native_response_surfaces_reasoning_and_tool_calls():
     assert choice.finish_reason == "tool_calls"
     assert choice.message.reasoning == "thinking..."
     assert choice.message.tool_calls[0].function.name == "search"
-    assert json.loads(choice.message.tool_calls[0].function.arguments) == {"q": "hermes"}
+    assert json.loads(choice.message.tool_calls[0].function.arguments) == {"q": "flash"}
 
 
 def test_native_client_uses_x_goog_api_key_and_native_models_endpoint(monkeypatch):
@@ -390,7 +443,7 @@ def test_max_tokens_none_defaults_to_gemini_output_ceiling():
     """max_tokens=None must send the model's full output ceiling, not omit it.
 
     Gemini's native generateContent applies a low internal default when
-    maxOutputTokens is absent, truncating tool calls mid-stream. Nyxo passes
+    maxOutputTokens is absent, truncating tool calls mid-stream. Hermes passes
     None to mean "unlimited", so the adapter must translate that to the
     published 65,535 ceiling rather than leaving the field unset.
     """

@@ -15,12 +15,12 @@ def _write_config(home, body: str) -> None:
 
 @pytest.fixture
 def gateway_home(monkeypatch, tmp_path):
-    monkeypatch.setattr(gateway_run, "_nyxo_home", tmp_path)
-    monkeypatch.delenv("NYXO_PREFILL_MESSAGES_FILE", raising=False)
-    monkeypatch.delenv("NYXO_EPHEMERAL_SYSTEM_PROMPT", raising=False)
-    monkeypatch.delenv("NYXO_GATEWAY_BUSY_INPUT_MODE", raising=False)
-    monkeypatch.delenv("NYXO_RESTART_DRAIN_TIMEOUT", raising=False)
-    monkeypatch.delenv("NYXO_BACKGROUND_NOTIFICATIONS", raising=False)
+    monkeypatch.setattr(gateway_run, "_flash_home", tmp_path)
+    monkeypatch.delenv("HERMES_PREFILL_MESSAGES_FILE", raising=False)
+    monkeypatch.delenv("HERMES_EPHEMERAL_SYSTEM_PROMPT", raising=False)
+    monkeypatch.delenv("HERMES_GATEWAY_BUSY_INPUT_MODE", raising=False)
+    monkeypatch.delenv("HERMES_RESTART_DRAIN_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_BACKGROUND_NOTIFICATIONS", raising=False)
     return tmp_path
 
 

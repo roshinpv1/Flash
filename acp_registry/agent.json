@@ -1,16 +1,20 @@
 {
-  "id": "nyxo-agent",
-  "name": "Nyxo Agent",
-  "version": "0.17.0",
+  "id": "flash-agent",
+  "name": "Hermes Agent",
+  "version": "0.18.2",
   "description": "Self-improving open-source AI agent by Nous Research with ACP editor integration, persistent memory, skills, and rich tool support.",
-  "repository": "https://github.com/NousResearch/nyxo-agent",
-  "website": "https://nyxo-agent.nousresearch.com/docs/user-guide/features/acp",
-  "authors": ["Nous Research"],
+  "repository": "https://github.com/FlashOrg/flash-agent",
+  "website": "https://flash-agent.flashorg.com/docs/user-guide/features/acp",
+  "authors": [
+    "Nous Research"
+  ],
   "license": "MIT",
   "distribution": {
     "uvx": {
-      "package": "nyxo-agent[acp]==0.17.0",
-      "args": ["nyxo-acp"]
+      "package": "flash-agent[acp]==0.18.2",
+      "args": [
+        "flash-acp"
+      ]
     }
   }
 }

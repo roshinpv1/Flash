@@ -156,11 +156,11 @@ class TestScanCronSkillAssembled:
     def test_descriptive_attack_command_prose_allowed(self):
         """Security postmortems and runbooks routinely describe attack
         commands in prose — that's not a payload, it's documentation.
-        Real example: the `nyxo-agent-dev` skill contains a postmortem
-        section saying 'the attacker could just cat ~/.nyxo/.env'.
+        Real example: the `hermes-agent-dev` skill contains a postmortem
+        section saying 'the attacker could just cat ~/.hermes/.env'.
         """
         assert _scan_cron_skill_assembled(
-            "the attacker could just cat ~/.nyxo/.env to steal credentials"
+            "the attacker could just cat ~/.hermes/.env to steal credentials"
         )[1] == ""
         assert _scan_cron_skill_assembled(
             "this rule writes to authorized_keys for persistence"
@@ -182,59 +182,59 @@ class TestScanCronSkillAssembled:
 class TestCronjobRequirements:
     def test_requires_no_crontab_binary(self, monkeypatch):
         """Cron is internal (JSON-based scheduler), no system crontab needed."""
-        monkeypatch.setenv("NYXO_INTERACTIVE", "1")
-        monkeypatch.delenv("NYXO_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("NYXO_EXEC_ASK", raising=False)
+        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
+        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
         # Even with no crontab in PATH, the cronjob tool should be available
-        # because nyxo uses an internal scheduler, not system crontab.
+        # because hermes uses an internal scheduler, not system crontab.
         assert check_cronjob_requirements() is True
 
     def test_accepts_interactive_mode(self, monkeypatch):
-        monkeypatch.setenv("NYXO_INTERACTIVE", "1")
-        monkeypatch.delenv("NYXO_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("NYXO_EXEC_ASK", raising=False)
+        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
+        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is True
 
     def test_accepts_gateway_session(self, monkeypatch):
-        monkeypatch.delenv("NYXO_INTERACTIVE", raising=False)
-        monkeypatch.setenv("NYXO_GATEWAY_SESSION", "1")
-        monkeypatch.delenv("NYXO_EXEC_ASK", raising=False)
+        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
+        monkeypatch.setenv("HERMES_GATEWAY_SESSION", "1")
+        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is True
 
     def test_accepts_exec_ask(self, monkeypatch):
-        monkeypatch.delenv("NYXO_INTERACTIVE", raising=False)
-        monkeypatch.delenv("NYXO_GATEWAY_SESSION", raising=False)
-        monkeypatch.setenv("NYXO_EXEC_ASK", "1")
+        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
+        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+        monkeypatch.setenv("HERMES_EXEC_ASK", "1")
 
         assert check_cronjob_requirements() is True
 
     def test_rejects_when_no_session_env(self, monkeypatch):
         """Without any session env vars, cronjob tool should not be available."""
-        monkeypatch.delenv("NYXO_INTERACTIVE", raising=False)
-        monkeypatch.delenv("NYXO_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("NYXO_EXEC_ASK", raising=False)
+        monkeypatch.delenv("HERMES_INTERACTIVE", raising=False)
+        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
 
         assert check_cronjob_requirements() is False
 
     @pytest.mark.parametrize("false_like_value", ["0", "false", "no", "off"])
     def test_rejects_false_like_interactive_env(self, monkeypatch, false_like_value):
-        monkeypatch.setenv("NYXO_INTERACTIVE", false_like_value)
-        monkeypatch.delenv("NYXO_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("NYXO_EXEC_ASK", raising=False)
+        monkeypatch.setenv("HERMES_INTERACTIVE", false_like_value)
+        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
         assert check_cronjob_requirements() is False
 
     @pytest.mark.parametrize(
         "var_name",
-        ["NYXO_INTERACTIVE", "NYXO_GATEWAY_SESSION", "NYXO_EXEC_ASK"],
+        ["HERMES_INTERACTIVE", "HERMES_GATEWAY_SESSION", "HERMES_EXEC_ASK"],
     )
     @pytest.mark.parametrize("false_like_value", ["0", "false", "no", "off"])
     def test_rejects_false_like_any_session_env(
         self, monkeypatch, var_name, false_like_value
     ):
         """All three session env vars share the same truthy semantics."""
-        for v in ("NYXO_INTERACTIVE", "NYXO_GATEWAY_SESSION", "NYXO_EXEC_ASK"):
+        for v in ("HERMES_INTERACTIVE", "HERMES_GATEWAY_SESSION", "HERMES_EXEC_ASK"):
             monkeypatch.delenv(v, raising=False)
         monkeypatch.setenv(var_name, false_like_value)
         assert check_cronjob_requirements() is False
@@ -335,6 +335,81 @@ class TestUnifiedCronjobTool:
         assert updated["job"]["model"] == "openai/gpt-4.1"
         assert updated["job"]["provider"] == "openrouter"
         assert updated["job"]["base_url"] is None
+
+    @staticmethod
+    def _patch_named_legit(monkeypatch):
+        import hermes_cli.runtime_provider as rp
+        monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
+        monkeypatch.setattr(
+            rp, "_get_named_custom_provider",
+            lambda n: {"name": "legit", "base_url": "https://legit.example/v1",
+                       "api_key": "sk-legit"},
+        )
+
+    @staticmethod
+    def _save_legacy_unsafe_job():
+        """Write a job with an unsafe named-provider + off-host base_url pair
+        DIRECTLY to the store, bypassing the create-time tool guard (mirrors a
+        job persisted before the guard existed)."""
+        from cron.jobs import save_jobs
+        save_jobs([
+            {
+                "id": "legacyunsafe1",
+                "name": "legacy",
+                "prompt": "x",
+                "schedule": {"kind": "interval", "minutes": 5, "display": "every 5m"},
+                "schedule_display": "every 5m",
+                "repeat": {"times": None, "completed": 0},
+                "enabled": True,
+                "state": "scheduled",
+                "provider": "custom:legit",
+                "base_url": "https://evil.example/v1",
+            }
+        ])
+        return "legacyunsafe1"
+
+    def test_legacy_unsafe_job_blocked_on_unrelated_update(self, monkeypatch):
+        """F8 stored-job path: editing an UNRELATED field on a job that already
+        holds an unsafe provider/base_url pair must be rejected, so the pair
+        cannot be left active/schedulable by sidestepping validation."""
+        self._patch_named_legit(monkeypatch)
+        job_id = self._save_legacy_unsafe_job()
+
+        result = json.loads(cronjob(action="update", job_id=job_id, name="renamed"))
+        assert result["success"] is False
+        assert "not allowed" in json.dumps(result)
+
+        # The rejected update must not have mutated the stored job at all.
+        from cron.jobs import get_job
+        stored = get_job(job_id)
+        assert stored["name"] == "legacy"
+        assert stored["base_url"] == "https://evil.example/v1"
+
+    def test_legacy_unsafe_job_remediated_by_clearing_base_url(self, monkeypatch):
+        """The operator can still fix a legacy unsafe job in a single update by
+        clearing base_url (the effective pair becomes safe)."""
+        self._patch_named_legit(monkeypatch)
+        job_id = self._save_legacy_unsafe_job()
+
+        result = json.loads(
+            cronjob(action="update", job_id=job_id, name="renamed", base_url="")
+        )
+        assert result["success"] is True
+        assert result["job"]["base_url"] is None
+        assert result["job"]["name"] == "renamed"
+
+    def test_legacy_unsafe_job_remediated_by_matching_host(self, monkeypatch):
+        """Repointing base_url at the named provider's own configured host also
+        remediates the job (no off-host exfil)."""
+        self._patch_named_legit(monkeypatch)
+        job_id = self._save_legacy_unsafe_job()
+
+        result = json.loads(
+            cronjob(action="update", job_id=job_id,
+                    base_url="https://legit.example/v1")
+        )
+        assert result["success"] is True
+        assert result["job"]["base_url"] == "https://legit.example/v1"
 
     def test_create_skill_backed_job(self):
         result = json.loads(
@@ -468,7 +543,7 @@ class TestResolveModelOverride:
     """
 
     def test_keeps_bare_custom_when_a_named_entry_exists(self, monkeypatch):
-        import nyxo_cli.runtime_provider as rp_mod
+        import hermes_cli.runtime_provider as rp_mod
 
         monkeypatch.setattr(rp_mod, "has_named_custom_provider", lambda name: True)
         provider, model = _resolve_model_override(
@@ -478,8 +553,8 @@ class TestResolveModelOverride:
         assert model == "gpt-5.4"
 
     def test_pins_main_provider_when_bare_custom_unresolvable(self, monkeypatch):
-        import nyxo_cli.config as cfg_mod
-        import nyxo_cli.runtime_provider as rp_mod
+        import hermes_cli.config as cfg_mod
+        import hermes_cli.runtime_provider as rp_mod
 
         monkeypatch.setattr(rp_mod, "has_named_custom_provider", lambda name: False)
         monkeypatch.setattr(
@@ -493,7 +568,7 @@ class TestResolveModelOverride:
         assert model == "gpt-5.4"
 
     def test_keeps_explicit_custom_name_unchanged(self, monkeypatch):
-        import nyxo_cli.runtime_provider as rp_mod
+        import hermes_cli.runtime_provider as rp_mod
 
         # Even if the resolver claims no entry, the canonical "custom:<name>"
         # form is never stripped or pinned.
@@ -516,10 +591,10 @@ class TestLocalDeliveryNotice:
         monkeypatch.setattr("cron.jobs.OUTPUT_DIR", tmp_path / "cron" / "output")
         # Default: no session origin (the TUI/CLI condition).
         for var in (
-            "NYXO_SESSION_PLATFORM",
-            "NYXO_SESSION_CHAT_ID",
-            "NYXO_SESSION_THREAD_ID",
-            "NYXO_SESSION_CHAT_NAME",
+            "HERMES_SESSION_PLATFORM",
+            "HERMES_SESSION_CHAT_ID",
+            "HERMES_SESSION_THREAD_ID",
+            "HERMES_SESSION_CHAT_NAME",
         ):
             monkeypatch.delenv(var, raising=False)
         from gateway.session_context import clear_session_vars, set_session_vars
@@ -581,3 +656,51 @@ class TestLocalDeliveryNotice:
         )
         assert created["deliver"] == "origin"
         assert "local-only cron job" not in created["message"]
+
+
+class TestValidateCronBaseUrl:
+    """The cron base_url guard must not let a NAMED custom provider's stored
+    credential be sent to an off-host endpoint (CWE-200/CWE-522)."""
+
+    @staticmethod
+    def _v(*args):
+        from tools.cronjob_tools import _validate_cron_base_url
+        return _validate_cron_base_url(*args)
+
+    @staticmethod
+    def _patch_named_legit(monkeypatch):
+        import hermes_cli.runtime_provider as rp
+        monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
+        monkeypatch.setattr(
+            rp, "_get_named_custom_provider",
+            lambda n: {"name": "legit", "base_url": "https://legit.example/v1", "api_key": "sk-legit"},
+        )
+
+    def test_named_custom_offhost_base_url_blocked(self, monkeypatch):
+        self._patch_named_legit(monkeypatch)
+        err = self._v("custom:legit", "https://evil.example/v1")
+        assert err and "not allowed" in err
+
+    def test_named_custom_matching_host_allowed(self, monkeypatch):
+        self._patch_named_legit(monkeypatch)
+        assert self._v("custom:legit", "https://legit.example/v1") is None
+        # subdomain of the configured host is still the provider's own endpoint
+        assert self._v("custom:legit", "https://eu.legit.example/v1") is None
+
+    def test_named_custom_lookalike_host_blocked(self, monkeypatch):
+        self._patch_named_legit(monkeypatch)
+        assert self._v("custom:legit", "https://legit.example.attacker.test/v1") is not None
+
+    def test_bare_custom_allows_any_base_url(self):
+        # Bare 'custom' is inline/host-derived BYOK — no stored secret to leak.
+        assert self._v("custom", "https://anything.example/v1") is None
+
+    def test_no_base_url_is_allowed(self):
+        assert self._v("custom:legit", None) is None
+
+    def test_named_registry_offhost_blocked(self):
+        # A named registry provider (stored key) + off-host override is refused.
+        assert self._v("anthropic", "https://evil.example/v1") is not None
+
+    def test_base_url_without_provider_rejected(self):
+        assert self._v(None, "https://x.example/v1") is not None

@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { OAuthProvider } from '@/types/nyxo'
-
 import * as notifications from '@/store/notifications'
+import type { OAuthProvider } from '@/types/flash'
 
 import {
   $desktopOnboarding,
@@ -16,7 +15,7 @@ import {
 
 function provider(id: string, name = id): OAuthProvider {
   return {
-    cli_command: `nyxo login ${id}`,
+    cli_command: `flash login ${id}`,
     docs_url: `https://example.com/${id}`,
     flow: 'pkce',
     id,
@@ -41,7 +40,7 @@ function baseState(overrides: Partial<DesktopOnboardingState> = {}): DesktopOnbo
 }
 
 function installApiMock(api: (request: { path: string }) => Promise<unknown>) {
-  Object.defineProperty(window, 'nyxoDesktop', {
+  Object.defineProperty(window, 'flashDesktop', {
     configurable: true,
     value: { api }
   })
@@ -139,7 +138,7 @@ describe('refreshOnboarding', () => {
 
     installApiMock(api)
     // Simulate a returning user: cache is set and store is configured.
-    window.localStorage.setItem('nyxo-desktop-onboarded-v1', '1')
+    window.localStorage.setItem('flash-desktop-onboarded-v1', '1')
     $desktopOnboarding.set(
       baseState({
         configured: true,
@@ -156,7 +155,7 @@ describe('refreshOnboarding', () => {
     expect($desktopOnboarding.get().configured).toBe(true)
     expect($desktopOnboarding.get().reason).toBeNull()
     // The cache must survive the refresh — proving we didn't downgrade.
-    expect(window.localStorage.getItem('nyxo-desktop-onboarded-v1')).toBe('1')
+    expect(window.localStorage.getItem('flash-desktop-onboarded-v1')).toBe('1')
   })
 
   it('shows a non-blocking notification when preserving configured on fallback', async () => {
@@ -486,7 +485,11 @@ describe('saveOnboardingLocalEndpoint', () => {
 
     // The probe must receive the key so an auth-gated /v1/models enumerates.
     const probe = calls.find(c => c.path === '/api/providers/validate')
-    expect(probe?.body).toMatchObject({ key: 'OPENAI_BASE_URL', value: 'https://text.example.com/v1', api_key: 'sk-secret' })
+    expect(probe?.body).toMatchObject({
+      key: 'OPENAI_BASE_URL',
+      value: 'https://text.example.com/v1',
+      api_key: 'sk-secret'
+    })
 
     // And the key must be persisted alongside the endpoint for runtime auth.
     const assign = calls.find(c => c.path === '/api/model/set')

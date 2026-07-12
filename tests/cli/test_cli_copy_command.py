@@ -2,11 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
-from cli import NyxoCLI
+from cli import HermesCLI
 
 
-def _make_cli() -> NyxoCLI:
-    cli_obj = NyxoCLI.__new__(NyxoCLI)
+def _make_cli() -> HermesCLI:
+    cli_obj = HermesCLI.__new__(HermesCLI)
     cli_obj.config = {}
     cli_obj.console = MagicMock()
     cli_obj.agent = None

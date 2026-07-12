@@ -1,9 +1,10 @@
 import ignore from 'ignore'
 
+import type { HermesReadDirEntry, HermesReadDirResult } from '@/global'
 import { desktopFsCacheKey, desktopGitRoot, readDesktopDir, readDesktopFileDataUrl } from '@/lib/desktop-fs'
-import type { NyxoReadDirEntry, NyxoReadDirResult } from '@/global'
+import { ALWAYS_EXCLUDED } from '@/lib/excluded-paths'
 
-export type ProjectTreeEntry = NyxoReadDirEntry
+export type ProjectTreeEntry = HermesReadDirEntry
 
 interface GitignoreRule {
   base: string
@@ -68,7 +69,7 @@ async function gitRootFor(start: string) {
   let cached = gitRootCache.get(key)
 
   if (!cached) {
-    cached = desktopGitRoot(start)
+    cached = desktopGitRoot(clean(start))
     gitRootCache.set(key, cached)
   }
 
@@ -104,7 +105,7 @@ async function gitignoreFor(dir: string) {
   return cached
 }
 
-function ignoredBy(rules: GitignoreRule[], entry: NyxoReadDirEntry) {
+function ignoredBy(rules: GitignoreRule[], entry: HermesReadDirEntry) {
   return rules.some(rule => {
     const rel = relativeTo(rule.base, entry.path)
 
@@ -116,7 +117,7 @@ function ignoredBy(rules: GitignoreRule[], entry: NyxoReadDirEntry) {
   })
 }
 
-async function filterIgnored(entries: NyxoReadDirEntry[], rootPath: string, dirPath: string) {
+async function filterIgnored(entries: HermesReadDirEntry[], rootPath: string, dirPath: string) {
   const root = await gitRootFor(rootPath)
 
   if (!root) {
@@ -130,13 +131,13 @@ async function filterIgnored(entries: NyxoReadDirEntry[], rootPath: string, dirP
   return rules.length > 0 ? entries.filter(entry => !ignoredBy(rules, entry)) : entries
 }
 
-export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<NyxoReadDirResult> {
-  if (!window.nyxoDesktop) {
+export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<HermesReadDirResult> {
+  if (!window.flashDesktop) {
     return { entries: [], error: 'no-bridge' }
   }
 
   const result = await readDesktopDir(dirPath)
-  const entries = result?.entries ?? []
+  const entries = (result?.entries ?? []).filter(entry => !ALWAYS_EXCLUDED.has(entry.name))
 
   return { ...result, entries: await filterIgnored(entries, rootPath, dirPath) }
 }

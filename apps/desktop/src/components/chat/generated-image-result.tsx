@@ -19,7 +19,13 @@ const ASPECT_HINTS: Record<string, number> = {
 }
 
 function hintedRatio(aspectRatio?: string): number {
-  return ASPECT_HINTS[String(aspectRatio ?? '').toLowerCase().trim()] ?? ASPECT_HINTS.landscape
+  return (
+    ASPECT_HINTS[
+    String(aspectRatio ?? '')
+      .toLowerCase()
+      .trim()
+    ] ?? ASPECT_HINTS.landscape
+  )
 }
 
 function isInlineSrc(path: string): boolean {
@@ -31,15 +37,15 @@ async function resolveImageSrc(path: string): Promise<string> {
     return path
   }
 
-  if (window.nyxoDesktop && isRemoteGateway()) {
+  if (window.flashDesktop && isRemoteGateway()) {
     return gatewayMediaDataUrl(path)
   }
 
-  if (!window.nyxoDesktop?.readFileDataUrl) {
+  if (!window.flashDesktop?.readFileDataUrl) {
     return mediaExternalUrl(path)
   }
 
-  return window.nyxoDesktop.readFileDataUrl(filePathFromMediaPath(path))
+  return window.flashDesktop.readFileDataUrl(filePathFromMediaPath(path))
 }
 
 export const GeneratedImage: FC<{ aspectRatio?: string; result?: unknown }> = ({ aspectRatio, result }) => {
@@ -94,7 +100,7 @@ export const GeneratedImage: FC<{ aspectRatio?: string; result?: unknown }> = ({
         href="#"
         onClick={event => {
           event.preventDefault()
-          void window.nyxoDesktop?.openExternal(mediaExternalUrl(image))
+          void window.flashDesktop?.openExternal(mediaExternalUrl(image))
         }}
       >
         {copy.openImage}: {mediaName(image)}

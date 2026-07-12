@@ -1,14 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { NyxoGateway } from '@/nyxo'
+import type { HermesGateway } from '@/flash'
 import type { IconComponent } from '@/lib/icons'
-import type { EnvVarInfo } from '@/types/nyxo'
+import type { EnvVarInfo } from '@/types/flash'
 
 export type SettingsView =
   | 'about'
   | 'gateway'
   | 'keys'
-  | 'mcp'
   | 'notifications'
   | 'providers'
   | 'sessions'
@@ -16,7 +15,7 @@ export type SettingsView =
 export type EnvPatch = Partial<Pick<EnvVarInfo, 'is_set' | 'redacted_value'>>
 
 export interface SettingsPageProps {
-  gateway?: NyxoGateway | null
+  gateway?: HermesGateway | null
   onClose: () => void
   onConfigSaved?: () => void
   onMainModelChanged?: (provider: string, model: string) => void

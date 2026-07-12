@@ -1,9 +1,9 @@
 """Tests for resolve_whatsapp_bridge_dir() — read-only install tree handling.
 
 Regression coverage for #49561: in the Docker image the install tree
-(/opt/nyxo/scripts/whatsapp-bridge) is read-only, so `npm install` fails
+(/opt/flash/scripts/whatsapp-bridge) is read-only, so `npm install` fails
 with EACCES. The resolver must detect the read-only install dir and mirror the
-bridge source into a writable NYXO_HOME location instead.
+bridge source into a writable HERMES_HOME location instead.
 """
 import importlib
 from pathlib import Path
@@ -26,8 +26,8 @@ def test_writable_install_returns_install_dir(tmp_path, monkeypatch):
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    nyxo_home = tmp_path / "nyxo_home"
-    nyxo_home.mkdir()
+    flash_home = tmp_path / "flash_home"
+    flash_home.mkdir()
 
     # Point the resolver's two anchors at our temp dirs.
     monkeypatch.setattr(
@@ -35,30 +35,30 @@ def test_writable_install_returns_install_dir(tmp_path, monkeypatch):
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "nyxo_constants.get_nyxo_home", lambda: nyxo_home
+        "flash_constants.get_flash_home", lambda: flash_home
     )
 
     resolved = whatsapp_common.resolve_whatsapp_bridge_dir()
     assert resolved == install_bridge
-    # Nothing mirrored into NYXO_HOME.
-    assert not (nyxo_home / "scripts" / "whatsapp-bridge").exists()
+    # Nothing mirrored into HERMES_HOME.
+    assert not (flash_home / "scripts" / "whatsapp-bridge").exists()
 
 
-def test_readonly_install_mirrors_to_nyxo_home(tmp_path, monkeypatch):
-    """A read-only install tree is mirrored into a writable NYXO_HOME."""
+def test_readonly_install_mirrors_to_flash_home(tmp_path, monkeypatch):
+    """A read-only install tree is mirrored into a writable HERMES_HOME."""
     install_root = tmp_path / "install"
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    nyxo_home = tmp_path / "nyxo_home"
-    nyxo_home.mkdir()
+    flash_home = tmp_path / "flash_home"
+    flash_home.mkdir()
 
     monkeypatch.setattr(
         whatsapp_common, "__file__",
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "nyxo_constants.get_nyxo_home", lambda: nyxo_home
+        "flash_constants.get_flash_home", lambda: flash_home
     )
 
     # Simulate a read-only install tree. chmod(0o555) is unreliable under
@@ -75,7 +75,7 @@ def test_readonly_install_mirrors_to_nyxo_home(tmp_path, monkeypatch):
 
     resolved = whatsapp_common.resolve_whatsapp_bridge_dir()
 
-    expected = nyxo_home / "scripts" / "whatsapp-bridge"
+    expected = flash_home / "scripts" / "whatsapp-bridge"
     assert resolved == expected
     # Source was mirrored, not symlinked.
     assert (expected / "bridge.js").read_text() == "// bridge\n"
@@ -83,13 +83,13 @@ def test_readonly_install_mirrors_to_nyxo_home(tmp_path, monkeypatch):
 
 
 def test_readonly_install_reuses_existing_mirror(tmp_path, monkeypatch):
-    """If the NYXO_HOME mirror already exists, return it without re-copying."""
+    """If the HERMES_HOME mirror already exists, return it without re-copying."""
     install_root = tmp_path / "install"
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    nyxo_home = tmp_path / "nyxo_home"
-    mirror = nyxo_home / "scripts" / "whatsapp-bridge"
+    flash_home = tmp_path / "flash_home"
+    mirror = flash_home / "scripts" / "whatsapp-bridge"
     mirror.mkdir(parents=True)
     # A sentinel file proves the resolver returned the EXISTING mirror
     # rather than wiping/recopying it.
@@ -101,7 +101,7 @@ def test_readonly_install_reuses_existing_mirror(tmp_path, monkeypatch):
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "nyxo_constants.get_nyxo_home", lambda: nyxo_home
+        "flash_constants.get_flash_home", lambda: flash_home
     )
 
     _real_touch = Path.touch

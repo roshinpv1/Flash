@@ -4,15 +4,15 @@ import { Buffer } from 'node:buffer'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { NyxoReadDirEntry, NyxoReadDirResult } from '@/global'
+import type { HermesReadDirEntry, HermesReadDirResult } from '@/global'
 
 import { clearProjectDirCache, readProjectDir } from './ipc'
 
-const readDir = vi.fn<(path: string) => Promise<NyxoReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<HermesReadDirResult>>()
 const readFileDataUrl = vi.fn<(path: string) => Promise<string>>()
 const gitRoot = vi.fn<(path: string) => Promise<string | null>>()
 
-function ok(entries: NyxoReadDirEntry[]): NyxoReadDirResult {
+function ok(entries: HermesReadDirEntry[]): HermesReadDirResult {
   return { entries }
 }
 
@@ -21,15 +21,15 @@ function dataUrl(text: string) {
 }
 
 function installBridge() {
-  ;(
+  ; (
     window as unknown as {
-      nyxoDesktop: {
+      flashDesktop: {
         gitRoot: typeof gitRoot
         readDir: typeof readDir
         readFileDataUrl: typeof readFileDataUrl
       }
     }
-  ).nyxoDesktop = { gitRoot, readDir, readFileDataUrl }
+  ).flashDesktop = { gitRoot, readDir, readFileDataUrl }
 }
 
 describe('readProjectDir', () => {
@@ -43,11 +43,11 @@ describe('readProjectDir', () => {
 
   afterEach(() => {
     clearProjectDirCache()
-    delete (window as unknown as { nyxoDesktop?: unknown }).nyxoDesktop
+    delete (window as unknown as { flashDesktop?: unknown }).flashDesktop
   })
 
   it('returns no-bridge when the desktop bridge is unavailable', async () => {
-    delete (window as unknown as { nyxoDesktop?: unknown }).nyxoDesktop
+    delete (window as unknown as { flashDesktop?: unknown }).flashDesktop
 
     await expect(readProjectDir('/repo')).resolves.toEqual({ entries: [], error: 'no-bridge' })
   })

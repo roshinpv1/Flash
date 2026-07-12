@@ -18,7 +18,7 @@ export function imageFilename(src?: string): string {
 function isMissingIpcHandler(error: unknown): boolean {
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
 
-  return message.includes("No handler registered for 'nyxo:saveImageFromUrl'")
+  return message.includes("No handler registered for 'flash:saveImageFromUrl'")
 }
 
 async function startBrowserDownload(src: string) {
@@ -54,8 +54,8 @@ export function useImageDownload(src?: string) {
     setSaving(true)
 
     try {
-      if (window.nyxoDesktop?.saveImageFromUrl) {
-        if (await window.nyxoDesktop.saveImageFromUrl(src)) {
+      if (window.flashDesktop?.saveImageFromUrl) {
+        if (await window.flashDesktop.saveImageFromUrl(src)) {
           notify({ kind: 'success', title: copy.imageSaved, message: imageFilename(src) })
         }
 

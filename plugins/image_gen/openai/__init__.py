@@ -2,7 +2,7 @@
 
 Exposes OpenAI's ``gpt-image-2`` model at three quality tiers as an
 :class:`ImageGenProvider` implementation. The tiers are implemented as
-three virtual model IDs so the ``nyxo tools`` model picker and the
+three virtual model IDs so the ``hermes tools`` model picker and the
 ``image_gen.model`` config key behave like any other multi-model backend:
 
     gpt-image-2-low     ~15s   fastest, good for iteration
@@ -11,7 +11,7 @@ three virtual model IDs so the ``nyxo tools`` model picker and the
 
 All three hit the same underlying API model (``gpt-image-2``) with a
 different ``quality`` parameter. Output is base64 JSON → saved under
-``$NYXO_HOME/cache/images/``.
+``$HERMES_HOME/cache/images/``.
 
 Selection precedence (first hit wins):
 
@@ -84,7 +84,7 @@ _SIZES = {
 def _load_openai_config() -> Dict[str, Any]:
     """Read ``image_gen`` from config.yaml (returns {} on any failure)."""
     try:
-        from nyxo_cli.config import load_config
+        from hermes_cli.config import load_config
 
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
@@ -146,7 +146,10 @@ def _load_image_bytes(ref: str) -> Tuple[bytes, str]:
         if "image/" in header:
             ext = header.split("image/", 1)[1].split(";", 1)[0] or "png"
         return base64.b64decode(b64), f"image.{ext}"
-    # Local file path.
+    # Local file path — enforce the shared credential-read guard before reading.
+    from agent.file_safety import raise_if_read_blocked
+
+    raise_if_read_blocked(ref)
     with open(ref, "rb") as fh:
         data = fh.read()
     name = os.path.basename(ref) or "image.png"
@@ -235,8 +238,8 @@ class OpenAIImageGenProvider(ImageGenProvider):
         if not os.environ.get("OPENAI_API_KEY"):
             return error_response(
                 error=(
-                    "OPENAI_API_KEY not set. Run `nyxo tools` → Image "
-                    "Generation → OpenAI to configure, or `nyxo setup` "
+                    "OPENAI_API_KEY not set. Run `hermes tools` → Image "
+                    "Generation → OpenAI to configure, or `hermes setup` "
                     "to add the key."
                 ),
                 error_type="auth_required",

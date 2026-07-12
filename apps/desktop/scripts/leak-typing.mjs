@@ -60,7 +60,7 @@ function connect(url) {
         pending.delete(m.id)
         m.error ? p.rej(new Error(m.error.message)) : p.res(m.result)
       } else if (m.method) {
-        ;(events.get(m.method) ?? []).forEach(h => h(m.params))
+        ; (events.get(m.method) ?? []).forEach(h => h(m.params))
       }
     })
   })
@@ -189,12 +189,12 @@ async function main() {
     history.push(snap)
     log(
       `round ${r}: heap=${snap.heapUsedMB.toFixed(1)}MB ` +
-        `nodes=${snap.nodes} listeners=${snap.jsListeners} ` +
-        `domNodes=${Math.round(snap.docNodes)} ` +
-        `layoutCount=${snap.layoutCount} ` +
-        `Δheap=+${(snap.heapUsedMB - baseline.heapUsedMB).toFixed(2)}MB ` +
-        `Δnodes=+${snap.nodes - baseline.nodes} ` +
-        `Δlisteners=+${snap.jsListeners - baseline.jsListeners}`
+      `nodes=${snap.nodes} listeners=${snap.jsListeners} ` +
+      `domNodes=${Math.round(snap.docNodes)} ` +
+      `layoutCount=${snap.layoutCount} ` +
+      `Δheap=+${(snap.heapUsedMB - baseline.heapUsedMB).toFixed(2)}MB ` +
+      `Δnodes=+${snap.nodes - baseline.nodes} ` +
+      `Δlisteners=+${snap.jsListeners - baseline.jsListeners}`
     )
   }
 
@@ -211,8 +211,8 @@ async function main() {
     console.log(`  ${c.padEnd(16)}  Δtotal=${delta.toFixed(2).padStart(10)}  /round=${per.toFixed(2).padStart(8)}  /char=${perChar.toFixed(4).padStart(8)}`)
   }
 
-  writeFileSync('/tmp/nyxo-leak-history.json', JSON.stringify(history, null, 2))
-  log('wrote /tmp/nyxo-leak-history.json')
+  writeFileSync('/tmp/flash-leak-history.json', JSON.stringify(history, null, 2))
+  log('wrote /tmp/flash-leak-history.json')
   cdp.close()
 }
 

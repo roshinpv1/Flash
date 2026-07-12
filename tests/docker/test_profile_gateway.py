@@ -1,6 +1,6 @@
 """Harness: per-profile gateway start/stop inside the container.
 
-Phase 4 wires `nyxo -p <profile> gateway start/stop` through the s6
+Phase 4 wires `hermes -p <profile> gateway start/stop` through the s6
 ServiceManager dispatch path inside the container — so the lifecycle
 commands now bring up an s6-supervised gateway rather than refusing
 with the pre-Phase-4 informational message.
@@ -17,7 +17,7 @@ want up``). Both states are valid "user asked for gateway up" results
 the supervised process's health. ``s6-svc -u`` records ``want up`` in
 the supervise/status file regardless of the run-script outcome.
 
-Every ``docker exec`` here runs as the unprivileged ``nyxo`` user
+Every ``docker exec`` here runs as the unprivileged ``hermes`` user
 (via :func:`docker_exec_sh` in conftest); see the conftest module
 docstring.
 """
@@ -26,7 +26,7 @@ from __future__ import annotations
 import subprocess
 import time
 
-from tests.docker.conftest import docker_exec_sh
+from tests.docker.conftest import docker_exec_sh, start_container
 
 PROFILE = "test-harness-profile"
 
@@ -69,21 +69,16 @@ def _svstat_wants_up(container: str) -> bool:
 def test_profile_create_then_gateway_start(
     built_image: str, container_name: str,
 ) -> None:
-    subprocess.run(
-        ["docker", "run", "-d", "--name", container_name, built_image,
-         "sleep", "120"],
-        check=True, capture_output=True, timeout=30,
-    )
-    time.sleep(3)
+    start_container(built_image, container_name, cmd="sleep 120")
 
-    r = _sh(container_name, f"nyxo profile create {PROFILE}")
+    r = _sh(container_name, f"hermes profile create {PROFILE}")
     assert r.returncode == 0, f"profile create failed: {r.stderr}"
 
     # Profile create's s6-register hook should have produced a service slot.
     r = _sh(container_name, f"test -d /run/service/gateway-{PROFILE}")
     assert r.returncode == 0, "s6 service slot not created on profile create"
 
-    r = _sh(container_name, f"nyxo -p {PROFILE} gateway start", timeout=60)
+    r = _sh(container_name, f"hermes -p {PROFILE} gateway start", timeout=60)
     assert r.returncode == 0, (
         f"gateway start failed: stderr={r.stderr!r} stdout={r.stdout!r}"
     )
@@ -99,7 +94,7 @@ def test_profile_create_then_gateway_start(
         f"{_svstat(container_name)!r}"
     )
 
-    r = _sh(container_name, f"nyxo -p {PROFILE} gateway stop", timeout=30)
+    r = _sh(container_name, f"hermes -p {PROFILE} gateway stop", timeout=30)
     assert r.returncode == 0
 
     time.sleep(2)
@@ -114,20 +109,15 @@ def test_profile_delete_stops_gateway(
 ) -> None:
     """Deleting a profile should stop its gateway and remove the s6
     service slot."""
-    subprocess.run(
-        ["docker", "run", "-d", "--name", container_name, built_image,
-         "sleep", "120"],
-        check=True, capture_output=True, timeout=30,
-    )
-    time.sleep(3)
+    start_container(built_image, container_name, cmd="sleep 120")
 
-    _sh(container_name, f"nyxo profile create {PROFILE}")
-    _sh(container_name, f"nyxo -p {PROFILE} gateway start", timeout=60)
+    _sh(container_name, f"hermes profile create {PROFILE}")
+    _sh(container_name, f"hermes -p {PROFILE} gateway start", timeout=60)
     time.sleep(3)
 
     r = _sh(
         container_name,
-        f"nyxo profile delete {PROFILE} --yes",
+        f"hermes profile delete {PROFILE} --yes",
         timeout=30,
     )
     assert r.returncode == 0, f"profile delete failed: {r.stderr}"

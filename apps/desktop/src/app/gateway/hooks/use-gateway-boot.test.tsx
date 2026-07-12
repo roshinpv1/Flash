@@ -7,7 +7,7 @@ import { $gatewayState } from '@/store/session'
 import { useGatewayBoot } from './use-gateway-boot'
 
 // End-to-end-ish repro of the "remote VPS → stuck on CONNECTING, no Settings"
-// bug that drives the REAL useGatewayBoot hook + REAL NyxoGateway through a
+// bug that drives the REAL useGatewayBoot hook + REAL HermesGateway through a
 // fake WebSocket we fully control. No Docker / no real port: from the desktop's
 // point of view a "remote VPS" is just a WebSocket that opens once and later
 // refuses to reopen, so that is exactly (and only) what we fake.
@@ -49,7 +49,7 @@ class FakeWebSocket {
   }
 
   addEventListener(type: string, fn: Listener) {
-    ;(this.listeners[type] ??= new Set()).add(fn)
+    ; (this.listeners[type] ??= new Set()).add(fn)
   }
 
   removeEventListener(type: string, fn: Listener) {
@@ -68,7 +68,9 @@ class FakeWebSocket {
   }
 
   private emit(type: string, ev: unknown) {
-    for (const fn of this.listeners[type] ?? []) fn(ev)
+    for (const fn of this.listeners[type] ?? []) {
+      fn(ev)
+    }
   }
 }
 
@@ -95,6 +97,7 @@ function fakeDesktop() {
     })),
     onBootProgress: vi.fn(() => () => undefined),
     onBackendExit: vi.fn(() => () => undefined),
+    onConnectionApplied: vi.fn(() => () => undefined),
     onPowerResume: vi.fn(() => () => undefined),
     onWindowStateChanged: vi.fn(() => () => undefined),
     touchBackend: vi.fn(async () => undefined),
@@ -107,7 +110,7 @@ function Harness() {
     handleGatewayEvent: () => undefined,
     onConnectionReady: () => undefined,
     onGatewayReady: () => undefined,
-    refreshNyxoConfig: async () => undefined,
+    refreshHermesConfig: async () => undefined,
     refreshSessions: async () => undefined
   })
 
@@ -120,8 +123,8 @@ beforeEach(() => {
   vi.useFakeTimers()
   FakeWebSocket.mode = 'open'
   FakeWebSocket.instances = []
-  ;(globalThis as { WebSocket: unknown }).WebSocket = FakeWebSocket
-  ;(window as { nyxoDesktop?: unknown }).nyxoDesktop = fakeDesktop()
+    ; (globalThis as { WebSocket: unknown }).WebSocket = FakeWebSocket
+    ; (window as { flashDesktop?: unknown }).flashDesktop = fakeDesktop()
   $gatewayState.set('idle')
   $desktopBoot.set({
     error: null,
@@ -138,8 +141,8 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  ;(globalThis as { WebSocket: unknown }).WebSocket = originalWebSocket
-  delete (window as { nyxoDesktop?: unknown }).nyxoDesktop
+    ; (globalThis as { WebSocket: unknown }).WebSocket = originalWebSocket
+  delete (window as { flashDesktop?: unknown }).flashDesktop
 })
 
 // Let pending microtasks (awaits) AND the queued 0ms socket open/error fire.
@@ -159,9 +162,9 @@ async function advanceBackoff() {
 }
 
 describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => {
-  it('INITIAL boot against a dead VPS: getConnection hangs (waitForNyxo) → app sits in the connecting combo, then fails', async () => {
+  it('INITIAL boot against a dead VPS: getConnection hangs (waitForHermes) → app sits in the connecting combo, then fails', async () => {
     // The report's actual path: a fresh launch pointed at an unreachable VPS.
-    // startNyxo()'s remote branch awaits waitForNyxo() for 45s before it
+    // startHermes()'s remote branch awaits waitForHermes() for 45s before it
     // throws, so the renderer's `await desktop.getConnection()` stays pending
     // that whole window. During it: gatewayState is still 'idle' (connect was
     // never reached) and boot.error is null → connecting=true → the fullscreen
@@ -174,7 +177,7 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
           rejectConn = reject
         })
     )
-    ;(window as { nyxoDesktop?: unknown }).nyxoDesktop = desktop
+      ; (window as { flashDesktop?: unknown }).flashDesktop = desktop
 
     render(<Harness />)
     await flushAsync()
@@ -186,10 +189,10 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     expect($desktopBoot.get().error).toBeNull()
     // ^ connecting === true here → fullscreen CONNECTING, no Settings.
 
-    // After ~45s waitForNyxo gives up and getConnection rejects → boot()
+    // After ~45s waitForHermes gives up and getConnection rejects → boot()
     // catch → failDesktopBoot → the BootFailureOverlay recovery surface.
     await act(async () => {
-      rejectConn(new Error('Nyxo backend did not become ready: timeout'))
+      rejectConn(new Error('Hermes backend did not become ready: timeout'))
       await vi.advanceTimersByTimeAsync(0)
     })
 
@@ -250,9 +253,11 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     FakeWebSocket.mode = 'fail'
     act(() => FakeWebSocket.instances[0].drop())
     await flushAsync()
+
     for (let i = 0; i < 8; i += 1) {
       await advanceBackoff()
     }
+
     expect($desktopBoot.get().error).toBeTruthy()
 
     // The remote comes back: next reconnect attempt opens.

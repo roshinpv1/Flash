@@ -15,7 +15,7 @@ across sessions like a typed one.
 These tests drive the real ``_handle_model_command`` with a fake picker-capable
 adapter that captures the ``on_model_selected`` callback, then invoke that
 callback and assert ``config.yaml`` is (or isn't) updated — exercising the exact
-closure the PR changed, against a real temp ``NYXO_HOME``.
+closure the PR changed, against a real temp ``HERMES_HOME``.
 """
 
 import types
@@ -65,7 +65,7 @@ def _make_event(text):
 
 def _fake_switch_result():
     """A successful ModelSwitchResult that bypasses real provider resolution."""
-    from nyxo_cli.model_switch import ModelSwitchResult
+    from flash_cli.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -84,15 +84,15 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     """Write a config.yaml with the given ``model:`` value and stub heavy bits."""
     import gateway.run as gateway_run
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    cfg_path = nyxo_home / "config.yaml"
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    cfg_path = flash_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": model_yaml_value, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     # The picker-setup path calls list_picker_providers, which otherwise hits
     # the network (OpenRouter model catalog). Stub it to a minimal list — these
@@ -100,14 +100,14 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     # picker contents. The handler imports it as a local alias at call time, so
     # patching the source-module attribute takes effect.
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.list_picker_providers",
+        "flash_cli.model_switch.list_picker_providers",
         lambda **kw: [{"slug": "openrouter", "name": "OpenRouter", "models": ["gpt-5.5"]}],
     )
     # switch_model is imported as a local alias inside the handler
-    # (`from nyxo_cli.model_switch import switch_model as _switch_model`),
+    # (`from flash_cli.model_switch import switch_model as _switch_model`),
     # so patching the source-module attribute takes effect at call time.
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.switch_model",
+        "flash_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
     # The confirmation builder resolves context length for display, which
@@ -115,12 +115,12 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     # OpenRouter models catalog). Stub it — these tests don't assert on the
     # displayed context, and the closure imports it lazily from this module.
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.resolve_display_context_length",
+        "flash_cli.model_switch.resolve_display_context_length",
         lambda *a, **k: 272000,
     )
-    # save_config writes to ``get_nyxo_home() / config.yaml`` — point it here.
-    monkeypatch.setattr("nyxo_constants.get_nyxo_home", lambda: nyxo_home)
-    monkeypatch.setattr("nyxo_cli.config.get_nyxo_home", lambda: nyxo_home)
+    # save_config writes to ``get_flash_home() / config.yaml`` — point it here.
+    monkeypatch.setattr("flash_constants.get_flash_home", lambda: flash_home)
+    monkeypatch.setattr("flash_cli.config.get_flash_home", lambda: flash_home)
     return cfg_path
 
 
@@ -171,7 +171,7 @@ async def test_picker_tap_persists_by_default(tmp_path, monkeypatch, seed_model)
     )
     assert written["model"]["default"] == "gpt-5.5"
     assert written["model"]["provider"] == "openrouter"
-    assert written["model"]["base_url"] == "https://openrouter.ai/api/v1"
+    assert "base_url" not in written["model"]
     assert "api_key" not in written["model"]
     assert "api_mode" not in written["model"]
 

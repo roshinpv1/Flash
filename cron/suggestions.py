@@ -1,6 +1,6 @@
 """Suggested cron jobs — proposed automations the user accepts with one tap.
 
-A *suggestion* is a ready-to-run cron job spec that Nyxo surfaces to the
+A *suggestion* is a ready-to-run cron job spec that Hermes surfaces to the
 user, who accepts it (creates the real cron job) or dismisses it (latched so
 it is never re-offered). This is the single surface every automation proposal
 flows through, regardless of where it came from:
@@ -21,7 +21,7 @@ auto-create jobs; acceptance is always explicit (consent-first). Dismissed
 suggestions latch by a stable ``dedup_key`` so the same proposal is not
 re-offered after the user says no.
 
-Storage mirrors ``cron/jobs.py``: ``~/.nyxo/cron/suggestions.json``, atomic
+Storage mirrors ``cron/jobs.py``: ``~/.flash/cron/suggestions.json``, atomic
 writes, an in-process lock, and 0600 perms.
 """
 
@@ -36,13 +36,16 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from nyxo_constants import get_nyxo_home
-from nyxo_time import now as _nyxo_now
+from flash_constants import get_flash_home
+from flash_time import now as _flash_now
 from utils import atomic_replace
 
 logger = logging.getLogger(__name__)
 
-CRON_DIR = get_nyxo_home().resolve() / "cron"
+# Per-profile by design (issue #4707): suggestions live alongside the active
+# profile's cron store. Anchor on get_flash_home() (profile home), not the
+# shared default root. See cron/jobs.py for the full rationale.
+CRON_DIR = get_flash_home().resolve() / "cron"
 SUGGESTIONS_FILE = CRON_DIR / "suggestions.json"
 
 # In-process lock protecting load->modify->save cycles (the background review
@@ -93,7 +96,7 @@ def _save_raw(suggestions: List[Dict[str, Any]]) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(
-                {"suggestions": suggestions, "updated_at": _nyxo_now().isoformat()},
+                {"suggestions": suggestions, "updated_at": _flash_now().isoformat()},
                 f,
                 indent=2,
             )
@@ -167,7 +170,7 @@ def add_suggestion(
             "job_spec": job_spec,
             "dedup_key": dedup_key.strip(),
             "status": _STATUS_PENDING,
-            "created_at": _nyxo_now().isoformat(),
+            "created_at": _flash_now().isoformat(),
         }
         suggestions.append(record)
         _save_raw(suggestions)
@@ -201,7 +204,7 @@ def _set_status(suggestion_id: str, status: str) -> bool:
         for s in suggestions:
             if s.get("id") == suggestion_id:
                 s["status"] = status
-                s["resolved_at"] = _nyxo_now().isoformat()
+                s["resolved_at"] = _flash_now().isoformat()
                 changed = True
                 break
         if changed:

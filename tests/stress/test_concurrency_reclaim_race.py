@@ -38,11 +38,11 @@ WORK_DURATION_S = 2.0  # longer than TTL => reclaimer wins
 WT = str(Path(__file__).resolve().parents[2])
 
 
-def worker_loop(worker_id: int, nyxo_home: str, result_file: str) -> None:
-    os.environ["NYXO_HOME"] = nyxo_home
-    os.environ["HOME"] = nyxo_home
+def worker_loop(worker_id: int, flash_home: str, result_file: str) -> None:
+    os.environ["HERMES_HOME"] = flash_home
+    os.environ["HOME"] = flash_home
     sys.path.insert(0, WT)
-    from nyxo_cli import kanban_db as kb
+    from flash_cli import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -95,11 +95,11 @@ def worker_loop(worker_id: int, nyxo_home: str, result_file: str) -> None:
         json.dump(events, f)
 
 
-def reclaimer_loop(nyxo_home: str, result_file: str) -> None:
-    os.environ["NYXO_HOME"] = nyxo_home
-    os.environ["HOME"] = nyxo_home
+def reclaimer_loop(flash_home: str, result_file: str) -> None:
+    os.environ["HERMES_HOME"] = flash_home
+    os.environ["HOME"] = flash_home
     sys.path.insert(0, WT)
-    from nyxo_cli import kanban_db as kb
+    from flash_cli import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -121,11 +121,11 @@ def reclaimer_loop(nyxo_home: str, result_file: str) -> None:
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="nyxo_reclaim_race_")
-    os.environ["NYXO_HOME"] = home
+    home = tempfile.mkdtemp(prefix="flash_reclaim_race_")
+    os.environ["HERMES_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from nyxo_cli import kanban_db as kb
+    from flash_cli import kanban_db as kb
 
     kb.init_db()
     conn = kb.connect()
@@ -134,7 +134,7 @@ def main():
                        tenant="reclaim-race")
     conn.close()
     print(f"Seeded {NUM_TASKS} tasks. TTL={TTL}s, work_duration={WORK_DURATION_S}s")
-    print(f"(worker work > TTL guarantees reclaims)")
+    print("(worker work > TTL guarantees reclaims)")
 
     ctx = mp.get_context("spawn")
     worker_results = [f"/tmp/rc_worker_{i}.json" for i in range(NUM_WORKERS)]

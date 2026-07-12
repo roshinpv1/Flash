@@ -87,9 +87,11 @@ export const opsCommands: SlashCommand[] = [
       // Parse arg: `now` / `always` skip the confirmation gate.
       // `always` additionally persists approvals.mcp_reload_confirm=false.
       const a = (arg || '').trim().toLowerCase()
+
       const params: { session_id: string | null; confirm?: boolean; always?: boolean } = {
         session_id: ctx.sid
       }
+
       if (a === 'now' || a === 'approve' || a === 'once' || a === 'yes') {
         params.confirm = true
       } else if (a === 'always') {
@@ -103,16 +105,20 @@ export const opsCommands: SlashCommand[] = [
           ctx.guarded<ReloadMcpResponse>(r => {
             if (r.status === 'confirm_required') {
               ctx.transcript.sys(r.message || '/reload-mcp requires confirmation')
+
               return
             }
+
             if (r.status === 'reloaded') {
               ctx.transcript.sys(
                 params.always
                   ? 'MCP servers reloaded · future /reload-mcp will run without confirmation'
                   : 'MCP servers reloaded'
               )
+
               return
             }
+
             ctx.transcript.sys('reload complete')
           })
         )
@@ -121,7 +127,7 @@ export const opsCommands: SlashCommand[] = [
   },
 
   {
-    help: 're-read ~/.nyxo/.env into the running gateway (CLI parity)',
+    help: 're-read ~/.hermes/.env into the running gateway (CLI parity)',
     name: 'reload',
     run: (_arg, ctx) => {
       ctx.gateway
@@ -320,6 +326,16 @@ export const opsCommands: SlashCommand[] = [
   },
 
   {
+    aliases: ['learning', 'memory-graph'],
+    help: 'open your learning journey — skills + memories on a timeline',
+    name: 'journey',
+    run: (_arg, ctx) => {
+      void ctx
+      patchOverlayState({ journey: true })
+    }
+  },
+
+  {
     help: 'replay a completed spawn tree · `/replay [N|last|list|load <path>]`',
     name: 'replay',
     run: (arg, ctx) => {
@@ -488,6 +504,7 @@ export const opsCommands: SlashCommand[] = [
       const query = rest.join(' ').trim()
       const { rpc } = ctx.gateway
       const { panel, sys } = ctx.transcript
+
       const runViaSlashWorker = () => {
         ctx.gateway.gw
           .request<SlashExecResponse>('slash.exec', { command: cmd.slice(1), session_id: ctx.sid })
@@ -658,7 +675,7 @@ export const opsCommands: SlashCommand[] = [
     run: (arg, ctx, cmd) => {
       // No argument → open the interactive Plugins Hub overlay. Any
       // subcommand (enable/disable/list/install/…) falls through to the
-      // text slash worker so it stays at parity with `nyxo plugins`.
+      // text slash worker so it stays at parity with `hermes plugins`.
       if (!arg.trim()) {
         return patchOverlayState({ pluginsHub: true })
       }

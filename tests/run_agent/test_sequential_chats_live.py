@@ -1,6 +1,6 @@
 """Live regression guardrail for the keepalive/transport bug class (#10933).
 
-AlexKucera reported on Discord (2026-04-16) that after ``nyxo update`` pulled
+AlexKucera reported on Discord (2026-04-16) that after ``flash update`` pulled
 #10933, the FIRST chat in a session worked and EVERY subsequent chat failed
 with ``APIConnectionError('Connection error.')`` whose cause was
 ``RuntimeError: Cannot send a request, as the client has been closed``.
@@ -11,9 +11,9 @@ reproduction against a real provider so we have a true end-to-end smoke test
 for any future keepalive / transport plumbing.
 
 Opt-in — not part of default CI:
-    NYXO_LIVE_TESTS=1 pytest tests/run_agent/test_sequential_chats_live.py -v
+    HERMES_LIVE_TESTS=1 pytest tests/run_agent/test_sequential_chats_live.py -v
 
-Requires ``OPENROUTER_API_KEY`` to be set (or sourced via ~/.nyxo/.env).
+Requires ``OPENROUTER_API_KEY`` to be set (or sourced via ~/.flash/.env).
 """
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ from pathlib import Path
 import pytest
 
 
-# Load ~/.nyxo/.env so live runs pick up OPENROUTER_API_KEY without
+# Load ~/.flash/.env so live runs pick up OPENROUTER_API_KEY without
 # needing the runner to shell-source it first. Silent if the file is absent.
 def _load_user_env() -> None:
-    env_file = Path.home() / ".nyxo" / ".env"
+    env_file = Path.home() / ".flash" / ".env"
     if not env_file.exists():
         return
     for raw in env_file.read_text().splitlines():
@@ -43,11 +43,11 @@ def _load_user_env() -> None:
 _load_user_env()
 
 
-LIVE = os.environ.get("NYXO_LIVE_TESTS") == "1"
+LIVE = os.environ.get("HERMES_LIVE_TESTS") == "1"
 OR_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 pytestmark = [
-    pytest.mark.skipif(not LIVE, reason="live-only — set NYXO_LIVE_TESTS=1"),
+    pytest.mark.skipif(not LIVE, reason="live-only — set HERMES_LIVE_TESTS=1"),
     pytest.mark.skipif(not OR_KEY, reason="OPENROUTER_API_KEY not configured"),
 ]
 

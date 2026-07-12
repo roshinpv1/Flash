@@ -1,9 +1,9 @@
-"""OpenAI-compatible shim that forwards Nyxo requests to `copilot --acp`.
+"""OpenAI-compatible shim that forwards Hermes requests to `copilot --acp`.
 
-This adapter lets Nyxo treat the GitHub Copilot ACP server as a chat-style
+This adapter lets Hermes treat the GitHub Copilot ACP server as a chat-style
 backend. Each request starts a short-lived ACP session, sends the formatted
 conversation as a single prompt, collects text chunks, and converts the result
-back into the minimal shape Nyxo expects from an OpenAI client.
+back into the minimal shape Hermes expects from an OpenAI client.
 """
 
 from __future__ import annotations
@@ -21,8 +21,14 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+from openai.types.chat.chat_completion_message_tool_call import (
+    ChatCompletionMessageToolCall,
+    Function,
+)
+
 from agent.file_safety import get_read_block_error, is_write_denied
 from agent.redact import redact_sensitive_text
+from tools.environments.local import flash_subprocess_env
 
 ACP_MARKER_BASE_URL = "acp://copilot"
 _DEFAULT_TIMEOUT_SECONDS = 900.0
@@ -55,14 +61,14 @@ def _is_gh_copilot_deprecation_message(stderr_text: str) -> bool:
 
 def _resolve_command() -> str:
     return (
-        os.getenv("NYXO_COPILOT_ACP_COMMAND", "").strip()
+        os.getenv("HERMES_COPILOT_ACP_COMMAND", "").strip()
         or os.getenv("COPILOT_CLI_PATH", "").strip()
         or "copilot"
     )
 
 
 def _resolve_args() -> list[str]:
-    raw = os.getenv("NYXO_COPILOT_ACP_ARGS", "").strip()
+    raw = os.getenv("HERMES_COPILOT_ACP_ARGS", "").strip()
     if not raw:
         return ["--acp", "--stdio"]
     return shlex.split(raw)
@@ -88,16 +94,19 @@ def _resolve_home_dir() -> str:
         pass
 
     # Last resort: /tmp (writable on any POSIX system). Avoids crashing the
-    # subprocess with no HOME; callers can set NYXO_HOME explicitly if they
+    # subprocess with no HOME; callers can set HERMES_HOME explicitly if they
     # need a different writable dir.
     return "/tmp"
 
 
 def _build_subprocess_env() -> dict[str, str]:
-    env = os.environ.copy()
+    # Copilot ACP is a model-driving CLI executor: it legitimately needs LLM
+    # provider credentials. Route through the central helper so Tier-1 secrets
+    # (gateway bot tokens, GitHub auth, infra) are still stripped (#29157).
+    env = flash_subprocess_env(inherit_credentials=True)
     home = _resolve_home_dir()
     env["HOME"] = home
-    from nyxo_constants import apply_subprocess_home_env
+    from flash_constants import apply_subprocess_home_env
     apply_subprocess_home_env(env)
     return env
 
@@ -132,13 +141,13 @@ def _format_messages_as_prompt(
     tool_choice: Any = None,
 ) -> str:
     sections: list[str] = [
-        "You are being used as the active ACP agent backend for Nyxo.",
+        "You are being used as the active ACP agent backend for Hermes.",
         "Use ACP capabilities to complete tasks.",
         "IMPORTANT: If you take an action with a tool, you MUST output tool calls using <tool_call>{...}</tool_call> blocks with JSON exactly in OpenAI function-call shape.",
         "If no tool is needed, answer normally.",
     ]
     if model:
-        sections.append(f"Nyxo requested model hint: {model}")
+        sections.append(f"Hermes requested model hint: {model}")
 
     if isinstance(tools, list) and tools:
         tool_specs: list[dict[str, Any]] = []
@@ -224,11 +233,73 @@ def _render_message_content(content: Any) -> str:
     return str(content).strip()
 
 
-def _extract_tool_calls_from_text(text: str) -> tuple[list[SimpleNamespace], str]:
+def _build_openai_tool_call(
+    *,
+    call_id: str,
+    name: str,
+    arguments: str,
+) -> ChatCompletionMessageToolCall:
+    """Build an OpenAI-compatible tool-call object for downstream handling."""
+    return ChatCompletionMessageToolCall(
+        id=call_id,
+        call_id=call_id,
+        response_item_id=None,
+        type="function",
+        function=Function(name=name, arguments=arguments),
+    )
+
+
+def _completion_to_stream_chunks(completion: SimpleNamespace) -> list[SimpleNamespace]:
+    """Convert a one-shot ACP response into OpenAI-style stream chunks."""
+    choice = completion.choices[0]
+    message = choice.message
+    tool_call_deltas = None
+    if message.tool_calls:
+        tool_call_deltas = []
+        for index, tool_call in enumerate(message.tool_calls):
+            tool_call_deltas.append(
+                SimpleNamespace(
+                    index=index,
+                    id=getattr(tool_call, "id", None),
+                    type=getattr(tool_call, "type", "function"),
+                    function=SimpleNamespace(
+                        name=getattr(tool_call.function, "name", None),
+                        arguments=getattr(tool_call.function, "arguments", None),
+                    ),
+                )
+            )
+
+    delta = SimpleNamespace(
+        role="assistant",
+        content=message.content or None,
+        tool_calls=tool_call_deltas,
+        reasoning_content=message.reasoning_content,
+        reasoning=message.reasoning,
+    )
+    data_chunk = SimpleNamespace(
+        choices=[
+            SimpleNamespace(
+                index=0,
+                delta=delta,
+                finish_reason=choice.finish_reason,
+            )
+        ],
+        model=completion.model,
+        usage=None,
+    )
+    usage_chunk = SimpleNamespace(
+        choices=[],
+        model=completion.model,
+        usage=completion.usage,
+    )
+    return [data_chunk, usage_chunk]
+
+
+def _extract_tool_calls_from_text(text: str) -> tuple[list[ChatCompletionMessageToolCall], str]:
     if not isinstance(text, str) or not text.strip():
         return [], ""
 
-    extracted: list[SimpleNamespace] = []
+    extracted: list[ChatCompletionMessageToolCall] = []
     consumed_spans: list[tuple[int, int]] = []
 
     def _try_add_tool_call(raw_json: str) -> None:
@@ -252,12 +323,10 @@ def _extract_tool_calls_from_text(text: str) -> tuple[list[SimpleNamespace], str
             call_id = f"acp_call_{len(extracted)+1}"
 
         extracted.append(
-            SimpleNamespace(
-                id=call_id,
+            _build_openai_tool_call(
                 call_id=call_id,
-                response_item_id=None,
-                type="function",
-                function=SimpleNamespace(name=fn_name.strip(), arguments=fn_args),
+                name=fn_name.strip(),
+                arguments=fn_args,
             )
         )
 
@@ -376,6 +445,7 @@ class CopilotACPClient:
         timeout: float | None = None,
         tools: list[dict[str, Any]] | None = None,
         tool_choice: Any = None,
+        stream: bool = False,
         **_: Any,
     ) -> Any:
         prompt_text = _format_messages_as_prompt(
@@ -422,11 +492,14 @@ class CopilotACPClient:
         )
         finish_reason = "tool_calls" if tool_calls else "stop"
         choice = SimpleNamespace(message=assistant_message, finish_reason=finish_reason)
-        return SimpleNamespace(
+        completion = SimpleNamespace(
             choices=[choice],
             usage=usage,
             model=model or "copilot-acp",
         )
+        if stream:
+            return _completion_to_stream_chunks(completion)
+        return completion
 
     def _run_prompt(self, prompt_text: str, *, timeout_seconds: float) -> tuple[str, str]:
         try:
@@ -443,7 +516,7 @@ class CopilotACPClient:
         except FileNotFoundError as exc:
             raise RuntimeError(
                 f"Could not start Copilot ACP command '{self._acp_command}'. "
-                "Install GitHub Copilot CLI or set NYXO_COPILOT_ACP_COMMAND/COPILOT_CLI_PATH."
+                "Install GitHub Copilot CLI or set HERMES_COPILOT_ACP_COMMAND/COPILOT_CLI_PATH."
             ) from exc
 
         if proc.stdin is None or proc.stdout is None:
@@ -523,17 +596,17 @@ class CopilotACPClient:
             if proc.poll() is not None and stderr_text:
                 if _is_gh_copilot_deprecation_message(stderr_text):
                     raise RuntimeError(
-                        "Nyxo ACP mode requires the NEW GitHub Copilot CLI "
+                        "Hermes ACP mode requires the NEW GitHub Copilot CLI "
                         "(github.com/github/copilot-cli), but the binary it just "
                         "spawned is the deprecated `gh copilot` extension.\n\n"
                         "Install the new CLI:\n"
                         "  npm install -g @github/copilot\n"
                         "  # then verify with: copilot --help\n\n"
                         "If `copilot` already resolves to the new CLI but you still see this,\n"
-                        "point Nyxo at it explicitly:\n"
-                        "  export NYXO_COPILOT_ACP_COMMAND=/path/to/new/copilot\n\n"
+                        "point Hermes at it explicitly:\n"
+                        "  export HERMES_COPILOT_ACP_COMMAND=/path/to/new/copilot\n\n"
                         "Alternative: use the `copilot` provider (no ACP, hits the Copilot API\n"
-                        "directly with a Copilot subscription token) via `nyxo setup`.\n\n"
+                        "directly with a Copilot subscription token) via `flash setup`.\n\n"
                         f"Original error:\n{stderr_text}"
                     )
                 raise RuntimeError(f"Copilot ACP process exited early: {stderr_text}")
@@ -551,8 +624,8 @@ class CopilotACPClient:
                         }
                     },
                     "clientInfo": {
-                        "name": "nyxo-agent",
-                        "title": "Nyxo Agent",
+                        "name": "flash-agent",
+                        "title": "Hermes Agent",
                         "version": "0.0.0",
                     },
                 },
@@ -671,7 +744,7 @@ class CopilotACPClient:
             response = _jsonrpc_error(
                 message_id,
                 -32601,
-                f"ACP client method '{method}' is not supported by Nyxo yet.",
+                f"ACP client method '{method}' is not supported by Hermes yet.",
             )
 
         process.stdin.write(json.dumps(response) + "\n")

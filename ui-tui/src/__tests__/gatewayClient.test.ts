@@ -105,23 +105,23 @@ describe('GatewayClient websocket attach mode', () => {
   let originalSidecarUrl: string | undefined
 
   beforeEach(() => {
-    originalGatewayUrl = process.env.NYXO_TUI_GATEWAY_URL
-    originalSidecarUrl = process.env.NYXO_TUI_SIDECAR_URL
+    originalGatewayUrl = process.env.HERMES_TUI_GATEWAY_URL
+    originalSidecarUrl = process.env.HERMES_TUI_SIDECAR_URL
     FakeWebSocket.reset()
     ;(globalThis as { WebSocket?: unknown }).WebSocket = FakeWebSocket as unknown as typeof WebSocket
   })
 
   afterEach(() => {
     if (originalGatewayUrl === undefined) {
-      delete process.env.NYXO_TUI_GATEWAY_URL
+      delete process.env.HERMES_TUI_GATEWAY_URL
     } else {
-      process.env.NYXO_TUI_GATEWAY_URL = originalGatewayUrl
+      process.env.HERMES_TUI_GATEWAY_URL = originalGatewayUrl
     }
 
     if (originalSidecarUrl === undefined) {
-      delete process.env.NYXO_TUI_SIDECAR_URL
+      delete process.env.HERMES_TUI_SIDECAR_URL
     } else {
-      process.env.NYXO_TUI_SIDECAR_URL = originalSidecarUrl
+      process.env.HERMES_TUI_SIDECAR_URL = originalSidecarUrl
     }
 
     FakeWebSocket.reset()
@@ -134,7 +134,7 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('waits for websocket open and resolves RPC requests', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
     const gw = new GatewayClient()
 
     gw.start()
@@ -154,9 +154,82 @@ describe('GatewayClient websocket attach mode', () => {
     gw.kill()
   })
 
+  it('drains buffered events on a later microtask, not synchronously inside drain()', async () => {
+    // Regression for #36658: in attach mode the already-running gateway
+    // replays `gateway.ready` the instant the socket connects, so it lands in
+    // bufferedEvents BEFORE the consumer's mount-time subscribe effect runs.
+    // If drain() emitted those synchronously, the gateway.ready handler's
+    // setState cascade would run inside React's first commit -> "Too many
+    // re-renders" (#301). drain() must defer the buffered flush so the first
+    // commit settles first.
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    const gw = new GatewayClient()
+
+    gw.start()
+    const gatewaySocket = FakeWebSocket.instances[0]!
+
+    gatewaySocket.open()
+    // Server replays ready BEFORE the consumer subscribes (attach-mode timing):
+    gatewaySocket.message(
+      JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { type: 'gateway.ready', payload: {} } })
+    )
+
+    const order: string[] = []
+
+    gw.on('event', ev => order.push(`event:${ev.type}`))
+    gw.drain()
+    order.push('after-drain')
+
+    // Buffered event must NOT have fired synchronously inside drain():
+    expect(order).toEqual(['after-drain'])
+
+    // ...and must arrive on the next microtask.
+    await vi.waitFor(() => expect(order).toContain('event:gateway.ready'))
+    expect(order).toEqual(['after-drain', 'event:gateway.ready'])
+
+    gw.kill()
+  })
+
+  it('preserves FIFO order when a live event arrives before the deferred flush', async () => {
+    // #36658 hardening: `subscribed` must NOT flip synchronously in drain().
+    // A live event delivered in the window between drain() returning and the
+    // deferred microtask running must still queue BEHIND the chronologically
+    // earlier buffered events, not jump ahead of them.
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    const gw = new GatewayClient()
+
+    gw.start()
+    const gatewaySocket = FakeWebSocket.instances[0]!
+
+    gatewaySocket.open()
+    // Buffered first (replayed on connect, before subscribe):
+    gatewaySocket.message(
+      JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { type: 'gateway.ready', payload: {} } })
+    )
+
+    const order: string[] = []
+
+    gw.on('event', ev => order.push(ev.type))
+    gw.drain()
+
+    // A LIVE event arrives synchronously in the post-drain / pre-microtask gap:
+    gatewaySocket.message(
+      JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { type: 'session.info', payload: {} } })
+    )
+
+    // Nothing emitted yet (subscribed stays false until the microtask):
+    expect(order).toEqual([])
+
+    await vi.waitFor(() => expect(order.length).toBe(2))
+    // FIFO preserved: the earlier-buffered gateway.ready precedes the live one.
+    expect(order).toEqual(['gateway.ready', 'session.info'])
+
+    gw.kill()
+  })
+
   it('mirrors event frames to sidecar websocket when configured', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
-    process.env.NYXO_TUI_SIDECAR_URL = 'ws://gateway.test/api/pub?token=abc&channel=demo'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_SIDECAR_URL = 'ws://gateway.test/api/pub?token=abc&channel=demo'
 
     const gw = new GatewayClient()
     const seen: string[] = []
@@ -172,6 +245,9 @@ describe('GatewayClient websocket attach mode', () => {
 
     sidecarSocket.open()
     gw.drain()
+    // drain() flips `subscribed` on a microtask now (#36658); let it settle so
+    // the subsequent live event takes the synchronous publish path.
+    await Promise.resolve()
 
     const eventFrame = JSON.stringify({
       jsonrpc: '2.0',
@@ -188,8 +264,8 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('publishes local dashboard-control events to the sidecar websocket', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
-    process.env.NYXO_TUI_SIDECAR_URL = 'ws://gateway.test/api/pub?token=abc&channel=demo'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_SIDECAR_URL = 'ws://gateway.test/api/pub?token=abc&channel=demo'
 
     const gw = new GatewayClient()
     const seen: string[] = []
@@ -206,6 +282,8 @@ describe('GatewayClient websocket attach mode', () => {
 
     sidecarSocket.open()
     gw.drain()
+    // drain() flips `subscribed` on a microtask now (#36658); let it settle.
+    await Promise.resolve()
 
     gw.publishLocalEvent({
       payload: { reason: 'idle_exit_hotkey' },
@@ -227,8 +305,8 @@ describe('GatewayClient websocket attach mode', () => {
     gw.kill()
   })
 
-  it('emits exit when attached websocket closes', () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+  it('emits exit when attached websocket closes', async () => {
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
     const gw = new GatewayClient()
     const exits: Array<null | number> = []
 
@@ -239,6 +317,9 @@ describe('GatewayClient websocket attach mode', () => {
 
     gatewaySocket.open()
     gw.drain()
+    // drain() flips `subscribed` on a microtask now (#36658); let it settle so
+    // the close below takes the synchronous exit path.
+    await Promise.resolve()
     gatewaySocket.close(1011)
 
     expect(exits).toEqual([1011])
@@ -247,7 +328,7 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('rejects pending RPCs with websocket wording when the attached socket closes', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
     const gw = new GatewayClient()
 
     gw.start()
@@ -265,7 +346,7 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('rejects pending RPCs when kill() closes the attached websocket', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
     const gw = new GatewayClient()
 
     gw.start()
@@ -283,8 +364,8 @@ describe('GatewayClient websocket attach mode', () => {
     expect(gw.getLogTail(20)).toContain('[lifecycle] GatewayClient.kill reason=test.shutdown')
   })
 
-  it('reattaches when NYXO_TUI_GATEWAY_URL rotates between requests', async () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway-old.test/api/ws?token=abc'
+  it('reattaches when HERMES_TUI_GATEWAY_URL rotates between requests', async () => {
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway-old.test/api/ws?token=abc'
     const gw = new GatewayClient()
 
     gw.start()
@@ -296,7 +377,7 @@ describe('GatewayClient websocket attach mode', () => {
     const stale = gw.request('session.create', {})
     await vi.waitFor(() => expect(firstSocket.sent.length).toBeGreaterThan(0))
 
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway-new.test/api/ws?token=xyz'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway-new.test/api/ws?token=xyz'
     const next = gw.request('session.create', {})
 
     await expect(stale).rejects.toThrow(/gateway attach url changed/)
@@ -316,7 +397,7 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('uses the undici WebSocket fallback when global WebSocket is unavailable', () => {
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=hunter2&channel=secret'
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=hunter2&channel=secret'
     delete (globalThis as { WebSocket?: unknown }).WebSocket
 
     const gw = new GatewayClient()
@@ -331,7 +412,7 @@ describe('GatewayClient websocket attach mode', () => {
   it('redacts attach URL secrets when the WebSocket constructor throws', () => {
     const secretUrl = 'ws://gateway.test/api/ws?token=hunter2&channel=secret'
 
-    process.env.NYXO_TUI_GATEWAY_URL = secretUrl
+    process.env.HERMES_TUI_GATEWAY_URL = secretUrl
     ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
       constructor(url: string) {
         throw new TypeError(`Invalid URL: ${url}`)
@@ -355,8 +436,8 @@ describe('GatewayClient websocket attach mode', () => {
   it('redacts sidecar URL secrets when the WebSocket constructor throws', async () => {
     const sidecarUrl = 'ws://gateway.test/api/pub?token=hunter2&channel=secret'
 
-    process.env.NYXO_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
-    process.env.NYXO_TUI_SIDECAR_URL = sidecarUrl
+    process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
+    process.env.HERMES_TUI_SIDECAR_URL = sidecarUrl
     ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingSidecarWebSocket extends FakeWebSocket {
       constructor(url: string) {
         if (url.includes('/api/pub')) {
@@ -393,7 +474,7 @@ describe('GatewayClient websocket attach mode', () => {
     const fixture = 'ws://alice:hunter2@gateway.test:99999/api/ws?token=secret'
     expect(() => new URL(fixture)).toThrow()
 
-    process.env.NYXO_TUI_GATEWAY_URL = fixture
+    process.env.HERMES_TUI_GATEWAY_URL = fixture
     ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
       constructor(url: string) {
         throw new TypeError(`Invalid URL: ${url}`)

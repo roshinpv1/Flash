@@ -31,7 +31,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from nyxo_state import SessionDB
+from flash_state import SessionDB
 
 
 # ---------------------------------------------------------------------------

@@ -1,12 +1,11 @@
-import type { NyxoConfigRecord, ToolsetInfo } from '@/types/nyxo'
+import { asText } from '@/lib/text'
+import type { HermesConfigRecord, ToolsetInfo } from '@/types/flash'
 
 import { BUILTIN_PERSONALITIES, ENUM_OPTIONS, PROVIDER_GROUPS } from './constants'
 
-export const asText = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v))
-
-export const includesQuery = (v: unknown, q: string) => asText(v).toLowerCase().includes(q)
-
-export const prettyName = (v: string) => v.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+// Canonical implementations live in @/lib/text; re-exported here so the many
+// settings/capabilities call sites keep their import path.
+export { asText, includesQuery, prettyName } from '@/lib/text'
 
 /** Strip leading emoji from toolset titles (CLI registry prefixes labels with icons). */
 export const stripToolsetLabel = (label: string): string =>
@@ -80,7 +79,7 @@ function safeSet(target: Record<string, unknown>, key: string, value: unknown): 
   })
 }
 
-export function getNested(obj: NyxoConfigRecord, path: string): unknown {
+export function getNested(obj: HermesConfigRecord, path: string): unknown {
   let cur: unknown = obj
 
   for (const part of configPathParts(path)) {
@@ -98,7 +97,7 @@ export function getNested(obj: NyxoConfigRecord, path: string): unknown {
   return cur
 }
 
-export function setNested(obj: NyxoConfigRecord, path: string, value: unknown): NyxoConfigRecord {
+export function setNested(obj: HermesConfigRecord, path: string, value: unknown): HermesConfigRecord {
   const clone = structuredClone(obj)
   const parts = configPathParts(path)
   let cur: Record<string, unknown> = clone
@@ -124,7 +123,7 @@ export function setNested(obj: NyxoConfigRecord, path: string, value: unknown): 
   return clone
 }
 
-function personalityOptions(config: NyxoConfigRecord): string[] {
+function personalityOptions(config: HermesConfigRecord): string[] {
   const custom = getNested(config, 'agent.personalities')
 
   const customNames =
@@ -136,7 +135,7 @@ function personalityOptions(config: NyxoConfigRecord): string[] {
 export function enumOptionsFor(
   key: string,
   value: unknown,
-  config: NyxoConfigRecord,
+  config: HermesConfigRecord,
   dynamicOptions?: string[]
 ): string[] | undefined {
   const opts = dynamicOptions ?? (key === 'display.personality' ? personalityOptions(config) : ENUM_OPTIONS[key])

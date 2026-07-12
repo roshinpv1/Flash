@@ -47,8 +47,8 @@ def _make_tool_defs(*names: str) -> list:
 
 
 def _make_agent():
-    nyxo_home = Path(tempfile.mkdtemp(prefix="nyxo-test-home-"))
-    (nyxo_home / "logs").mkdir(parents=True, exist_ok=True)
+    flash_home = Path(tempfile.mkdtemp(prefix="flash-test-home-"))
+    (flash_home / "logs").mkdir(parents=True, exist_ok=True)
     with (
         patch(
             "run_agent.get_tool_definitions",
@@ -56,7 +56,7 @@ def _make_agent():
         ),
         patch("run_agent.check_toolset_requirements", return_value={}),
         patch("run_agent.OpenAI"),
-        patch("run_agent._nyxo_home", nyxo_home),
+        patch("run_agent._flash_home", flash_home),
         patch("agent.model_metadata.fetch_model_metadata", return_value={}),
     ):
         agent = AIAgent(

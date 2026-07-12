@@ -1,14 +1,14 @@
 ---
 name: teams-meeting-pipeline
-description: "Operate the Teams meeting summary pipeline via Nyxo CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions."
+description: "Operate the Teams meeting summary pipeline via Hermes CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions."
 version: 1.1.0
-author: Nyxo Agent + Teknium
+author: Hermes Agent + Teknium
 license: MIT
 prerequisites:
   env_vars: [MSGRAPH_TENANT_ID, MSGRAPH_CLIENT_ID, MSGRAPH_CLIENT_SECRET]
-  commands: [nyxo]
+  commands: [flash]
 metadata:
-  nyxo:
+  flash:
     tags: [Teams, Microsoft Graph, Meetings, Productivity, Operations]
     related_docs:
       - /docs/guides/microsoft-graph-app-registration
@@ -20,7 +20,7 @@ metadata:
 
 Use this skill whenever the user asks about Microsoft Teams meeting summaries, transcripts, recordings, action items, Graph subscriptions, or any operational question about the Teams meeting pipeline. Works in any language — the triggers below are examples, not an exhaustive list.
 
-Everything operator-facing is a `nyxo teams-pipeline` subcommand run via the terminal tool. There are no new model tools for this pipeline — the CLI is the surface.
+Everything operator-facing is a `flash teams-pipeline` subcommand run via the terminal tool. There are no new model tools for this pipeline — the CLI is the surface.
 
 ## When to use this skill
 
@@ -39,7 +39,7 @@ Multilingual trigger examples (not exhaustive):
 
 ## Prerequisites
 
-Before using the pipeline, verify these are set in `${NYXO_HOME:-~/.nyxo}/.env`:
+Before using the pipeline, verify these are set in `${HERMES_HOME:-~/.flash}/.env`:
 
 ```bash
 MSGRAPH_TENANT_ID=...
@@ -54,35 +54,35 @@ If any are missing, direct the user to the Azure app registration guide at `/doc
 ### Status and inspection (start here)
 
 ```bash
-nyxo teams-pipeline validate              # config snapshot — run first after any change
-nyxo teams-pipeline token-health          # Graph token status
-nyxo teams-pipeline token-health --force-refresh   # force a fresh token acquisition
-nyxo teams-pipeline list                  # recent meeting jobs
-nyxo teams-pipeline list --status failed  # only failed jobs
-nyxo teams-pipeline show <job-id>         # full detail of one job
-nyxo teams-pipeline subscriptions         # current Graph webhook subscriptions
+flash teams-pipeline validate              # config snapshot — run first after any change
+flash teams-pipeline token-health          # Graph token status
+flash teams-pipeline token-health --force-refresh   # force a fresh token acquisition
+flash teams-pipeline list                  # recent meeting jobs
+flash teams-pipeline list --status failed  # only failed jobs
+flash teams-pipeline show <job-id>         # full detail of one job
+flash teams-pipeline subscriptions         # current Graph webhook subscriptions
 ```
 
 ### Re-running / debugging
 
 ```bash
-nyxo teams-pipeline run <job-id>          # replay a stored job (re-summarize, re-deliver)
-nyxo teams-pipeline fetch --meeting-id <id>   # dry-run: resolve meeting + transcript without persisting
-nyxo teams-pipeline fetch --join-web-url "<url>"   # dry-run by join URL
+flash teams-pipeline run <job-id>          # replay a stored job (re-summarize, re-deliver)
+flash teams-pipeline fetch --meeting-id <id>   # dry-run: resolve meeting + transcript without persisting
+flash teams-pipeline fetch --join-web-url "<url>"   # dry-run by join URL
 ```
 
 ### Subscription management
 
 ```bash
-nyxo teams-pipeline subscribe \
+flash teams-pipeline subscribe \
   --resource communications/onlineMeetings/getAllTranscripts \
   --notification-url https://<your-public-host>/msgraph/webhook \
   --client-state "$MSGRAPH_WEBHOOK_CLIENT_STATE"
 
-nyxo teams-pipeline renew-subscription <sub-id> --expiration <iso-8601>
-nyxo teams-pipeline delete-subscription <sub-id>
-nyxo teams-pipeline maintain-subscriptions            # renew near-expiry ones
-nyxo teams-pipeline maintain-subscriptions --dry-run  # show what would be renewed
+flash teams-pipeline renew-subscription <sub-id> --expiration <iso-8601>
+flash teams-pipeline delete-subscription <sub-id>
+flash teams-pipeline maintain-subscriptions            # renew near-expiry ones
+flash teams-pipeline maintain-subscriptions --dry-run  # show what would be renewed
 ```
 
 ## Decision tree for common asks
@@ -97,9 +97,9 @@ nyxo teams-pipeline maintain-subscriptions --dry-run  # show what would be renew
 Microsoft Graph caps webhook subscriptions at 72 hours and **will not auto-renew them**. If `maintain-subscriptions` is not scheduled, meeting notifications silently stop arriving 3 days after any manual subscription creation.
 
 When the user reports "the pipeline worked yesterday but nothing is arriving today":
-1. Run `nyxo teams-pipeline subscriptions` — if it's empty or all entries show `expirationDateTime` in the past, that's the cause.
+1. Run `flash teams-pipeline subscriptions` — if it's empty or all entries show `expirationDateTime` in the past, that's the cause.
 2. Recreate with `subscribe` as shown above.
-3. **Set up automated renewal immediately** via `nyxo cron add`, a systemd timer, or plain crontab. The operator runbook at `/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production` has all three options. 12-hour interval is safe (6x headroom against the 72h limit).
+3. **Set up automated renewal immediately** via `flash cron add`, a systemd timer, or plain crontab. The operator runbook at `/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production` has all three options. 12-hour interval is safe (6x headroom against the 72h limit).
 
 ## Other pitfalls
 

@@ -1,0 +1,4 @@
+[console_scripts]
+flash = flash_cli.main:main
+flash-acp = acp_adapter.entry:main
+flash-agent = run_agent:main

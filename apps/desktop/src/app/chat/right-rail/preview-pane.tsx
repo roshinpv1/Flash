@@ -93,7 +93,7 @@ function PreviewLoadError({
             href={error.url}
             onClick={event => {
               event.preventDefault()
-              void window.nyxoDesktop?.openExternal(error.url)
+              void window.flashDesktop?.openExternal(error.url)
             }}
           >
             {compactUrl(error.url)}
@@ -107,10 +107,10 @@ function PreviewLoadError({
       secondaryAction={
         onRestartServer
           ? {
-              disabled: restarting,
-              label: restarting ? copy.restarting : copy.askRestart,
-              onClick: onRestartServer
-            }
+            disabled: restarting,
+            label: restarting ? copy.restarting : copy.askRestart,
+            onClick: onRestartServer
+          }
           : undefined
       }
       title={loadErrorTitle(error, copy)}
@@ -236,7 +236,7 @@ export function PreviewPane({
 
     // Auto-open the preview console so the user can see progress events
     // streaming back from the background agent. Without this, clicking
-    // "Ask Nyxo to restart the server" looked like it did nothing —
+    // "Ask Hermes to restart the server" looked like it did nothing —
     // the work was happening, but in a collapsed pane.
     consoleState.setOpen(true)
 
@@ -290,21 +290,21 @@ export function PreviewPane({
     const tools: TitlebarTool[] = [
       ...(isWebPreview
         ? [
-            {
-              active: consoleOpen,
-              icon: <PreviewConsoleTitlebarIcon consoleState={consoleState} />,
-              id: `${TITLEBAR_GROUP_ID}-console`,
-              label: consoleOpen ? copy.hideConsole : copy.showConsole,
-              onSelect: () => consoleState.setOpen(open => !open)
-            },
-            {
-              active: devtoolsOpen,
-              icon: <Bug />,
-              id: `${TITLEBAR_GROUP_ID}-devtools`,
-              label: devtoolsOpen ? copy.hideDevTools : copy.openDevTools,
-              onSelect: toggleDevTools
-            }
-          ]
+          {
+            active: consoleOpen,
+            icon: <PreviewConsoleTitlebarIcon consoleState={consoleState} />,
+            id: `${TITLEBAR_GROUP_ID}-console`,
+            label: consoleOpen ? copy.hideConsole : copy.showConsole,
+            onSelect: () => consoleState.setOpen(open => !open)
+          },
+          {
+            active: devtoolsOpen,
+            icon: <Bug />,
+            id: `${TITLEBAR_GROUP_ID}-devtools`,
+            label: devtoolsOpen ? copy.hideDevTools : copy.openDevTools,
+            onSelect: toggleDevTools
+          }
+        ]
         : [])
     ]
 
@@ -408,8 +408,8 @@ export function PreviewPane({
     if (
       target.kind !== 'file' ||
       isDesktopFsRemoteMode() ||
-      !window.nyxoDesktop?.watchPreviewFile ||
-      !window.nyxoDesktop?.onPreviewFileChanged
+      !window.flashDesktop?.watchPreviewFile ||
+      !window.flashDesktop?.onPreviewFileChanged
     ) {
       return
     }
@@ -442,7 +442,7 @@ export function PreviewPane({
       reloadPreview()
     }
 
-    const unsubscribe = window.nyxoDesktop.onPreviewFileChanged(payload => {
+    const unsubscribe = window.flashDesktop.onPreviewFileChanged(payload => {
       if (!active || payload.id !== watchId) {
         return
       }
@@ -460,11 +460,11 @@ export function PreviewPane({
       }, FILE_RELOAD_DEBOUNCE_MS)
     })
 
-    void window.nyxoDesktop
+    void window.flashDesktop
       .watchPreviewFile(target.url)
       .then(watch => {
         if (!active) {
-          void window.nyxoDesktop?.stopPreviewFileWatch?.(watch.id)
+          void window.flashDesktop?.stopPreviewFileWatch?.(watch.id)
 
           return
         }
@@ -487,7 +487,7 @@ export function PreviewPane({
       }
 
       if (watchId) {
-        void window.nyxoDesktop?.stopPreviewFileWatch?.(watchId)
+        void window.flashDesktop?.stopPreviewFileWatch?.(watchId)
       }
     }
   }, [appendConsoleEntry, copy, reloadPreview, target.kind, target.url])
@@ -515,7 +515,7 @@ export function PreviewPane({
 
     const webview = document.createElement('webview') as PreviewWebview
     webview.className = 'flex h-full w-full flex-1 bg-transparent'
-    webview.setAttribute('partition', 'persist:nyxo-preview')
+    webview.setAttribute('partition', 'persist:flash-preview')
     webview.setAttribute('src', target.url)
     webview.setAttribute('webpreferences', 'contextIsolation=yes,nodeIntegration=no,sandbox=yes')
 

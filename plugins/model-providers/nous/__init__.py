@@ -13,7 +13,11 @@ class NousProfile(ProviderProfile):
     def build_extra_body(
         self, *, session_id: str | None = None, **context
     ) -> dict[str, Any]:
-        return {"tags": nous_portal_tags()}
+        body: dict[str, Any] = {"tags": nous_portal_tags()}
+        provider_preferences = context.get("provider_preferences")
+        if provider_preferences:
+            body["provider"] = provider_preferences
+        return body
 
     def build_api_kwargs_extras(
         self,
@@ -38,16 +42,16 @@ class NousProfile(ProviderProfile):
 
 nous = NousProfile(
     name="nous",
-    aliases=("nous-portal", "nousresearch"),
+    aliases=("nous-portal", "flashorg"),
     env_vars=("NOUS_API_KEY",),
     display_name="Nous Research",
-    description="Nous Research — Nyxo model family",
-    signup_url="https://nousresearch.com/",
+    description="Nous Research — Hermes model family",
+    signup_url="https://flashorg.com/",
     fallback_models=(
-        "nyxo-3-405b",
-        "nyxo-3-70b",
+        "hermes-3-405b",
+        "hermes-3-70b",
     ),
-    base_url="https://inference.nousresearch.com/v1",
+    base_url="https://inference.flashorg.com/v1",
     auth_type="oauth_device_code",
 )
 

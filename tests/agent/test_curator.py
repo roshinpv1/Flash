@@ -7,6 +7,7 @@ tests run fully offline and the curator module doesn't need real credentials.
 from __future__ import annotations
 
 import importlib
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -15,11 +16,11 @@ import pytest
 
 @pytest.fixture
 def curator_env(tmp_path, monkeypatch):
-    """Isolated NYXO_HOME + freshly reloaded curator + skill_usage modules."""
-    home = tmp_path / ".nyxo"
+    """Isolated HERMES_HOME + freshly reloaded curator + skill_usage modules."""
+    home = tmp_path / ".flash"
     (home / "skills").mkdir(parents=True)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("NYXO_HOME", str(home))
+    monkeypatch.setenv("HERMES_HOME", str(home))
 
     import tools.skill_usage as usage
     importlib.reload(usage)
@@ -37,7 +38,21 @@ def curator_env(tmp_path, monkeypatch):
     # directly). Tests opt in with _enable_prune_builtins(...).
     monkeypatch.setattr(usage, "_prune_builtins_enabled", lambda: False)
 
-    return {"home": home, "curator": curator, "usage": usage}
+    yield {"home": home, "curator": curator, "usage": usage}
+
+    # Teardown: a curator review launched with synchronous=False spawns a
+    # daemon "curator-review" thread that calls save_state() when it finishes.
+    # save_state() resolves the state path from HERMES_HOME at write time, so a
+    # straggler thread that outlives this test would write into whatever home
+    # the *next* test has configured (or the default ~/.flash once monkeypatch
+    # restores the env) — corrupting an unrelated test's state file. This race
+    # is invisible on a fast machine but flakes under CI load. Join any such
+    # thread here, while HERMES_HOME is still pinned to this test's tmp home
+    # (curator_env depends on monkeypatch, so this teardown runs before the
+    # monkeypatch env is restored). See the salvage of #14261 CI flake.
+    for t in threading.enumerate():
+        if t.name == "curator-review" and t.is_alive():
+            t.join(timeout=10.0)
 
 
 def _write_skill(skills_dir: Path, name: str):
@@ -246,6 +261,94 @@ def test_new_skill_without_last_used_not_immediately_archived(curator_env):
     assert counts["archived"] == 0
     assert counts["marked_stale"] == 0
     assert (skills_dir / "fresh").exists()
+
+
+def _backdate(u, name: str, days: int, *, use_count: int = 1):
+    """Write an agent-created usage record whose activity is *days* old."""
+    ts = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    data = u.load_usage()
+    data[name] = u._empty_record()
+    data[name]["created_by"] = "agent"
+    data[name]["created_at"] = ts
+    data[name]["last_used_at"] = ts if use_count else None
+    data[name]["last_activity_at"] = ts if use_count else None
+    data[name]["use_count"] = use_count
+    u.save_usage(data)
+
+
+def test_cron_referenced_skill_is_not_archived(curator_env, monkeypatch):
+    """A skill referenced by a cron job must survive inactivity archival even
+    when its activity is well past archive_after_days. The scheduler only
+    bumps usage when a job fires, so paused / infrequent / far-future jobs
+    would otherwise have their skills aged out from under them."""
+    c = curator_env["curator"]
+    u = curator_env["usage"]
+    skills_dir = curator_env["home"] / "skills"
+    _write_skill(skills_dir, "cron-dep")
+    _write_skill(skills_dir, "orphan")
+    _backdate(u, "cron-dep", 200)
+    _backdate(u, "orphan", 200)
+
+    # Pretend a (paused/infrequent) cron job references "cron-dep" only.
+    monkeypatch.setattr(c, "_cron_referenced_skills", lambda: {"cron-dep"})
+
+    counts = c.apply_automatic_transitions()
+
+    assert u.get_record("cron-dep")["state"] == "active"  # protected
+    assert (skills_dir / "cron-dep").exists()
+    assert u.get_record("orphan")["state"] == "archived"  # control
+    assert counts["archived"] == 1
+
+
+def test_unused_skill_not_archived_before_stale_floor(curator_env):
+    """A never-used skill (use_count == 0) younger than stale_after_days must
+    not be marked stale or archived — absence of use is not evidence of
+    staleness when the skill simply hasn't had its trigger come up yet."""
+    c = curator_env["curator"]
+    u = curator_env["usage"]
+    skills_dir = curator_env["home"] / "skills"
+    _write_skill(skills_dir, "young-unused")
+    _backdate(u, "young-unused", 10, use_count=0)  # < 30d stale floor
+
+    counts = c.apply_automatic_transitions()
+
+    assert u.get_record("young-unused")["state"] == "active"
+    assert counts["archived"] == 0
+    assert counts["marked_stale"] == 0
+
+
+def test_unused_skill_archived_past_archive_window(curator_env):
+    """The use=0 floor only protects YOUNG skills — a never-used skill older
+    than archive_after_days still archives (no perpetual reprieve)."""
+    c = curator_env["curator"]
+    u = curator_env["usage"]
+    skills_dir = curator_env["home"] / "skills"
+    _write_skill(skills_dir, "old-unused")
+    _backdate(u, "old-unused", 200, use_count=0)
+
+    counts = c.apply_automatic_transitions()
+
+    assert u.get_record("old-unused")["state"] == "archived"
+    assert counts["archived"] == 1
+
+
+def test_candidate_list_marks_cron_referenced_skills(curator_env, monkeypatch):
+    """The LLM review candidate list flags cron-referenced skills so the
+    review pass knows not to prune them."""
+    c = curator_env["curator"]
+    u = curator_env["usage"]
+    skills_dir = curator_env["home"] / "skills"
+    _write_skill(skills_dir, "cron-dep")
+    _write_skill(skills_dir, "plain")
+    _backdate(u, "cron-dep", 1)
+    _backdate(u, "plain", 1)
+    monkeypatch.setattr(c, "_cron_referenced_skills", lambda: {"cron-dep"})
+
+    listing = c._render_candidate_list()
+    cron_line = next(l for l in listing.splitlines() if l.startswith("- cron-dep"))
+    plain_line = next(l for l in listing.splitlines() if l.startswith("- plain"))
+    assert "cron=yes" in cron_line
+    assert "cron=no" in plain_line
 
 
 def test_manual_skill_is_not_auto_archived(curator_env):
@@ -476,7 +579,7 @@ def test_run_review_records_state(curator_env):
 def test_dry_run_does_not_advance_state(curator_env, monkeypatch):
     """Dry-run previews must not bump last_run_at or run_count. A preview
     shouldn't defer the next scheduled real pass or look like a real run in
-    `nyxo curator status`. Fixes #18373.
+    `flash curator status`. Fixes #18373.
     """
     c = curator_env["curator"]
     u = curator_env["usage"]
@@ -642,7 +745,7 @@ def test_run_review_skips_llm_when_consolidate_off(curator_env, monkeypatch):
 
 def test_run_review_consolidate_override_runs_llm(curator_env, monkeypatch):
     """Passing consolidate=True overrides the config default (off) and drives
-    the LLM consolidation pass — mirrors `nyxo curator run --consolidate`."""
+    the LLM consolidation pass — mirrors `flash curator run --consolidate`."""
     c = curator_env["curator"]
     u = curator_env["usage"]
     skills_dir = curator_env["home"] / "skills"
@@ -857,8 +960,8 @@ def test_curator_review_prompt_offers_support_file_actions():
 
 
 def test_cli_unpin_refuses_bundled_skill(curator_env, capsys):
-    """nyxo curator unpin must refuse bundled/hub skills too (matches pin)."""
-    from nyxo_cli import curator as cli
+    """flash curator unpin must refuse bundled/hub skills too (matches pin)."""
+    from flash_cli import curator as cli
     skills_dir = curator_env["home"] / "skills"
     _write_skill(skills_dir, "ship-skill")
     (skills_dir / ".bundled_manifest").write_text(
@@ -875,7 +978,7 @@ def test_cli_unpin_refuses_bundled_skill(curator_env, capsys):
 
 
 def test_cli_pin_refuses_bundled_skill(curator_env, capsys):
-    from nyxo_cli import curator as cli
+    from flash_cli import curator as cli
     skills_dir = curator_env["home"] / "skills"
     _write_skill(skills_dir, "ship-skill")
     (skills_dir / ".bundled_manifest").write_text(
@@ -895,7 +998,7 @@ def test_cli_pin_refuses_bundled_skill(curator_env, capsys):
 # curator review-model resolution (canonical auxiliary.curator slot)
 #
 # Curator was unified with the rest of the aux task system in Apr 2026 so
-# `nyxo model` → auxiliary picker, the dashboard Models tab, and the full
+# `flash model` → auxiliary picker, the dashboard Models tab, and the full
 # per-task config (timeout, base_url, api_key, extra_body) all work for it.
 # Voscko report: curator.auxiliary.{provider,model} was advertised but never
 # read. Fix wires curator through auxiliary.curator with a legacy fallback.
@@ -969,6 +1072,25 @@ def test_review_runtime_strips_blank_aux_credentials(curator_env):
     binding = curator._resolve_review_runtime(cfg)
     assert binding.explicit_api_key is None
     assert binding.explicit_base_url is None
+
+
+def test_review_runtime_carries_auxiliary_extra_body(curator_env):
+    curator = curator_env["curator"]
+    cfg = {
+        "auxiliary": {
+            "curator": {
+                "provider": "custom",
+                "model": "local-mini",
+                "extra_body": {"slot_flag": "slot-value"},
+            },
+        },
+    }
+
+    binding = curator._resolve_review_runtime(cfg)
+
+    assert binding.request_overrides == {
+        "extra_body": {"slot_flag": "slot-value"}
+    }
 
 
 def test_review_runtime_ignores_auxiliary_credentials_when_using_main(curator_env):
@@ -1097,9 +1219,9 @@ def test_curator_slot_is_canonical_aux_task():
     (test_aux_config.py) for the main tasks — this test pins `curator`
     specifically so the unification doesn't silently regress.
     """
-    from nyxo_cli.config import DEFAULT_CONFIG
-    from nyxo_cli.main import _AUX_TASKS
-    from nyxo_cli.web_server import _AUX_TASK_SLOTS
+    from flash_cli.config import DEFAULT_CONFIG
+    from flash_cli.main import _AUX_TASKS
+    from flash_cli.web_server import _AUX_TASK_SLOTS
 
     # 1. DEFAULT_CONFIG.auxiliary — schema source
     assert "curator" in DEFAULT_CONFIG["auxiliary"], \
@@ -1109,13 +1231,214 @@ def test_curator_slot_is_canonical_aux_task():
     assert slot["model"] == ""
     assert slot["timeout"] > 0, "curator timeout should be set (reviews run long)"
 
-    # 2. nyxo_cli/main.py _AUX_TASKS — CLI picker
+    # 2. flash_cli/main.py _AUX_TASKS — CLI picker
     aux_keys = {k for k, _name, _desc in _AUX_TASKS}
     assert "curator" in aux_keys, "curator missing from _AUX_TASKS (CLI picker)"
 
-    # 3. nyxo_cli/web_server.py _AUX_TASK_SLOTS — REST API allowlist
+    # 3. flash_cli/web_server.py _AUX_TASK_SLOTS — REST API allowlist
     assert "curator" in _AUX_TASK_SLOTS, \
         "curator missing from _AUX_TASK_SLOTS (dashboard REST API)"
 
     # 4. web/src/pages/ModelsPage.tsx is checked at build time; the tsx
     #    array and this tuple share a ``Must match _AUX_TASK_SLOTS`` comment.
+
+
+def test_review_fork_runs_under_background_review_origin(curator_env, monkeypatch):
+    """The curator LLM fork must tag itself as background_review.
+
+    This is the keystone that makes skill_manager_tool's
+    ``_background_review_write_guard`` fire during a curation pass. Without
+    ``_memory_write_origin = "background_review"`` on the fork, the agent
+    inherits the default ``assistant_tool`` origin, ``is_background_review()``
+    stays False, and the external/bundled/hub-installed skill_manage guards
+    never trigger — leaving the LLM agent free to mutate skills.external_dirs
+    skills (GH-47688). turn_context.py binds this attribute onto the
+    write-origin ContextVar at turn start, so asserting it is set is the
+    enforceable invariant linking the fork to the guard.
+    """
+    curator = curator_env["curator"]
+
+    # The curator_env fixture stubs out _run_llm_review wholesale; this test
+    # exercises the real implementation, so reload the module to restore it.
+    import importlib
+    importlib.reload(curator)
+    monkeypatch.setattr(curator, "_load_config", lambda: {})
+
+    captured = {}
+
+    class _StubAgent:
+        def __init__(self, *args, **kwargs):
+            # AIAgent.__init__ normally sets this default; mirror it so the
+            # production assignment in _run_llm_review is what flips it.
+            self._memory_write_origin = "assistant_tool"
+            self._memory_nudge_interval = 10
+            self._skill_nudge_interval = 10
+            self.platform = kwargs.get("platform")
+            self._session_messages = []
+
+        def run_conversation(self, user_message=None, **kwargs):
+            # Capture the origin AT RUN TIME — i.e. after _run_llm_review has
+            # finished configuring the fork, which is exactly when it matters.
+            captured["write_origin"] = self._memory_write_origin
+            return {"final_response": "no change"}
+
+    monkeypatch.setattr("run_agent.AIAgent", _StubAgent)
+
+    meta = curator._run_llm_review("review prompt")
+
+    assert meta.get("error") is None, meta.get("error")
+    assert captured.get("write_origin") == "background_review", (
+        "curator review fork did not set _memory_write_origin to "
+        "'background_review' — the skill_manage background-review write "
+        "guard would not fire (GH-47688 regression)"
+    )
+
+
+def test_review_fork_forwards_runtime_pool_and_overrides(curator_env, monkeypatch):
+    """Curator must pass credential_pool + request_overrides from resolve_runtime_provider."""
+    curator = curator_env["curator"]
+    import importlib
+    importlib.reload(curator)
+
+    fake_pool = object()
+    fake_overrides = {"extra_body": {"store": False}}
+    captured = {}
+
+    def _fake_resolve_runtime_provider(**kwargs):
+        return {
+            "provider": "custom",
+            "api_key": "pool-token",
+            "base_url": "https://hyper.charm.land/v1",
+            "api_mode": "chat_completions",
+            "credential_pool": fake_pool,
+            "request_overrides": fake_overrides,
+        }
+
+    class _StubAgent:
+        def __init__(self, *args, **kwargs):
+            captured["kwargs"] = kwargs
+            self._memory_write_origin = "assistant_tool"
+            self._memory_nudge_interval = 0
+            self._skill_nudge_interval = 0
+            self._session_messages = []
+
+        def run_conversation(self, user_message=None, **kwargs):
+            return {"final_response": "ok"}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "flash_cli.config.load_config",
+        lambda: {"model": {"provider": "custom:hyper-charm", "default": "glm-5.2"}},
+    )
+    monkeypatch.setattr(
+        "flash_cli.runtime_provider.resolve_runtime_provider",
+        _fake_resolve_runtime_provider,
+    )
+    monkeypatch.setattr("run_agent.AIAgent", _StubAgent)
+
+    meta = curator._run_llm_review("review prompt")
+
+    assert meta.get("error") is None, meta.get("error")
+    assert captured["kwargs"]["credential_pool"] is fake_pool
+    assert captured["kwargs"]["request_overrides"] == fake_overrides
+
+
+def test_review_fork_uses_runtime_model_and_output_cap(curator_env, monkeypatch):
+    curator = curator_env["curator"]
+    import importlib
+    importlib.reload(curator)
+    captured = {}
+
+    monkeypatch.setattr(
+        "flash_cli.config.load_config",
+        lambda: {"model": {"provider": "custom:gateway", "default": "gateway"}},
+    )
+    monkeypatch.setattr(
+        "flash_cli.runtime_provider.resolve_runtime_provider",
+        lambda **_kwargs: {
+            "provider": "custom",
+            "model": "real-model-id",
+            "api_key": "test-key",
+            "base_url": "https://gateway.example/v1",
+            "api_mode": "chat_completions",
+            "max_output_tokens": 1234,
+        },
+    )
+
+    class _StubAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            self._session_messages = []
+
+        def run_conversation(self, **_kwargs):
+            return {"final_response": "ok"}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("run_agent.AIAgent", _StubAgent)
+    result = curator._run_llm_review("review")
+
+    assert result["error"] is None
+    assert captured["model"] == "real-model-id"
+    assert captured["max_tokens"] == 1234
+
+
+def test_review_fork_merges_slot_extra_body_over_runtime(curator_env, monkeypatch):
+    curator = curator_env["curator"]
+    import importlib
+    importlib.reload(curator)
+    captured = {}
+
+    monkeypatch.setattr(
+        "flash_cli.config.load_config",
+        lambda: {
+            "auxiliary": {
+                "curator": {
+                    "provider": "custom:gateway",
+                    "model": "gateway",
+                    "extra_body": {"shared": "slot", "slot_only": True},
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(
+        "flash_cli.runtime_provider.resolve_runtime_provider",
+        lambda **_kwargs: {
+            "provider": "custom",
+            "api_key": "test-key",
+            "base_url": "https://gateway.example/v1",
+            "api_mode": "chat_completions",
+            "request_overrides": {
+                "extra_body": {"shared": "runtime", "runtime_only": True},
+                "service_tier": "priority",
+            },
+        },
+    )
+
+    class _StubAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            self._session_messages = []
+
+        def run_conversation(self, **_kwargs):
+            return {"final_response": "ok"}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr("run_agent.AIAgent", _StubAgent)
+
+    result = curator._run_llm_review("review")
+
+    assert result["error"] is None
+    assert captured["request_overrides"] == {
+        "extra_body": {
+            "shared": "slot",
+            "runtime_only": True,
+            "slot_only": True,
+        },
+        "service_tier": "priority",
+    }

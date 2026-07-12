@@ -17,14 +17,14 @@ def test_gateway_config_stt_disabled_from_dict_nested():
 
 
 def test_load_gateway_config_bridges_stt_enabled_from_config_yaml(tmp_path, monkeypatch):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         yaml.dump({"stt": {"enabled": False}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     config = load_gateway_config()
@@ -97,7 +97,9 @@ async def test_enrich_message_with_transcription_avoids_bogus_no_provider_messag
         )
 
     assert "No STT provider is configured" not in result
-    assert "trouble transcribing" in result
+    assert "[voice message could not be transcribed]" in result
+    # The opaque backend cause must NOT leak into the LLM-visible prompt.
+    assert "VOICE_TOOLS_OPENAI_KEY" not in result
     assert "caption" in result
     assert transcripts == []
 
@@ -180,5 +182,6 @@ async def test_prepare_inbound_message_text_transcribes_queued_voice_event():
         )
 
     assert result is not None
+    # Success path: the transcript passes through as a plain quoted line, with
+    # no "voice message" meta-commentary that the LLM would echo back.
     assert "queued voice transcript" in result
-    assert "voice message" in result.lower()

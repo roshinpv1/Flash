@@ -62,7 +62,7 @@ function connect(url) {
         pending.delete(m.id)
         m.error ? p.rej(new Error(m.error.message)) : p.res(m.result)
       } else if (m.method) {
-        ;(events.get(m.method) ?? []).forEach(h => h(m.params))
+        ; (events.get(m.method) ?? []).forEach(h => h(m.params))
       }
     })
   })
@@ -173,7 +173,7 @@ async function main() {
     }
   }
 
-  writeFileSync('/tmp/nyxo-latency-samples.json', JSON.stringify(samples, null, 2))
+  writeFileSync('/tmp/flash-latency-samples.json', JSON.stringify(samples, null, 2))
 
   cdp.close()
 }

@@ -1,5 +1,5 @@
 """
-Cron job management tools for Nyxo Agent.
+Cron job management tools for Hermes Agent.
 
 Expose a single compressed action-oriented tool to avoid schema/context bloat.
 Compatibility wrappers remain for direct Python callers and legacy tests.
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from nyxo_constants import display_nyxo_home
+from hermes_constants import display_hermes_home
 
 logger = logging.getLogger(__name__)
 
@@ -53,15 +53,15 @@ def _notify_provider_jobs_changed_safe() -> None:
 #
 #   1. User-supplied cron prompt (small, written as a directive).
 #      Strict scanning is appropriate — a legit cron prompt has no business
-#      saying "cat ~/.nyxo/.env" or "rm -rf /". `_scan_cron_prompt()` runs
+#      saying "cat ~/.hermes/.env" or "rm -rf /". `_scan_cron_prompt()` runs
 #      against this at create/update time and as a runtime defense-in-depth.
 #
 #   2. Assembled prompt that includes loaded skill content (large markdown
 #      bodies, often security docs, postmortems, runbooks discussing attack
 #      patterns in PROSE). Reusing the strict patterns here false-positives
 #      every time a skill *describes* a command — see #3968 follow-up: the
-#      `nyxo-agent-dev` skill contains a security postmortem mentioning
-#      `cat ~/.nyxo/.env`, which tripped `read_secrets` and silently
+#      `hermes-agent-dev` skill contains a security postmortem mentioning
+#      `cat ~/.hermes/.env`, which tripped `read_secrets` and silently
 #      killed all PR-scout jobs.
 #
 #      Skill bodies are user-curated and scanned at install time by
@@ -115,10 +115,14 @@ _CRON_EXFIL_COMMAND_PATTERNS = [
     (rf'curl\s+[^\n]*(?:-H|--header)\s+["\']Authorization:\s*(?:Bearer|token)\s+{_CRON_SECRET_VAR_RE}["\']', "exfil_curl_auth_header"),
 ]
 
-_CRON_INVISIBLE_CHARS = {
-    '\u200b', '\u200c', '\u200d', '\u2060', '\ufeff',
-    '\u202a', '\u202b', '\u202c', '\u202d', '\u202e',
-}
+# Single source of truth, shared with the install-time scanner
+# (threat_patterns.INVISIBLE_CHARS / skills_guard). Keeping a separate, narrower
+# copy here let an obfuscated injection directive slip past this runtime cron
+# tripwire while being caught at install time (or vice versa): U+2062-U+2064
+# (invisible math operators) and U+2066-U+2069 (directional isolates) are real
+# attack tools and were missing from the cron-local set. Importing the canonical
+# set keeps the cron tripwire and the install scanner from drifting apart.
+from tools.threat_patterns import INVISIBLE_CHARS as _CRON_INVISIBLE_CHARS
 
 # U+200D Zero-Width Joiner is also a legitimate, required part of many
 # Unicode emoji sequences (for example 👨‍👩‍👧, 🏳️‍🌈, ❤️‍🩹, 🧑‍💻).
@@ -280,10 +284,10 @@ def _scan_cron_skill_assembled(assembled: str) -> tuple[str, str]:
 
 def _origin_from_env() -> Optional[Dict[str, str]]:
     from gateway.session_context import get_session_env
-    origin_platform = get_session_env("NYXO_SESSION_PLATFORM")
-    origin_chat_id = get_session_env("NYXO_SESSION_CHAT_ID")
+    origin_platform = get_session_env("HERMES_SESSION_PLATFORM")
+    origin_chat_id = get_session_env("HERMES_SESSION_CHAT_ID")
     if origin_platform and origin_chat_id:
-        thread_id = get_session_env("NYXO_SESSION_THREAD_ID") or None
+        thread_id = get_session_env("HERMES_SESSION_THREAD_ID") or None
         if thread_id:
             logger.debug(
                 "Cron origin captured thread_id=%s for %s:%s",
@@ -292,14 +296,14 @@ def _origin_from_env() -> Optional[Dict[str, str]]:
         return {
             "platform": origin_platform,
             "chat_id": origin_chat_id,
-            "chat_name": get_session_env("NYXO_SESSION_CHAT_NAME") or None,
+            "chat_name": get_session_env("HERMES_SESSION_CHAT_NAME") or None,
             "thread_id": thread_id,
             # Captured so an opt-in delivery mirror (cron.mirror_delivery /
             # attach_to_session) can resolve the exact participant's session in
             # per-user-isolated group chats — parity with interactive
-            # send_message, which passes NYXO_SESSION_USER_ID to
+            # send_message, which passes HERMES_SESSION_USER_ID to
             # gateway.mirror.mirror_to_session. Harmless for DMs/shared sessions.
-            "user_id": get_session_env("NYXO_SESSION_USER_ID") or None,
+            "user_id": get_session_env("HERMES_SESSION_USER_ID") or None,
         }
     return None
 
@@ -308,7 +312,7 @@ def _local_delivery_notice(job: Dict[str, Any], user_deliver: Optional[str]) -> 
     """Return an informational notice when a created job won't deliver anywhere.
 
     TUI/CLI sessions cannot be captured as a cron ``origin`` (no
-    ``NYXO_SESSION_PLATFORM``/``CHAT_ID`` is set for them), so a
+    ``HERMES_SESSION_PLATFORM``/``CHAT_ID`` is set for them), so a
     ``deliver="origin"`` request — or an omitted ``deliver`` that defaults to
     origin-or-local — produces a job that runs and saves output to
     ``last_output`` but is never delivered back into the session. This is by
@@ -373,7 +377,7 @@ def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
     """Resolve a model override object into (provider, model) for job storage.
 
     If provider is omitted, pins the current main provider from config so the
-    job doesn't drift when the user later changes their default via nyxo model.
+    job doesn't drift when the user later changes their default via hermes model.
 
     Returns (provider_str_or_none, model_str_or_none).
     """
@@ -393,7 +397,7 @@ def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
     # silently hijacks a job that meant to use the configured custom endpoint.
     if provider_name == "custom":
         try:
-            from nyxo_cli.runtime_provider import has_named_custom_provider
+            from hermes_cli.runtime_provider import has_named_custom_provider
             if not has_named_custom_provider("custom"):
                 provider_name = None
         except Exception:
@@ -401,7 +405,7 @@ def _resolve_model_override(model_obj: Optional[Dict[str, Any]]) -> tuple:
     if model_name and not provider_name:
         # Pin to the current main provider so the job is stable
         try:
-            from nyxo_cli.config import load_config
+            from hermes_cli.config import load_config
             cfg = load_config()
             model_cfg = cfg.get("model", {})
             if isinstance(model_cfg, dict):
@@ -441,10 +445,90 @@ def _normalize_deliver_param(value: Any) -> Optional[str]:
     return text or None
 
 
+def _validate_cron_base_url(
+    provider: Optional[Any], base_url: Optional[Any]
+) -> Optional[str]:
+    """Reject pairing a named provider's stored credential with an off-host base_url.
+
+    The cron tool is model-callable, so a prompt-injected job could set a real
+    provider plus an attacker ``base_url``; on fire the scheduler resolves that
+    provider's stored API key and sends it to the URL, exfiltrating the
+    credential (CWE-200/CWE-522). Allow a ``base_url`` override only when it
+    cannot leak a stored secret: no override at all, a configured custom/byok
+    provider that carries its own endpoint+key, or an override whose host
+    matches the named provider's own endpoint.
+
+    Returns an error string if blocked, else None (valid).
+    """
+    bu = _normalize_optional_job_value(base_url, strip_trailing_slash=True)
+    if not bu:
+        return None
+    prov = _normalize_optional_job_value(provider)
+    if not prov:
+        # A base_url with no explicit provider inherits the default/session
+        # provider's stored key — the same exfil primitive without naming a
+        # provider. Require an explicit (custom) provider for custom endpoints.
+        return (
+            "base_url override requires an explicit provider. Set provider to a "
+            "configured custom provider to use a custom endpoint."
+        )
+    try:
+        from hermes_cli.runtime_provider import (
+            has_named_custom_provider,
+            resolve_requested_provider,
+            _get_named_custom_provider,
+        )
+        from hermes_cli.auth import PROVIDER_REGISTRY
+        from utils import base_url_host_matches, base_url_hostname
+    except Exception:
+        # Can't resolve provider metadata -> fail closed.
+        return f"Unable to validate base_url override for provider {prov!r}; refused."
+
+    if prov.lower() == "custom":
+        # Bare/inline 'custom' (and aliases that resolve to it) is pure BYOK: the
+        # runtime derives the key from a pool keyed by THIS base_url or from
+        # host-gated env vars, never an arbitrary stored secret. Safe to allow.
+        return None
+    if has_named_custom_provider(prov):
+        # A NAMED custom provider carries a STORED key, and
+        # _resolve_named_custom_runtime prefers the override base_url while still
+        # sending that stored key — so an off-host override exfiltrates it.
+        # Require the override host to match the provider's CONFIGURED endpoint.
+        try:
+            cp = _get_named_custom_provider(prov)
+        except Exception:
+            cp = None
+        cfg_host = base_url_hostname((cp or {}).get("base_url", "")) if cp else ""
+        if cfg_host and base_url_host_matches(bu, cfg_host):
+            return None
+        return (
+            f"base_url {bu!r} is not allowed for provider {prov!r}. A named "
+            f"custom provider's stored credential may only be sent to its own "
+            f"configured endpoint ({cfg_host or 'unknown'})."
+        )
+    try:
+        resolved = resolve_requested_provider(prov)
+    except Exception:
+        resolved = prov
+    pconfig = PROVIDER_REGISTRY.get(resolved) if isinstance(resolved, str) else None
+    known_host = base_url_hostname(getattr(pconfig, "inference_base_url", "") if pconfig else "")
+    if known_host and base_url_host_matches(bu, known_host):
+        return None
+    # Fail closed: any non-custom provider we cannot host-match to its own
+    # endpoint is refused. This covers named providers with a stored credential
+    # AND aliases/unknown names we can't resolve to a known host (e.g. "openai",
+    # "google"), which would otherwise pair a stored key with the override URL.
+    return (
+        f"base_url {bu!r} is not allowed for provider {prov!r}. A named "
+        f"provider's stored credential may only be sent to its own endpoint; "
+        f'use a configured custom provider (provider="custom") for a custom base_url.'
+    )
+
+
 def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
     """Validate a cron job script path at the API boundary.
 
-    Scripts must be relative paths that resolve within NYXO_HOME/scripts/.
+    Scripts must be relative paths that resolve within HERMES_HOME/scripts/.
     Absolute paths and ~ expansion are rejected to prevent arbitrary script
     execution via prompt injection.
 
@@ -453,23 +537,23 @@ def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
     if not script or not script.strip():
         return None  # empty/None = clearing the field, always OK
 
-    from nyxo_constants import get_nyxo_home
+    from hermes_constants import get_hermes_home
 
     raw = script.strip()
 
     # Reject absolute paths and ~ expansion at the API boundary.
-    # Only relative paths within ~/.nyxo/scripts/ are allowed.
+    # Only relative paths within ~/.hermes/scripts/ are allowed.
     if raw.startswith(("/", "~")) or (len(raw) >= 2 and raw[1] == ":"):
         return (
-            f"Script path must be relative to ~/.nyxo/scripts/. "
+            f"Script path must be relative to ~/.hermes/scripts/. "
             f"Got absolute or home-relative path: {raw!r}. "
-            f"Place scripts in ~/.nyxo/scripts/ and use just the filename."
+            f"Place scripts in ~/.hermes/scripts/ and use just the filename."
         )
 
     # Validate containment after resolution
     from tools.path_security import validate_within_dir
 
-    scripts_dir = get_nyxo_home() / "scripts"
+    scripts_dir = get_hermes_home() / "scripts"
     scripts_dir.mkdir(parents=True, exist_ok=True)
     containment_error = validate_within_dir(scripts_dir / raw, scripts_dir)
     if containment_error:
@@ -539,8 +623,18 @@ def _execute_job_now(job: Dict[str, Any]) -> Dict[str, Any]:
 
         # At-most-once claim: bail without running if a tick/other fire owns it.
         if not claim_job_for_fire(job_id):
-            return {"claimed": False, "success": False,
-                    "error": "Job is already being fired by the scheduler; not run again."}
+            # claim_job_for_fire returns False for paused/disabled/missing
+            # jobs too — don't mislabel those as "already being fired"
+            # (#60703): that message sends the user chasing a phantom
+            # in-flight run when the job simply isn't runnable.
+            refreshed = get_job(job_id)
+            if refreshed is None:
+                reason = "Job no longer exists; nothing to run."
+            elif not refreshed.get("enabled", True) or refreshed.get("state") == "paused":
+                reason = "Job is paused/disabled; resume it before running."
+            else:
+                reason = "Job is already being fired by the scheduler; not run again."
+            return {"claimed": False, "success": False, "error": reason}
 
         # run_one_job records last_run_at/last_status via mark_job_run (which
         # also clears the fire claim) and returns True iff it processed the job.
@@ -620,6 +714,12 @@ def cronjob(
                 script_error = _validate_cron_script_path(script)
                 if script_error:
                     return tool_error(script_error, success=False)
+
+            # Reject a model-supplied base_url that would route a named
+            # provider's stored credential to an attacker endpoint (F8).
+            base_url_error = _validate_cron_base_url(provider, base_url)
+            if base_url_error:
+                return tool_error(base_url_error, success=False)
 
             # Validate context_from references existing jobs
             if context_from:
@@ -747,7 +847,7 @@ def cronjob(
             result["executed"] = exec_result.get("claimed", False)
             result["execution_success"] = exec_result.get("success", False)
             if not exec_result.get("claimed", False):
-                result["execution_skipped"] = (
+                result["execution_skipped"] = exec_result.get("error") or (
                     "Already being fired by the scheduler; not run again."
                 )
             elif exec_result.get("error"):
@@ -775,6 +875,25 @@ def cronjob(
                 updates["provider"] = _normalize_optional_job_value(provider)
             if base_url is not None:
                 updates["base_url"] = _normalize_optional_job_value(base_url, strip_trailing_slash=True)
+            # Re-validate the EFFECTIVE provider/base_url on EVERY update, not
+            # only when this update supplies provider/base_url. A job persisted
+            # before this guard (or written directly to the jobs store) may
+            # already hold an unsafe named-provider + off-host base_url pair;
+            # if we only checked when the update touches those axes, editing any
+            # unrelated field (name, schedule, ...) would succeed and leave that
+            # exfil-capable pair active and schedulable (F8). The effective pair
+            # merges this update's normalized values over the stored job; an
+            # operator can still remediate in the same update by clearing
+            # base_url or pointing provider/base_url at a safe pair.
+            eff_provider = (
+                updates["provider"] if "provider" in updates else job.get("provider")
+            )
+            eff_base_url = (
+                updates["base_url"] if "base_url" in updates else job.get("base_url")
+            )
+            base_url_error = _validate_cron_base_url(eff_provider, eff_base_url)
+            if base_url_error:
+                return tool_error(base_url_error, success=False)
             if script is not None:
                 # Pass empty string to clear an existing script
                 if script:
@@ -920,7 +1039,7 @@ Important safety rule: cron-run sessions should not recursively schedule more cr
             },
             "script": {
                 "type": "string",
-                "description": f"Optional path to a script that runs each tick. In the default mode its stdout is injected into the agent's prompt as context (data-collection / change-detection pattern). With no_agent=True, the script IS the job and its stdout is delivered verbatim (classic watchdog pattern). Relative paths resolve under {display_nyxo_home()}/scripts/. ``.sh``/``.bash`` extensions run via bash, everything else via Python. On update, pass empty string to clear."
+                "description": f"Optional path to a script that runs each tick. In the default mode its stdout is injected into the agent's prompt as context (data-collection / change-detection pattern). With no_agent=True, the script IS the job and its stdout is delivered verbatim (classic watchdog pattern). Relative paths resolve under {display_hermes_home()}/scripts/. ``.sh``/``.bash`` extensions run via bash, everything else via Python. On update, pass empty string to clear."
             },
             "no_agent": {
                 "type": "boolean",
@@ -988,9 +1107,9 @@ def check_cronjob_requirements() -> bool:
     from utils import env_var_enabled
 
     return (
-        env_var_enabled("NYXO_INTERACTIVE")
-        or env_var_enabled("NYXO_GATEWAY_SESSION")
-        or env_var_enabled("NYXO_EXEC_ASK")
+        env_var_enabled("HERMES_INTERACTIVE")
+        or env_var_enabled("HERMES_GATEWAY_SESSION")
+        or env_var_enabled("HERMES_EXEC_ASK")
     )
 
 

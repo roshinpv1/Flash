@@ -1,30 +1,45 @@
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { NyxoConnection } from '@/global'
+import type { HermesConnection } from '@/global'
+import type { ProfileInfo } from '@/types/flash'
 
 // Keep profile.ts's side-effecting imports inert: the gateway socket layer and
 // the REST query client must not run for real in a unit test.
 const ensureGatewayForProfile = vi.fn(async () => undefined)
 const $gateway = atom<unknown>({ id: 'live-socket' })
+const resetStarmapGraph = vi.fn()
 
 vi.mock('@/store/gateway', () => ({ $gateway, ensureGatewayForProfile }))
-vi.mock('@/nyxo', () => ({
+vi.mock('@/flash', () => ({
   getProfiles: vi.fn(async () => ({ profiles: [] })),
   setApiRequestProfile: vi.fn()
 }))
 vi.mock('@/lib/query-client', () => ({ queryClient: { invalidateQueries: vi.fn() } }))
+vi.mock('@/store/starmap', () => ({ resetStarmapGraph }))
 
-const { $activeGatewayProfile, ensureGatewayProfile } = await import('./profile')
+const { $activeGatewayProfile, $profiles, ensureGatewayProfile, refreshProfiles } = await import('./profile')
 const { $connection } = await import('./session')
+const { queryClient } = await import('@/lib/query-client')
+const { getProfiles } = await import('@/flash')
 
-const remoteConn = (over: Partial<NyxoConnection> = {}): NyxoConnection =>
-  ({ baseUrl: 'https://nyxo-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as NyxoConnection
+const profile = (name: string, isDefault = false): ProfileInfo => ({
+  has_env: false,
+  is_default: isDefault,
+  model: null,
+  name,
+  path: `/tmp/flash/${name}`,
+  provider: null,
+  skill_count: 0
+})
 
-const localConn = (over: Partial<NyxoConnection> = {}): NyxoConnection =>
-  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as NyxoConnection
+const remoteConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
+  ({ baseUrl: 'https://flash-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as HermesConnection
 
-const getConnection = vi.fn<(profile?: string | null) => Promise<NyxoConnection>>()
+const localConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
+  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as HermesConnection
+
+const getConnection = vi.fn<(profile?: string | null) => Promise<HermesConnection>>()
 
 beforeEach(() => {
   getConnection.mockReset()
@@ -32,7 +47,10 @@ beforeEach(() => {
   $gateway.set({ id: 'live-socket' })
   $activeGatewayProfile.set('default')
   $connection.set(localConn())
-  vi.stubGlobal('window', { nyxoDesktop: { getConnection } })
+  $profiles.set([])
+  vi.stubGlobal('window', { flashDesktop: { getConnection } })
+  vi.mocked(queryClient.invalidateQueries).mockClear()
+  resetStarmapGraph.mockClear()
 })
 
 afterEach(() => {
@@ -85,5 +103,34 @@ describe('ensureGatewayProfile → $connection sync (#46651)', () => {
     expect(getConnection).not.toHaveBeenCalled()
     expect(ensureGatewayForProfile).not.toHaveBeenCalled()
     expect($connection.get()?.mode).toBe('remote')
+  })
+})
+
+describe('profile-scoped cache invalidation', () => {
+  it('drops the memory graph cache when the active gateway profile changes', () => {
+    $activeGatewayProfile.set('coder')
+
+    expect(queryClient.invalidateQueries).toHaveBeenCalled()
+    expect(resetStarmapGraph).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('refreshProfiles shared rail list (#49289)', () => {
+  it('removes a deleted profile from the shared $profiles cache after Manage Profiles refreshes', async () => {
+    $profiles.set([profile('default', true), profile('test1')])
+    vi.mocked(getProfiles).mockResolvedValueOnce({ profiles: [profile('default', true)] })
+
+    await refreshProfiles()
+
+    expect($profiles.get().map(profile => profile.name)).toEqual(['default'])
+  })
+
+  it('leaves the shared $profiles cache intact when the refresh fails', async () => {
+    $profiles.set([profile('default', true), profile('test1')])
+    vi.mocked(getProfiles).mockRejectedValueOnce(new Error('backend unavailable'))
+
+    await expect(refreshProfiles()).rejects.toThrow('backend unavailable')
+
+    expect($profiles.get().map(profile => profile.name)).toEqual(['default', 'test1'])
   })
 })

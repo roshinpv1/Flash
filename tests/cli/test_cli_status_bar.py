@@ -4,11 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import cli as cli_mod
-from cli import NyxoCLI
+from cli import HermesCLI
 
 
 def _make_cli(model: str = "anthropic/claude-sonnet-4-20250514"):
-    cli_obj = NyxoCLI.__new__(NyxoCLI)
+    cli_obj = HermesCLI.__new__(HermesCLI)
     cli_obj.model = model
     cli_obj.session_start = datetime.now() - timedelta(minutes=14, seconds=32)
     cli_obj.conversation_history = [{"role": "user", "content": "hi"}]
@@ -359,17 +359,17 @@ class TestCLIStatusBar:
         already printed Panel borders — that's a cosmetic artifact of
         stamped scrollback history, not a live-render bug.
         """
-        from cli import NyxoCLI
+        from cli import HermesCLI
 
         # Floor at 32 — narrow terminals still get something usable
         # (avoids negative ``'─' * (w - 2)`` math).
-        assert NyxoCLI._scrollback_box_width(20) == 32
-        assert NyxoCLI._scrollback_box_width(32) == 32
+        assert HermesCLI._scrollback_box_width(20) == 32
+        assert HermesCLI._scrollback_box_width(32) == 32
         # Above the floor, return the actual viewport width — no cap.
-        assert NyxoCLI._scrollback_box_width(48) == 48
-        assert NyxoCLI._scrollback_box_width(80) == 80
-        assert NyxoCLI._scrollback_box_width(120) == 120
-        assert NyxoCLI._scrollback_box_width(200) == 200
+        assert HermesCLI._scrollback_box_width(48) == 48
+        assert HermesCLI._scrollback_box_width(80) == 80
+        assert HermesCLI._scrollback_box_width(120) == 120
+        assert HermesCLI._scrollback_box_width(200) == 200
 
     def test_agent_spacer_reclaimed_on_narrow_terminals(self):
         cli_obj = _make_cli()
@@ -400,13 +400,20 @@ class TestCLIStatusBar:
         cli_obj = _make_cli()
         cli_obj._spinner_text = "running tool"
 
-        # <60s path
-        cli_obj._tool_start_time = time.monotonic() - 9.2
-        short = cli_obj._render_spinner_text()
+        # Pin the clock: time.monotonic()'s epoch is arbitrary (often near
+        # boot), so deriving _tool_start_time from the real monotonic clock
+        # made the test fail on hosts where monotonic() < 65.2 — the start
+        # time went negative, the (t0 > 0) guard in _render_spinner_text
+        # dropped the "(elapsed)" suffix entirely, and the split below hit an
+        # IndexError. A fixed clock keeps both elapsed paths deterministic.
+        with patch.object(cli_mod.time, "monotonic", return_value=1000.0):
+            # <60s path
+            cli_obj._tool_start_time = 1000.0 - 9.2
+            short = cli_obj._render_spinner_text()
 
-        # >=60s path
-        cli_obj._tool_start_time = time.monotonic() - 65.2
-        long = cli_obj._render_spinner_text()
+            # >=60s path
+            cli_obj._tool_start_time = 1000.0 - 65.2
+            long = cli_obj._render_spinner_text()
 
         short_elapsed = short.split("(", 1)[1].rstrip(")")
         long_elapsed = long.split("(", 1)[1].rstrip(")")
@@ -500,7 +507,7 @@ class TestCLIStatusBar:
 
 
 class TestCLIUsageReport:
-    def test_show_usage_includes_estimated_cost(self, capsys):
+    def test_show_usage_omits_cost_reporting(self, capsys):
         cli_obj = _attach_agent(
             _make_cli(),
             prompt_tokens=10_230,
@@ -516,52 +523,19 @@ class TestCLIUsageReport:
         cli_obj._show_usage()
         output = capsys.readouterr().out
 
+        # Token counts and session metadata still shown.
         assert "Model:" in output
-        assert "Cost status:" in output
-        assert "Cost source:" in output
-        assert "Total cost:" in output
-        assert "$" in output
-        assert "0.064" in output
+        assert "Input tokens:" in output
+        assert "Output tokens:" in output
+        assert "Total tokens:" in output
         assert "Session duration:" in output
         assert "Compressions:" in output
-
-    def test_show_usage_marks_unknown_pricing(self, capsys):
-        cli_obj = _attach_agent(
-            _make_cli(model="local/my-custom-model"),
-            prompt_tokens=1_000,
-            completion_tokens=500,
-            total_tokens=1_500,
-            api_calls=1,
-            context_tokens=1_000,
-            context_length=32_000,
-        )
-        cli_obj.verbose = False
-
-        cli_obj._show_usage()
-        output = capsys.readouterr().out
-
-        assert "Total cost:" in output
-        assert "n/a" in output
-        assert "Pricing unknown for local/my-custom-model" in output
-
-    def test_zero_priced_provider_models_stay_unknown(self, capsys):
-        cli_obj = _attach_agent(
-            _make_cli(model="glm-5"),
-            prompt_tokens=1_000,
-            completion_tokens=500,
-            total_tokens=1_500,
-            api_calls=1,
-            context_tokens=1_000,
-            context_length=32_000,
-        )
-        cli_obj.verbose = False
-
-        cli_obj._show_usage()
-        output = capsys.readouterr().out
-
-        assert "Total cost:" in output
-        assert "n/a" in output
-        assert "Pricing unknown for glm-5" in output
+        # Cost and cache-hit reporting is removed everywhere.
+        assert "Total cost:" not in output
+        assert "Cost status:" not in output
+        assert "Cost source:" not in output
+        assert "Cache read tokens:" not in output
+        assert "Cache write tokens:" not in output
 
 
 class TestStatusBarWidthSource:
@@ -659,18 +633,18 @@ class TestIdleSinceLastTurn:
     """Time-since-last-final-agent-response read-out on the status bar."""
 
     def test_hidden_before_first_turn(self):
-        assert NyxoCLI._format_idle_since(None, turn_live=False) == ""
+        assert HermesCLI._format_idle_since(None, turn_live=False) == ""
 
     def test_hidden_while_turn_is_live(self):
-        assert NyxoCLI._format_idle_since(time.time() - 30, turn_live=True) == ""
+        assert HermesCLI._format_idle_since(time.time() - 30, turn_live=True) == ""
 
     def test_shows_compact_idle_time_after_turn(self):
-        label = NyxoCLI._format_idle_since(time.time() - 42, turn_live=False)
+        label = HermesCLI._format_idle_since(time.time() - 42, turn_live=False)
         assert label.startswith("✓ ")
         assert label == "✓ 42s"
 
     def test_scales_to_minutes(self):
-        label = NyxoCLI._format_idle_since(time.time() - 3 * 60, turn_live=False)
+        label = HermesCLI._format_idle_since(time.time() - 3 * 60, turn_live=False)
         assert label == "✓ 3m"
 
     def test_snapshot_carries_idle_since(self):

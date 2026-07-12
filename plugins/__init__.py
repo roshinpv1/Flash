@@ -1,1 +1,1 @@
-# Nyxo plugins package
+# Hermes plugins package

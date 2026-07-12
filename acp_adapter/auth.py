@@ -1,15 +1,15 @@
-"""ACP auth helpers — detect and advertise Nyxo authentication methods."""
+"""ACP auth helpers — detect and advertise Hermes authentication methods."""
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
 
-TERMINAL_SETUP_AUTH_METHOD_ID = "nyxo-setup"
+TERMINAL_SETUP_AUTH_METHOD_ID = "flash-setup"
 
 
 def detect_provider() -> Optional[str]:
-    """Resolve the active Nyxo runtime provider, or None if unavailable.
+    """Resolve the active Hermes runtime provider, or None if unavailable.
 
     Treats a ``Callable`` ``api_key`` (Azure Foundry Entra ID bearer
     token provider — see :mod:`agent.azure_identity_adapter`) as a valid
@@ -18,7 +18,7 @@ def detect_provider() -> Optional[str]:
     handshake rejects the legitimate provider.
     """
     try:
-        from nyxo_cli.runtime_provider import resolve_runtime_provider
+        from flash_cli.runtime_provider import resolve_runtime_provider
         runtime = resolve_runtime_provider()
         api_key = runtime.get("api_key")
         provider = runtime.get("provider")
@@ -34,16 +34,16 @@ def detect_provider() -> Optional[str]:
 
 
 def has_provider() -> bool:
-    """Return True if Nyxo can resolve any runtime provider credentials."""
+    """Return True if Hermes can resolve any runtime provider credentials."""
     return detect_provider() is not None
 
 
 def build_auth_methods() -> list[Any]:
-    """Return registry-compatible ACP auth methods for Nyxo.
+    """Return registry-compatible ACP auth methods for Hermes.
 
     The official ACP registry validates that agents advertise at least one
     usable auth method during the initial handshake. A fresh Zed install may
-    not have Nyxo provider credentials configured yet, so Nyxo always
+    not have Hermes provider credentials configured yet, so Hermes always
     advertises a terminal setup method. When credentials are already present,
     it also advertises the resolved provider as the default agent-managed
     runtime credential method.
@@ -58,7 +58,7 @@ def build_auth_methods() -> list[Any]:
                 id=provider,
                 name=f"{provider} runtime credentials",
                 description=(
-                    "Authenticate Nyxo using the currently configured "
+                    "Authenticate Hermes using the currently configured "
                     f"{provider} runtime credentials."
                 ),
             )
@@ -67,10 +67,10 @@ def build_auth_methods() -> list[Any]:
     methods.append(
         TerminalAuthMethod(
             id=TERMINAL_SETUP_AUTH_METHOD_ID,
-            name="Configure Nyxo provider",
+            name="Configure Hermes provider",
             description=(
-                "Open Nyxo' interactive model/provider setup in a terminal. "
-                "Use this when Nyxo has not been configured on this machine yet."
+                "Open Hermes' interactive model/provider setup in a terminal. "
+                "Use this when Hermes has not been configured on this machine yet."
             ),
             type="terminal",
             args=["--setup"],

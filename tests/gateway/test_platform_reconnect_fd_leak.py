@@ -103,7 +103,7 @@ class _CountingAdapter(BasePlatformAdapter):
         self._fatal_retryable = fatal_retryable
         self._raise_during_connect = raise_during_connect
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         if self._raise_during_connect:
             raise RuntimeError("simulated connect exception")
         if self._fatal_error:
@@ -254,7 +254,7 @@ class TestReconnectFDLeakRegression:
                     Platform.TELEGRAM,
                 )
 
-            async def connect(self) -> bool:
+            async def connect(self, *, is_reconnect: bool = False) -> bool:
                 return True
 
             async def disconnect(self) -> None:
@@ -307,7 +307,7 @@ class TestAPIServerDisconnectClosesResponseStore:
         We point the ``ResponseStore`` at a tmp db so we can verify
         its ``close()`` is called by ``APIServerAdapter.disconnect()``.
         The real ``ResponseStore.__init__`` opens a SQLite connection
-        to ``~/.nyxo/response_store.db`` (or :memory: as a fallback),
+        to ``~/.flash/response_store.db`` (or :memory: as a fallback),
         which is exactly the resource that was leaking pre-fix.
         """
         import sqlite3

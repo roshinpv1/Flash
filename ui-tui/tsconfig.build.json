@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@nyxo/ink": ["src/types/nyxo-ink.d.ts"]
+      "@hermes/ink": ["src/types/hermes-ink.d.ts"]
     }
   }
 }

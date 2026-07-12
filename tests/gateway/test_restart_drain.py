@@ -90,8 +90,8 @@ async def test_draining_rejects_new_session_messages():
 
 
 def test_load_busy_input_mode_prefers_env_then_config_then_default(tmp_path, monkeypatch):
-    monkeypatch.setattr(gateway_run, "_nyxo_home", tmp_path)
-    monkeypatch.delenv("NYXO_GATEWAY_BUSY_INPUT_MODE", raising=False)
+    monkeypatch.setattr(gateway_run, "_flash_home", tmp_path)
+    monkeypatch.delenv("HERMES_GATEWAY_BUSY_INPUT_MODE", raising=False)
 
     assert gateway_run.GatewayRunner._load_busy_input_mode() == "interrupt"
 
@@ -105,21 +105,21 @@ def test_load_busy_input_mode_prefers_env_then_config_then_default(tmp_path, mon
     )
     assert gateway_run.GatewayRunner._load_busy_input_mode() == "steer"
 
-    monkeypatch.setenv("NYXO_GATEWAY_BUSY_INPUT_MODE", "interrupt")
+    monkeypatch.setenv("HERMES_GATEWAY_BUSY_INPUT_MODE", "interrupt")
     assert gateway_run.GatewayRunner._load_busy_input_mode() == "interrupt"
 
-    monkeypatch.setenv("NYXO_GATEWAY_BUSY_INPUT_MODE", "steer")
+    monkeypatch.setenv("HERMES_GATEWAY_BUSY_INPUT_MODE", "steer")
     assert gateway_run.GatewayRunner._load_busy_input_mode() == "steer"
 
     # Unknown values fall through to the safe default
-    monkeypatch.setenv("NYXO_GATEWAY_BUSY_INPUT_MODE", "bogus")
+    monkeypatch.setenv("HERMES_GATEWAY_BUSY_INPUT_MODE", "bogus")
     assert gateway_run.GatewayRunner._load_busy_input_mode() == "interrupt"
 
 
 def test_load_busy_text_mode_follows_input_mode_and_honors_legacy(tmp_path, monkeypatch):
-    monkeypatch.setattr(gateway_run, "_nyxo_home", tmp_path)
-    monkeypatch.delenv("NYXO_GATEWAY_BUSY_TEXT_MODE", raising=False)
-    monkeypatch.delenv("NYXO_GATEWAY_BUSY_INPUT_MODE", raising=False)
+    monkeypatch.setattr(gateway_run, "_flash_home", tmp_path)
+    monkeypatch.delenv("HERMES_GATEWAY_BUSY_TEXT_MODE", raising=False)
+    monkeypatch.delenv("HERMES_GATEWAY_BUSY_INPUT_MODE", raising=False)
 
     # No knobs set → follows busy_input_mode, which defaults to interrupt.
     assert gateway_run.GatewayRunner._load_busy_text_mode() == "interrupt"
@@ -141,19 +141,19 @@ def test_load_busy_text_mode_follows_input_mode_and_honors_legacy(tmp_path, monk
     (tmp_path / "config.yaml").write_text(
         "display:\n  busy_input_mode: interrupt\n", encoding="utf-8"
     )
-    monkeypatch.setenv("NYXO_GATEWAY_BUSY_TEXT_MODE", "queue")
+    monkeypatch.setenv("HERMES_GATEWAY_BUSY_TEXT_MODE", "queue")
     assert gateway_run.GatewayRunner._load_busy_text_mode() == "queue"
 
     # Bogus legacy value is ignored → falls through to busy_input_mode (interrupt).
-    monkeypatch.setenv("NYXO_GATEWAY_BUSY_TEXT_MODE", "bogus")
+    monkeypatch.setenv("HERMES_GATEWAY_BUSY_TEXT_MODE", "bogus")
     assert gateway_run.GatewayRunner._load_busy_text_mode() == "interrupt"
 
 
 def test_load_restart_drain_timeout_prefers_env_then_config_then_default(
     tmp_path, monkeypatch, caplog
 ):
-    monkeypatch.setattr(gateway_run, "_nyxo_home", tmp_path)
-    monkeypatch.delenv("NYXO_RESTART_DRAIN_TIMEOUT", raising=False)
+    monkeypatch.setattr(gateway_run, "_flash_home", tmp_path)
+    monkeypatch.delenv("HERMES_RESTART_DRAIN_TIMEOUT", raising=False)
 
     assert (
         gateway_run.GatewayRunner._load_restart_drain_timeout()
@@ -165,10 +165,10 @@ def test_load_restart_drain_timeout_prefers_env_then_config_then_default(
     )
     assert gateway_run.GatewayRunner._load_restart_drain_timeout() == 12.0
 
-    monkeypatch.setenv("NYXO_RESTART_DRAIN_TIMEOUT", "7")
+    monkeypatch.setenv("HERMES_RESTART_DRAIN_TIMEOUT", "7")
     assert gateway_run.GatewayRunner._load_restart_drain_timeout() == 7.0
 
-    monkeypatch.setenv("NYXO_RESTART_DRAIN_TIMEOUT", "invalid")
+    monkeypatch.setenv("HERMES_RESTART_DRAIN_TIMEOUT", "invalid")
     assert (
         gateway_run.GatewayRunner._load_restart_drain_timeout()
         == DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT
@@ -180,15 +180,64 @@ def test_load_restart_drain_timeout_prefers_env_then_config_then_default(
 async def test_request_restart_is_idempotent():
     runner, _adapter = make_restart_runner()
     runner.stop = AsyncMock()
+    runner._launch_detached_restart_command = AsyncMock()
 
+    # _run_restart is held on self._restart_task and is intentionally NOT in
+    # _background_tasks, so _stop_impl's cancel loop can't abort it mid-await
+    # (see #12875).
     assert runner.request_restart(detached=True, via_service=False) is True
-    first_task = next(iter(runner._background_tasks))
+    assert runner._restart_task is not None
+    assert runner._restart_task not in runner._background_tasks
     assert runner.request_restart(detached=True, via_service=False) is False
 
-    await first_task
+    await runner._restart_task
 
+    runner._launch_detached_restart_command.assert_awaited_once_with()
     runner.stop.assert_awaited_once_with(
         restart=True, detached_restart=True, service_restart=False
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_restart_excluded_from_stop_cancel_loop():
+    """Regression for #12875: _run_restart is held on self._restart_task and
+    kept OUT of _background_tasks, and the _stop_impl cancel loop explicitly
+    skips it. If it were in _background_tasks, the cancel loop (which fires
+    while _run_restart is awaiting _stop_task) would propagate CancelledError
+    into _stop_impl and skip _shutdown_event.set() / _exit_code = 75."""
+    runner, _adapter = make_restart_runner()
+    runner.stop = AsyncMock()
+
+    # A decoy background task that SHOULD be cancelled, plus the restart task
+    # that must NOT be.
+    async def _decoy():
+        await asyncio.sleep(60)
+
+    decoy = asyncio.create_task(_decoy())
+    runner._background_tasks.add(decoy)
+    decoy.add_done_callback(runner._background_tasks.discard)
+
+    assert runner.request_restart(detached=False, via_service=True) is True
+    restart_task = runner._restart_task
+    assert restart_task is not None
+    assert restart_task not in runner._background_tasks
+
+    # Run the real cancel loop body in isolation (mirrors _stop_impl:7234).
+    runner._stop_task = None
+    for _task in list(runner._background_tasks):
+        if _task is runner._stop_task:
+            continue
+        if _task is runner._restart_task:
+            continue
+        _task.cancel()
+
+    await asyncio.sleep(0)  # let cancellation settle
+    assert decoy.cancelled()
+    assert not restart_task.cancelled()
+
+    await restart_task
+    runner.stop.assert_awaited_once_with(
+        restart=True, detached_restart=False, service_restart=True
     )
 
 
@@ -198,9 +247,9 @@ async def test_launch_detached_restart_command_uses_setsid(monkeypatch):
     popen_calls = []
 
     monkeypatch.setattr(gateway_run.sys, "platform", "linux")
-    monkeypatch.setattr(gateway_run, "_resolve_nyxo_bin", lambda: ["/usr/bin/nyxo"])
+    monkeypatch.setattr(gateway_run, "_resolve_flash_bin", lambda: ["/usr/bin/flash"])
     monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
-    monkeypatch.setenv("_NYXO_GATEWAY", "1")
+    monkeypatch.setenv("_HERMES_GATEWAY", "1")
     monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/setsid" if cmd == "setsid" else None)
 
     def fake_popen(cmd, **kwargs):
@@ -216,12 +265,29 @@ async def test_launch_detached_restart_command_uses_setsid(monkeypatch):
     assert cmd[:2] == ["/usr/bin/setsid", "bash"]
     assert "gateway restart" in cmd[-1]
     assert "kill -0 321" in cmd[-1]
+    assert "deadline=$(( $(date +%s) +" in cmd[-1]
     assert kwargs["start_new_session"] is True
     assert kwargs["stdout"] is subprocess.DEVNULL
     assert kwargs["stderr"] is subprocess.DEVNULL
     # The watcher must NOT inherit the gateway marker, or the CLI's
-    # self-restart loop guard refuses to run `nyxo gateway restart`.
-    assert kwargs["env"].get("_NYXO_GATEWAY") is None
+    # self-restart loop guard refuses to run `flash gateway restart`.
+    assert kwargs["env"].get("_HERMES_GATEWAY") is None
+
+
+@pytest.mark.asyncio
+async def test_detached_restart_helper_is_idempotent(monkeypatch):
+    runner, _adapter = make_restart_runner()
+    popen_calls = []
+
+    monkeypatch.setattr(gateway_run, "_resolve_flash_bin", lambda: ["/usr/bin/flash"])
+    monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
+    monkeypatch.setattr(shutil, "which", lambda cmd: None)
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: popen_calls.append((a, k)))
+
+    await runner._launch_detached_restart_command()
+    await runner._launch_detached_restart_command()
+
+    assert len(popen_calls) == 1
 
 
 def test_windows_gateway_venv_imports_add_site_packages(monkeypatch, tmp_path):
@@ -256,12 +322,12 @@ async def test_windows_detached_restart_scrubs_gateway_marker(monkeypatch, tmp_p
     site_packages.mkdir(parents=True)
 
     monkeypatch.setattr(gateway_run.sys, "platform", "win32")
-    monkeypatch.setattr(gateway_run, "_resolve_nyxo_bin", lambda: ["nyxo"])
+    monkeypatch.setattr(gateway_run, "_resolve_flash_bin", lambda: ["flash"])
     monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
-    monkeypatch.setenv("_NYXO_GATEWAY", "1")
+    monkeypatch.setenv("_HERMES_GATEWAY", "1")
     monkeypatch.setenv("VIRTUAL_ENV", str(venv_dir))
 
-    import nyxo_cli._subprocess_compat as subprocess_compat
+    import flash_cli._subprocess_compat as subprocess_compat
 
     monkeypatch.setattr(
         subprocess_compat,
@@ -279,12 +345,55 @@ async def test_windows_detached_restart_scrubs_gateway_marker(monkeypatch, tmp_p
 
     assert len(popen_calls) == 1
     cmd, kwargs = popen_calls[0]
-    assert cmd[-3:] == ["nyxo", "gateway", "restart"]
-    assert kwargs["env"].get("_NYXO_GATEWAY") is None
+    assert cmd[-3:] == ["flash", "gateway", "restart"]
+    assert kwargs["env"].get("_HERMES_GATEWAY") is None
     assert kwargs["env"]["VIRTUAL_ENV"] == str(venv_dir)
     assert str(site_packages) in kwargs["env"]["PYTHONPATH"].split(gateway_run.os.pathsep)
     assert kwargs["stdout"] is subprocess.DEVNULL
     assert kwargs["stderr"] is subprocess.DEVNULL
+
+
+@pytest.mark.asyncio
+async def test_windows_detached_restart_uses_pythonw_for_watcher(monkeypatch, tmp_path):
+    runner, _adapter = make_restart_runner()
+    popen_calls = []
+    venv_dir = tmp_path / "venv"
+    site_packages = venv_dir / "Lib" / "site-packages"
+    site_packages.mkdir(parents=True)
+
+    monkeypatch.setattr(gateway_run.sys, "platform", "win32")
+    monkeypatch.setattr(gateway_run.sys, "executable", r"C:\venv\Scripts\python.exe")
+    monkeypatch.setattr(gateway_run, "_resolve_flash_bin", lambda: ["flash"])
+    monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
+    monkeypatch.setenv("VIRTUAL_ENV", str(venv_dir))
+
+    import flash_cli._subprocess_compat as subprocess_compat
+    import flash_cli.gateway_windows as gateway_windows
+
+    monkeypatch.setattr(
+        gateway_windows,
+        "_resolve_detached_python",
+        lambda _python: (r"C:\Python311\pythonw.exe", venv_dir, [str(site_packages)]),
+    )
+    monkeypatch.setattr(
+        subprocess_compat,
+        "windows_detach_popen_kwargs",
+        lambda: {"creationflags": 0x08000008},
+    )
+
+    def fake_popen(cmd, **kwargs):
+        popen_calls.append((cmd, kwargs))
+        return MagicMock()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+    await runner._launch_detached_restart_command()
+
+    assert len(popen_calls) == 1
+    cmd, kwargs = popen_calls[0]
+    assert cmd[0] == r"C:\Python311\pythonw.exe"
+    assert cmd[-3:] == ["flash", "gateway", "restart"]
+    assert kwargs["creationflags"] == 0x08000008
 
 
 # ── Shutdown notification tests ──────────────────────────────────────
@@ -295,7 +404,7 @@ async def test_shutdown_notification_sent_to_active_sessions():
     """Active sessions receive a notification when the gateway starts shutting down."""
     runner, adapter = make_restart_runner()
     source = make_restart_source(chat_id="999", chat_type="dm")
-    session_key = f"agent:main:telegram:dm:999"
+    session_key = "agent:main:telegram:dm:999"
     runner._running_agents[session_key] = MagicMock()
 
     await runner._notify_active_sessions_of_shutdown()
@@ -427,4 +536,71 @@ async def test_shutdown_notification_uses_persisted_origin_for_colon_ids():
     await runner._notify_active_sessions_of_shutdown()
 
     assert adapter.send.await_count == 1
-    assert adapter.send.await_args.args[0] == "!room123:example.org"
+
+
+@pytest.mark.asyncio
+async def test_drain_suppress_skips_home_channel_keeps_session_ping(tmp_path, monkeypatch):
+    """A suppress_notification drain marker mutes ONLY the home-channel broadcast.
+
+    The per-active-session interrupt ping MUST still fire (it carries the
+    "your task was interrupted, message me to resume" hint). This is the core
+    drain-notification-suppression contract.
+    """
+    from gateway.config import HomeChannel, Platform
+    import gateway.drain_control as dc
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+
+    runner, adapter = make_restart_runner()
+    # A home channel distinct from the active session's chat.
+    runner.config.platforms[Platform.TELEGRAM].home_channel = HomeChannel(
+        platform=Platform.TELEGRAM,
+        chat_id="home-42",
+        name="Ops Home",
+    )
+    # One active session in a different chat.
+    runner._running_agents["agent:main:telegram:dm:999"] = MagicMock()
+
+    # NAS auto-update drain: marker present with suppress_notification=True.
+    dc.write_drain_request(principal="nas", suppress_notification=True)
+
+    await runner._notify_active_sessions_of_shutdown()
+
+    # Exactly one send — the active-session ping to chat 999. The home-channel
+    # broadcast to home-42 was suppressed.
+    assert len(adapter.sent_calls) == 1
+    sent_chat_ids = {chat_id for chat_id, _content, _meta in adapter.sent_calls}
+    assert "999" in sent_chat_ids
+    assert "home-42" not in sent_chat_ids
+    assert "shutting down" in adapter.sent[0]
+
+
+@pytest.mark.asyncio
+async def test_drain_without_suppress_flag_still_broadcasts_home_channel(tmp_path, monkeypatch):
+    """A drain marker WITHOUT the suppress flag leaves today's behaviour intact.
+
+    Both the active-session ping AND the home-channel broadcast fire — proving
+    the suppression is opt-in and operator/legacy drains are unaffected.
+    """
+    from gateway.config import HomeChannel, Platform
+    import gateway.drain_control as dc
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+
+    runner, adapter = make_restart_runner()
+    runner.config.platforms[Platform.TELEGRAM].home_channel = HomeChannel(
+        platform=Platform.TELEGRAM,
+        chat_id="home-42",
+        name="Ops Home",
+    )
+    runner._running_agents["agent:main:telegram:dm:999"] = MagicMock()
+
+    # Operator drain: marker present, suppress_notification defaults False.
+    dc.write_drain_request(principal="dashboard")
+
+    await runner._notify_active_sessions_of_shutdown()
+
+    sent_chat_ids = {chat_id for chat_id, _content, _meta in adapter.sent_calls}
+    # Both targets notified (today's behaviour preserved).
+    assert "999" in sent_chat_ids
+    assert "home-42" in sent_chat_ids

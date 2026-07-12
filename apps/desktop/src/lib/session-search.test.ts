@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import type { SessionInfo } from '@/types/nyxo'
+import type { SessionInfo } from '@/types/flash'
 
 import { sessionMatchesSearch } from './session-search'
 
 function makeSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
   return {
     archived: false,
-    cwd: '/home/user/projects/nyxo-agent',
+    cwd: '/home/user/projects/flash-agent',
     ended_at: null,
     id: '20260603_090200_abcd12',
     input_tokens: 0,
@@ -49,7 +49,7 @@ describe('sessionMatchesSearch', () => {
 
     expect(sessionMatchesSearch(session, 'desktop search')).toBe(true)
     expect(sessionMatchesSearch(session, 'session search')).toBe(true)
-    expect(sessionMatchesSearch(session, 'nyxo-agent')).toBe(true)
+    expect(sessionMatchesSearch(session, 'flash-agent')).toBe(true)
   })
 
   it('matches sessions by source platform and aliases', () => {

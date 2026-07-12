@@ -18,9 +18,9 @@ def _write_skill(skills_dir: Path, name: str) -> None:
 
 @pytest.fixture
 def curator_modules(tmp_path, monkeypatch):
-    home = tmp_path / ".nyxo"
+    home = tmp_path / ".flash"
     (home / "skills").mkdir(parents=True)
-    monkeypatch.setenv("NYXO_HOME", str(home))
+    monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     import tools.skill_usage as skill_usage

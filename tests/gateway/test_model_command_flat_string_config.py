@@ -39,7 +39,7 @@ def _make_event(text):
 
 def _fake_switch_result():
     """Build a successful ModelSwitchResult that bypasses real provider resolution."""
-    from nyxo_cli.model_switch import ModelSwitchResult
+    from flash_cli.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -58,23 +58,23 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     """Write a config.yaml with the given ``model:`` value and stub the heavy bits."""
     import gateway.run as gateway_run
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    cfg_path = nyxo_home / "config.yaml"
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    cfg_path = flash_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": model_yaml_value, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.switch_model",
+        "flash_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
-    # save_config writes to ``get_nyxo_home() / config.yaml`` — point it here.
-    monkeypatch.setattr("nyxo_constants.get_nyxo_home", lambda: nyxo_home)
-    monkeypatch.setattr("nyxo_cli.config.get_nyxo_home", lambda: nyxo_home)
+    # save_config writes to ``get_flash_home() / config.yaml`` — point it here.
+    monkeypatch.setattr("flash_constants.get_flash_home", lambda: flash_home)
+    monkeypatch.setattr("flash_cli.config.get_flash_home", lambda: flash_home)
     return cfg_path
 
 
@@ -102,7 +102,7 @@ async def test_model_global_persists_when_config_has_flat_string_model(tmp_path,
     )
     assert written["model"]["default"] == "gpt-5.5"
     assert written["model"]["provider"] == "openrouter"
-    assert written["model"]["base_url"] == "https://openrouter.ai/api/v1"
+    assert "base_url" not in written["model"]
 
 
 @pytest.mark.asyncio
@@ -112,19 +112,19 @@ async def test_model_global_persists_when_config_has_missing_model(tmp_path, mon
     """
     import gateway.run as gateway_run
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    cfg_path = nyxo_home / "config.yaml"
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    cfg_path = flash_home / "config.yaml"
     cfg_path.write_text(yaml.safe_dump({"providers": {}}), encoding="utf-8")
 
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.switch_model",
+        "flash_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
-    monkeypatch.setattr("nyxo_constants.get_nyxo_home", lambda: nyxo_home)
-    monkeypatch.setattr("nyxo_cli.config.get_nyxo_home", lambda: nyxo_home)
+    monkeypatch.setattr("flash_constants.get_flash_home", lambda: flash_home)
+    monkeypatch.setattr("flash_cli.config.get_flash_home", lambda: flash_home)
 
     result = await _make_runner()._handle_model_command(
         _make_event("/model gpt-5.5 --global")

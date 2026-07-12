@@ -1,10 +1,10 @@
 {
-  "name": "nyxo-tui",
+  "name": "hermes-tui",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build --prefix packages/nyxo-ink && tsx --watch src/entry.tsx",
+    "dev": "npm run build --prefix packages/hermes-ink && tsx --watch src/entry.tsx",
     "start": "tsx src/entry.tsx",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -16,7 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@nyxo/ink": "file:./packages/nyxo-ink",
+    "@hermes/ink": "file:./packages/hermes-ink",
     "@nanostores/react": "^1.1.0",
     "ink": "^6.8.0",
     "ink-text-input": "^6.0.0",
@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9",
-    "@types/node": "^24.13.2",
+    "@types/node": "^22.20.0",
     "@types/react": "^19.2.14",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",

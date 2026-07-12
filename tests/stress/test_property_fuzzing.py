@@ -233,16 +233,16 @@ def main():
     for seq_idx in range(NUM_SEQUENCES):
         seed = random.randint(0, 10**9)
         rng = random.Random(seed)
-        home = tempfile.mkdtemp(prefix=f"nyxo_fuzz_{seq_idx}_")
-        os.environ["NYXO_HOME"] = home
+        home = tempfile.mkdtemp(prefix=f"flash_fuzz_{seq_idx}_")
+        os.environ["HERMES_HOME"] = home
         os.environ["HOME"] = home
         sys.path.insert(0, WT)
 
         # Fresh module state per sequence to avoid cached init paths.
         for m in list(sys.modules.keys()):
-            if m.startswith("nyxo_cli"):
+            if m.startswith("flash_cli"):
                 del sys.modules[m]
-        from nyxo_cli import kanban_db as kb
+        from flash_cli import kanban_db as kb
 
         kb.init_db()
         conn = kb.connect()

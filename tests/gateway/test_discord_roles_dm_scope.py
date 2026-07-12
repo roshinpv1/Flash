@@ -23,13 +23,13 @@ from plugins.platforms.discord.adapter import DiscordAdapter
 
 
 def _set_dm_role_auth_guild(monkeypatch, guild_id=None):
-    """Stub ``nyxo_cli.config.read_raw_config`` so ``_read_dm_role_auth_guild``
+    """Stub ``flash_cli.config.read_raw_config`` so ``_read_dm_role_auth_guild``
     resolves to ``guild_id`` (or None for the opt-out default).
     """
     cfg = {"discord": {"dm_role_auth_guild": guild_id if guild_id is not None else ""}}
-    # Patch the attribute ``nyxo_cli.config.read_raw_config`` — that's
+    # Patch the attribute ``flash_cli.config.read_raw_config`` — that's
     # what ``_read_dm_role_auth_guild`` imports at call time.
-    import nyxo_cli.config as _cfg_mod
+    import flash_cli.config as _cfg_mod
     monkeypatch.setattr(_cfg_mod, "read_raw_config", lambda: cfg, raising=True)
 
 
@@ -256,11 +256,59 @@ def test_user_id_allowlist_works_in_guild():
     )
 
 
-def test_empty_allowlists_allow_everyone():
+def test_empty_allowlists_deny_without_opt_in():
     adapter = _make_adapter()
     assert (
         adapter._is_allowed_user("42", author=None, guild=None, is_dm=True)
+        is False
+    )
+
+
+def test_channel_allowlist_requires_channel_context(monkeypatch):
+    """DISCORD_ALLOWED_CHANNELS must not authorize guild traffic without
+    validated channel ids — e.g. voice utterances call _is_allowed_user
+    with guild/is_dm only."""
+    monkeypatch.setenv("DISCORD_ALLOWED_CHANNELS", "999")
+    guild = SimpleNamespace(id=111111, get_member=lambda uid: None)
+    adapter = _make_adapter(guilds=[guild])
+
+    assert (
+        adapter._is_allowed_user("42", author=None, guild=guild, is_dm=False)
+        is False
+    )
+
+
+def test_channel_allowlist_authorizes_with_matching_channel_context(monkeypatch):
+    monkeypatch.setenv("DISCORD_ALLOWED_CHANNELS", "999")
+    guild = SimpleNamespace(id=111111, get_member=lambda uid: None)
+    adapter = _make_adapter(guilds=[guild])
+
+    assert (
+        adapter._is_allowed_user(
+            "42",
+            author=None,
+            guild=guild,
+            is_dm=False,
+            channel_ids={"999"},
+        )
         is True
+    )
+
+
+def test_channel_allowlist_rejects_non_matching_channel_context(monkeypatch):
+    monkeypatch.setenv("DISCORD_ALLOWED_CHANNELS", "999")
+    guild = SimpleNamespace(id=111111, get_member=lambda uid: None)
+    adapter = _make_adapter(guilds=[guild])
+
+    assert (
+        adapter._is_allowed_user(
+            "42",
+            author=None,
+            guild=guild,
+            is_dm=False,
+            channel_ids={"1111"},
+        )
+        is False
     )
 
 

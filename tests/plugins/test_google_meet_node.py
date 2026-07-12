@@ -18,10 +18,10 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_home(tmp_path, monkeypatch):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
-    yield nyxo_home
+    hermes_home = tmp_path / ".hermes"
+    hermes_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    yield hermes_home
 
 
 # ---------------------------------------------------------------------------
@@ -211,14 +211,14 @@ def test_registry_resolve_by_name(tmp_path):
     assert r.resolve("ghost") is None
 
 
-def test_registry_defaults_to_nyxo_home(tmp_path, monkeypatch):
+def test_registry_defaults_to_hermes_home(tmp_path, monkeypatch):
     from plugins.google_meet.node.registry import NodeRegistry
 
-    # _isolate_home already set NYXO_HOME to tmp_path/.nyxo; the
+    # _isolate_home already set HERMES_HOME to tmp_path/.hermes; the
     # registry default path must live inside that tree.
     r = NodeRegistry()
     r.add("x", "ws://x", "t")
-    expected = Path(tmp_path) / ".nyxo" / "workspace" / "meetings" / "nodes.json"
+    expected = Path(tmp_path) / ".hermes" / "workspace" / "meetings" / "nodes.json"
     assert expected.is_file()
 
 
@@ -629,7 +629,7 @@ def test_cli_status_pings_via_node_client(capsys, monkeypatch):
             assert token == "tok"
 
         def ping(self):
-            return {"type": "pong", "display_name": "nyxo-meet-node"}
+            return {"type": "pong", "display_name": "hermes-meet-node"}
 
     monkeypatch.setattr(node_cli, "NodeClient", _FakeClient)
 

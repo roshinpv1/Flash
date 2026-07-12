@@ -11,7 +11,7 @@ Operational failures (spawn error, timeout, unknown exit code) respect
 the fail_open config setting. Programming errors propagate.
 
 Auto-install: if tirith is not found on PATH or at the configured path,
-it is automatically downloaded from GitHub releases to $NYXO_HOME/bin/tirith.
+it is automatically downloaded from GitHub releases to $HERMES_HOME/bin/tirith.
 The download always verifies SHA-256 checksums.  When cosign is available on
 PATH, provenance verification (GitHub Actions workflow signature) is also
 performed.  If cosign is not installed, the download proceeds with SHA-256
@@ -34,7 +34,7 @@ import threading
 import time
 import urllib.request
 
-from nyxo_constants import get_nyxo_home
+from hermes_constants import get_hermes_home
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def _load_security_config() -> dict:
         "tirith_fail_open": True,
     }
     try:
-        from nyxo_cli.config import load_config
+        from hermes_cli.config import load_config
         cfg = load_config().get("security", {}) or {}
     except Exception:
         cfg = {}
@@ -96,6 +96,35 @@ def _load_security_config() -> dict:
 _resolved_path: str | None | bool = None
 _INSTALL_FAILED = False  # sentinel: distinct from "not yet tried"
 _install_failure_reason: str = ""  # reason tag when _resolved_path is _INSTALL_FAILED
+
+# Circuit breaker: after _CRASH_LIMIT consecutive spawn/execution failures,
+# disable tirith for the rest of the process to prevent agent hangs (#41400).
+# Reset on successful execution (see _record_tirith_crash / check_command_security).
+#
+# Thread safety: _crash_count and _circuit_open are module-level globals
+# mutated without a lock. check_command_security can be called from
+# concurrent agent threads (gateway multi-session). The race is benign —
+# at worst two threads both increment past _CRASH_LIMIT and both set
+# _circuit_open = True, opening the breaker one call early. No data
+# corruption or security bypass is possible. This intentionally matches
+# the lock-free style of error counters in mcp_tool.py rather than the
+# locked _warn_once pattern, because the worst case is harmless.
+_CRASH_LIMIT = 3
+_crash_count: int = 0
+_circuit_open: bool = False
+
+
+def _record_tirith_crash() -> None:
+    """Increment the crash counter and open the circuit breaker if needed."""
+    global _crash_count, _circuit_open
+    _crash_count += 1
+    if _crash_count >= _CRASH_LIMIT:
+        _circuit_open = True
+        logger.warning(
+            "tirith circuit breaker opened after %d consecutive failures; "
+            "disabling for the rest of the process",
+            _crash_count,
+        )
 
 # Background install thread coordination
 _install_lock = threading.Lock()
@@ -133,14 +162,14 @@ def _reset_spawn_warning_state() -> None:
 _MARKER_TTL = 86400  # 24 hours
 
 
-def _get_nyxo_home() -> str:
-    """Return the Nyxo home directory, respecting NYXO_HOME env var."""
-    return str(get_nyxo_home())
+def _get_hermes_home() -> str:
+    """Return the Hermes home directory, respecting HERMES_HOME env var."""
+    return str(get_hermes_home())
 
 
 def _failure_marker_path() -> str:
     """Return the path to the install-failure marker file."""
-    return os.path.join(_get_nyxo_home(), ".tirith-install-failed")
+    return os.path.join(_get_hermes_home(), ".tirith-install-failed")
 
 
 def _read_failure_reason() -> str | None:
@@ -206,9 +235,9 @@ def _clear_install_failed():
         pass
 
 
-def _nyxo_bin_dir() -> str:
-    """Return $NYXO_HOME/bin, creating it if needed."""
-    d = os.path.join(_get_nyxo_home(), "bin")
+def _hermes_bin_dir() -> str:
+    """Return $HERMES_HOME/bin, creating it if needed."""
+    d = os.path.join(_get_hermes_home(), "bin")
     os.makedirs(d, exist_ok=True)
     return d
 
@@ -354,7 +383,7 @@ def _extract_tirith_binary(tar: tarfile.TarFile, dest_dir: str, log) -> tuple[st
 
 
 def _install_tirith(*, log_failures: bool = True) -> tuple[str | None, str]:
-    """Download and install tirith to $NYXO_HOME/bin/tirith.
+    """Download and install tirith to $HERMES_HOME/bin/tirith.
 
     Verifies provenance via cosign and SHA-256 checksum.
     Returns (installed_path, failure_reason).  On success failure_reason is "".
@@ -429,7 +458,7 @@ def _install_tirith(*, log_failures: bool = True) -> tuple[str | None, str]:
             if src is None:
                 return None, reason
 
-        dest = os.path.join(_nyxo_bin_dir(), "tirith")
+        dest = os.path.join(_hermes_bin_dir(), "tirith")
         try:
             shutil.move(src, dest)
         except OSError:
@@ -469,8 +498,8 @@ def _resolve_tirith_path(configured_path: str) -> str:
 
     For the default "tirith":
     1. PATH lookup via shutil.which
-    2. $NYXO_HOME/bin/tirith (previously auto-installed)
-    3. Auto-install from GitHub releases → $NYXO_HOME/bin/tirith
+    2. $HERMES_HOME/bin/tirith (previously auto-installed)
+    3. Auto-install from GitHub releases → $HERMES_HOME/bin/tirith
 
     Failed installs are cached for the process lifetime (and persisted to
     disk for 24h) to avoid repeated network attempts.
@@ -519,12 +548,12 @@ def _resolve_tirith_path(configured_path: str) -> str:
         _clear_install_failed()
         return found
 
-    nyxo_bin = os.path.join(_nyxo_bin_dir(), "tirith")
-    if os.path.isfile(nyxo_bin) and os.access(nyxo_bin, os.X_OK):
-        _resolved_path = nyxo_bin
+    hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
+    if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+        _resolved_path = hermes_bin
         _install_failure_reason = ""
         _clear_install_failed()
-        return nyxo_bin
+        return hermes_bin
 
     # Local checks failed.  If a previous install attempt already failed,
     # skip the network retry — UNLESS the failure was "cosign_missing" and
@@ -583,9 +612,9 @@ def _background_install(*, log_failures: bool = True):
             _install_failure_reason = ""
             return
 
-        nyxo_bin = os.path.join(_nyxo_bin_dir(), "tirith")
-        if os.path.isfile(nyxo_bin) and os.access(nyxo_bin, os.X_OK):
-            _resolved_path = nyxo_bin
+        hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
+        if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+            _resolved_path = hermes_bin
             _install_failure_reason = ""
             return
 
@@ -653,12 +682,12 @@ def ensure_installed(*, log_failures: bool = True):
         _clear_install_failed()
         return found
 
-    nyxo_bin = os.path.join(_nyxo_bin_dir(), "tirith")
-    if os.path.isfile(nyxo_bin) and os.access(nyxo_bin, os.X_OK):
-        _resolved_path = nyxo_bin
+    hermes_bin = os.path.join(_hermes_bin_dir(), "tirith")
+    if os.path.isfile(hermes_bin) and os.access(hermes_bin, os.X_OK):
+        _resolved_path = hermes_bin
         _install_failure_reason = ""
         _clear_install_failed()
-        return nyxo_bin
+        return hermes_bin
 
     # If previously failed in-memory, check if the cause is now resolved
     if _resolved_path is _INSTALL_FAILED:
@@ -708,10 +737,20 @@ def check_command_security(command: str) -> dict:
     Returns:
         {"action": "allow"|"warn"|"block", "findings": [...], "summary": str}
     """
+    global _crash_count, _circuit_open
+
     cfg = _load_security_config()
 
     if not cfg["tirith_enabled"]:
         return {"action": "allow", "findings": [], "summary": ""}
+
+    # Circuit breaker: if tirith has crashed _CRASH_LIMIT times in a row,
+    # stop trying for the rest of the process.  Without this, a corrupted
+    # or missing binary causes every tool call to hit the same spawn failure
+    # → fail-open → agent retry loop, hanging the user for 20+ minutes
+    # (issue #41400).
+    if _circuit_open:
+        return {"action": "allow", "findings": [], "summary": "tirith disabled (circuit breaker)"}
 
     # Unsupported platform (Windows etc.) — tirith has no binary here and
     # never will. Skip the resolver entirely so we don't even try to spawn.
@@ -750,6 +789,7 @@ def check_command_security(command: str) -> dict:
         # install marked failed for the day).
         spawn_key = f"tirith_spawn_failed:{type(exc).__name__}:{getattr(exc, 'errno', '')}"
         _warn_once(spawn_key, "tirith spawn failed: %s", exc)
+        _record_tirith_crash()
         if fail_open:
             return {"action": "allow", "findings": [], "summary": f"tirith unavailable: {exc}"}
         return {"action": "block", "findings": [], "summary": f"tirith spawn failed (fail-closed): {exc}"}
@@ -759,6 +799,7 @@ def check_command_security(command: str) -> dict:
             "tirith timed out after %ds",
             timeout,
         )
+        _record_tirith_crash()
         if fail_open:
             return {"action": "allow", "findings": [], "summary": f"tirith timed out ({timeout}s)"}
         return {"action": "block", "findings": [], "summary": "tirith timed out (fail-closed)"}
@@ -767,13 +808,17 @@ def check_command_security(command: str) -> dict:
     exit_code = result.returncode
     if exit_code == 0:
         action = "allow"
+        # Successful execution — reset circuit breaker
+        _crash_count = 0
     elif exit_code == 1:
         action = "block"
     elif exit_code == 2:
         action = "warn"
     else:
-        # Unknown exit code — respect fail_open
+        # Unknown exit code (includes signal-killed processes like -11/SIGSEGV)
+        # — respect fail_open
         logger.warning("tirith returned unexpected exit code %d", exit_code)
+        _record_tirith_crash()
         if fail_open:
             return {"action": "allow", "findings": [], "summary": f"tirith exit code {exit_code} (fail-open)"}
         return {"action": "block", "findings": [], "summary": f"tirith exit code {exit_code} (fail-closed)"}

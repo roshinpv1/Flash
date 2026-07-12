@@ -35,7 +35,7 @@ const cronBlueprintsScript = join(scriptDir, "extract-automation-blueprints.py")
 const outputFile = join(websiteDir, "static", "api", "skills.json");
 const unifiedIndexFile = join(websiteDir, "static", "api", "skills-index.json");
 const UNIFIED_INDEX_URL =
-  "https://nyxo-agent.nousresearch.com/docs/api/skills-index.json";
+  "https://hermes-agent.flashorg.com/docs/api/skills-index.json";
 const UNIFIED_INDEX_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 function writeEmptyFallback(reason) {
@@ -43,7 +43,7 @@ function writeEmptyFallback(reason) {
   writeFileSync(outputFile, "[]\n");
   console.warn(
     `[prebuild] extract-skills.py skipped (${reason}); wrote empty skills.json. ` +
-      `Install python3 + pyyaml locally for a populated Skills Hub page.`,
+    `Install python3 + pyyaml locally for a populated Skills Hub page.`,
   );
 }
 
@@ -74,7 +74,7 @@ async function ensureUnifiedIndex() {
       }
       console.log(
         `[prebuild] skills-index.json is ${(age / 3600000).toFixed(1)}h old; ` +
-          `refreshing from ${UNIFIED_INDEX_URL}`,
+        `refreshing from ${UNIFIED_INDEX_URL}`,
       );
     } catch {
       // fall through to re-fetch
@@ -88,7 +88,7 @@ async function ensureUnifiedIndex() {
     if (!resp.ok) {
       console.warn(
         `[prebuild] skills-index.json fetch returned HTTP ${resp.status}; ` +
-          `using local copy if any`,
+        `using local copy if any`,
       );
       return existsSync(unifiedIndexFile);
     }
@@ -110,7 +110,7 @@ async function ensureUnifiedIndex() {
     writeFileSync(unifiedIndexFile, text);
     console.log(
       `[prebuild] downloaded skills-index.json from ${UNIFIED_INDEX_URL} ` +
-        `(${(text.length / 1024).toFixed(0)} KB)`,
+      `(${(text.length / 1024).toFixed(0)} KB)`,
     );
     return true;
   } catch (e) {

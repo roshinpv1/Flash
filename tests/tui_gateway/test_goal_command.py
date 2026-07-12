@@ -19,14 +19,14 @@ import pytest
 
 
 @pytest.fixture()
-def nyxo_home(tmp_path, monkeypatch):
-    home = tmp_path / ".nyxo"
+def flash_home(tmp_path, monkeypatch):
+    home = tmp_path / ".flash"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("NYXO_HOME", str(home))
+    monkeypatch.setenv("HERMES_HOME", str(home))
 
-    # Bust the goal-module DB cache so it re-resolves NYXO_HOME.
-    from nyxo_cli import goals
+    # Bust the goal-module DB cache so it re-resolves HERMES_HOME.
+    from flash_cli import goals
 
     goals._DB_CACHE.clear()
     yield home
@@ -34,12 +34,12 @@ def nyxo_home(tmp_path, monkeypatch):
 
 
 @pytest.fixture()
-def server(nyxo_home):
+def server(flash_home):
     with patch.dict(
         "sys.modules",
         {
-            "nyxo_cli.env_loader": MagicMock(),
-            "nyxo_cli.banner": MagicMock(),
+            "flash_cli.env_loader": MagicMock(),
+            "flash_cli.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")
@@ -114,7 +114,7 @@ def test_goal_set_returns_send_with_notice(server, session):
     assert "20-turn budget" in result["notice"]
 
     # Persisted in SessionDB
-    from nyxo_cli.goals import GoalManager
+    from flash_cli.goals import GoalManager
 
     mgr = GoalManager(session_key)
     assert mgr.state is not None
@@ -129,7 +129,7 @@ def test_goal_pause_after_set(server, session):
     assert r["result"]["type"] == "exec"
     assert "paused" in r["result"]["output"].lower()
 
-    from nyxo_cli.goals import GoalManager
+    from flash_cli.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "paused"
 
@@ -142,7 +142,7 @@ def test_goal_resume_reactivates(server, session):
     assert r["result"]["type"] == "exec"
     assert "resumed" in r["result"]["output"].lower()
 
-    from nyxo_cli.goals import GoalManager
+    from flash_cli.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "active"
 
@@ -154,7 +154,7 @@ def test_goal_clear_removes_active_goal(server, session):
     assert r["result"]["type"] == "exec"
     assert "cleared" in r["result"]["output"].lower()
 
-    from nyxo_cli.goals import GoalManager
+    from flash_cli.goals import GoalManager
 
     # After clear the row is marked status=cleared (kept for audit);
     # ``has_goal()`` / ``is_active()`` return False so the goal loop
@@ -202,3 +202,83 @@ def test_pending_input_commands_includes_goal(server):
     """Guard: _PENDING_INPUT_COMMANDS must list 'goal' — removing it would
     silently re-break the TUI."""
     assert "goal" in server._PENDING_INPUT_COMMANDS
+
+
+# ── command.dispatch /moa ────────────────────────────────────────────
+
+def _write_moa_config(home, text):
+    cfg_path = home / "config.yaml"
+    cfg_path.write_text(text)
+
+
+def test_moa_bare_returns_usage(server, session, flash_home):
+    _write_moa_config(flash_home, """
+moa:
+  default_preset: default
+  presets:
+    default:
+      reference_models:
+        - provider: openai-codex
+          model: gpt-5.5
+      aggregator:
+        provider: openrouter
+        model: anthropic/claude-opus-4.8
+""")
+    sid, _, s = session
+    r = _call(server, "command.dispatch", name="moa", arg="", session_id=sid)
+    # Bare /moa is usage-only now; switching to a preset is via the model picker.
+    assert "error" in r
+    assert "model_override" not in s
+
+
+def test_moa_arg_is_always_one_shot(server, session, flash_home):
+    # Any arg (even a preset name) is a one-shot prompt through the DEFAULT
+    # preset; /moa never does a sticky switch anymore.
+    _write_moa_config(flash_home, """
+moa:
+  default_preset: default
+  presets:
+    default: {}
+    review:
+      reference_models:
+        - provider: openrouter
+          model: deepseek/deepseek-v4-pro
+      aggregator:
+        provider: openrouter
+        model: anthropic/claude-opus-4.8
+""")
+    sid, _, s = session
+    r = _call(server, "command.dispatch", name="moa", arg="review", session_id=sid)
+    result = r["result"]
+    assert result["type"] == "send"
+    assert result["message"] == "review"
+    assert "one-shot" in result["notice"]
+    # Lazy session (no live agent) → MoA preset pinned via model_override for
+    # the build, and it is the DEFAULT preset, not the "review" arg.
+    assert s["model_override"]["provider"] == "moa"
+    assert s["model_override"]["model"] == "default"
+
+
+def test_moa_non_preset_returns_one_shot_send(server, session, flash_home):
+    _write_moa_config(flash_home, """
+moa:
+  default_preset: default
+  presets:
+    default:
+      reference_models:
+        - provider: openai-codex
+          model: gpt-5.5
+      aggregator:
+        provider: openrouter
+        model: anthropic/claude-opus-4.8
+""")
+    sid, _, _ = session
+    r = _call(server, "command.dispatch", name="moa", arg="inspect this project", session_id=sid)
+    result = r["result"]
+    assert result["type"] == "send"
+    assert result["message"] == "inspect this project"
+    assert "one-shot" in result["notice"]
+
+
+def test_pending_input_commands_includes_moa(server):
+    assert "moa" in server._PENDING_INPUT_COMMANDS

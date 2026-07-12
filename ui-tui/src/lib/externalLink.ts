@@ -1,4 +1,5 @@
 import { isIP } from 'node:net'
+
 import { useEffect, useMemo, useState } from 'react'
 
 const titleCache = new Map<string, string>()
@@ -17,7 +18,7 @@ const TITLE_ERROR_RE =
   /\b(?:access denied|attention required|captcha|error|forbidden|just a moment|request blocked|too many requests)\b/i
 
 const DOMAIN_RE = /^(?:www\.)?[a-z0-9](?:[a-z0-9-]*\.)+[a-z]{2,}(?::\d+)?(?:[/?#][^\s]*)?$/i
-const SKIP_PROTO_RE = /^(?:file|data|mailto|javascript|blob|chrome|about|nyxo):/i
+const SKIP_PROTO_RE = /^(?:file|data|mailto|javascript|blob|chrome|about|hermes):/i
 const LOCAL_HOSTNAME_RE = /^(?:localhost|localhost\.localdomain)$/i
 const LOCAL_HOST_SUFFIXES = ['.corp', '.home', '.internal', '.lan', '.local', '.localdomain']
 const STATUS_PERMALINK_HOST_RE = /^(?:mobile\.)?(?:x|twitter)\.com$/i
@@ -186,7 +187,12 @@ function isPrivateIpv6(value: string): boolean {
     return true
   }
 
-  if (normalized.startsWith('fe8') || normalized.startsWith('fe9') || normalized.startsWith('fea') || normalized.startsWith('feb')) {
+  if (
+    normalized.startsWith('fe8') ||
+    normalized.startsWith('fe9') ||
+    normalized.startsWith('fea') ||
+    normalized.startsWith('feb')
+  ) {
     return true
   }
 

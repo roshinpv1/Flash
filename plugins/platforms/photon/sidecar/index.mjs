@@ -1,20 +1,20 @@
-// Nyxo Agent — Photon Spectrum sidecar
+// Hermes Agent — Photon Spectrum sidecar
 //
 // Spawned by `plugins/platforms/photon/adapter.py` to bridge BOTH directions
 // of messaging to Photon's Spectrum platform via the `spectrum-ts` SDK (the
 // SDK is TypeScript-only, so a Node sidecar is unavoidable — there is no
 // Python SDK and no public HTTP message API).
 //
-// Inbound  (gRPC -> Nyxo): the SDK's `app.messages` async iterator is a
+// Inbound  (gRPC -> Hermes): the SDK's `app.messages` async iterator is a
 //   long-lived gRPC stream. We serialize each `[space, message]` to a
 //   normalized JSON event and stream it to the Python adapter over a
 //   loopback `GET /inbound` (NDJSON). We pause pulling from the stream while
 //   no consumer is attached so a backlog isn't pulled-and-lost before the
 //   gateway connects.
-// Outbound (Nyxo -> gRPC): `/send` drives `space.send(...)`; `/typing`
+// Outbound (Hermes -> gRPC): `/send` drives `space.send(...)`; `/typing`
 //   sends the documented `typing("start" | "stop")` content builder.
 //
-// Protocol (all requests require `X-Nyxo-Sidecar-Token: ${TOKEN}`):
+// Protocol (all requests require `X-Hermes-Sidecar-Token: ${TOKEN}`):
 //   - GET  /inbound    -> 200 NDJSON stream; one JSON event per line, blank
 //                         lines are heartbeats. One consumer at a time.
 //   - POST /healthz     -> {"ok": true}
@@ -38,7 +38,7 @@
 // On SIGINT/SIGTERM the sidecar calls `app.stop()` (3s graceful) before
 // exiting. Logs go to stderr; Python supervises restart.
 //
-// Requires spectrum-ts 3.x — pinned exactly in package.json because the SDK
+// Requires spectrum-ts 8.x — pinned exactly in package.json because the SDK
 // ships breaking majors; see README "Upgrading spectrum-ts".
 //
 // Env vars (required):
@@ -52,7 +52,7 @@
 //                          adapter, which holds our stdin pipe — parent-death
 //                          detection so a dead gateway can't orphan us)
 //   PHOTON_TELEMETRY       enable Spectrum SDK telemetry ("true"/"1"/"on"/"yes";
-//                          default off — toggle with `nyxo photon telemetry`)
+//                          default off — toggle with `hermes photon telemetry`)
 
 import http from "node:http";
 import crypto from "node:crypto";
@@ -136,7 +136,7 @@ function scheduleStreamRestart() {
     }
     console.error(
       `photon-sidecar: upstream stream degraded for ${degradedForMs}ms; ` +
-        "exiting so Nyxo can restart the Photon adapter"
+        "exiting so Hermes can restart the Photon adapter"
     );
     process.exit(75);
   }, STREAM_DEGRADED_RESTART_MS + 1000);
@@ -212,7 +212,7 @@ if (!projectId || !projectSecret || !sharedToken) {
 }
 
 // Lazy-load spectrum-ts so a missing install fails with a clear message
-// instead of a cryptic module-resolution error during import. Apply Nyxo'
+// instead of a cryptic module-resolution error during import. Apply Hermes'
 // pinned-sdk compatibility patch first so existing installs self-heal at
 // runtime, not only during npm postinstall.
 try {
@@ -405,6 +405,35 @@ async function normalizeBinaryContent(content) {
   return meta;
 }
 
+// Best-effort text preview of a reaction's resolved target Message, so the
+// Python adapter can populate the gateway's `reply_to_text` (context: WHAT was
+// tapped back). The SDK only emits a reaction once it has resolved the full
+// target Message (toReactionMessages bails otherwise), so `target.content` is
+// hydrated here — no extra round trip. Handles plain text and our patched mixed
+// text+attachment groups (first text child); null for attachment/voice-only
+// targets. Capped so one long bubble can't balloon the NDJSON line.
+const REACTION_TARGET_TEXT_CAP = 2000;
+function reactionTargetText(target) {
+  const c = target && typeof target === "object" ? target.content : null;
+  if (!c || typeof c !== "object") return null;
+  let text = null;
+  if (c.type === "text") {
+    text = c.text;
+  } else if (c.type === "group") {
+    for (const item of Array.isArray(c.items) ? c.items : []) {
+      const ic = item && typeof item === "object" ? item.content : null;
+      if (ic && ic.type === "text" && ic.text) {
+        text = ic.text;
+        break;
+      }
+    }
+  }
+  if (typeof text !== "string" || !text) return null;
+  return text.length > REACTION_TARGET_TEXT_CAP
+    ? text.slice(0, REACTION_TARGET_TEXT_CAP)
+    : text;
+}
+
 async function normalizeContent(content) {
   if (!content || typeof content !== "object") {
     return { type: "unknown" };
@@ -426,14 +455,18 @@ async function normalizeContent(content) {
     return { type: "group", items };
   }
   if (content.type === "reaction") {
+    const target = content.target;
     return {
       type: "reaction",
       emoji: content.emoji || "",
-      targetMessageId: content.target?.id ?? null,
+      targetMessageId: target?.id ?? null,
       // Lets Python gate "is this a reaction to one of MY messages" without
       // tracking every outbound id. May be null if the provider doesn't
       // hydrate the target — Python falls back to its own sent-id cache.
-      targetDirection: content.target?.direction ?? null,
+      targetDirection: target?.direction ?? null,
+      // Text of the reacted-to message, so Python can correlate the tapback to
+      // the gateway's reply_to_text. Null for attachment/voice-only targets.
+      targetText: reactionTargetText(target),
     };
   }
   return { type: content.type || "unknown" };
@@ -470,7 +503,7 @@ function inboundStreamErrorMessage(e) {
   let out = "photon-sidecar: inbound stream errored — restarting: " + msg;
 
   // The Spectrum SDK surfaces Photon cloud CatchUpEvents failures as an
-  // iMessage internal error. Local Nyxo allowlists cannot cause or fix this:
+  // iMessage internal error. Local Hermes allowlists cannot cause or fix this:
   // inbound messages stop before they reach the gateway. Add an explicit hint
   // so operators know to retry/restart or escalate to Photon support instead
   // of chasing PHOTON_ALLOWED_USERS / pairing configuration.
@@ -484,7 +517,7 @@ function inboundStreamErrorMessage(e) {
   ) {
     out +=
       " | Photon Spectrum CatchUpEvents returned an internal server error; " +
-      "this is upstream of Nyxo, so inbound iMessages may not be delivered " +
+      "this is upstream of Hermes, so inbound iMessages may not be delivered " +
       "until Photon recovers or the stream is re-established.";
   }
   return out;
@@ -665,7 +698,7 @@ function tokenOk(header) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (!tokenOk(req.headers["x-nyxo-sidecar-token"])) {
+  if (!tokenOk(req.headers["x-hermes-sidecar-token"])) {
     return unauthorized(res);
   }
   // Long-lived inbound NDJSON stream.
@@ -711,7 +744,7 @@ const server = http.createServer(async (req, res) => {
       const space = await resolveSpace(spaceId);
 
       // spectrum-ts infers name + MIME from the file extension; pass
-      // overrides only when Nyxo supplied them so a known-good
+      // overrides only when Hermes supplied them so a known-good
       // inference isn't clobbered with an empty string.
       const opts = {};
       if (name) opts.name = name;

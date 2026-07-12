@@ -1,5 +1,5 @@
 """
-Dump command for hermes CLI.
+Dump command for flash CLI.
 
 Outputs a compact, plain-text summary of the user's Nyxo setup
 that can be copy-pasted into Discord/GitHub/Telegram for support context.
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from nyxo_cli.config import get_nyxo_home, get_env_path, get_project_root, load_config
-from nyxo_cli.env_loader import load_hermes_dotenv
+from nyxo_cli.env_loader import load_flash_dotenv
 from nyxo_constants import display_nyxo_home
 from agent.skill_utils import is_excluded_skill_path
 
@@ -25,7 +25,7 @@ def _get_git_commit(project_root: Path) -> str:
     Source installs and dev images resolve this live via ``git rev-parse``.
     The published Docker image excludes ``.git`` from the build context, so
     that lookup always fails — we fall back to the baked-in build SHA written
-    to ``<project_root>/.hermes_build_sha`` by the Dockerfile's
+    to ``<project_root>/.flash_build_sha`` by the Dockerfile's
     ``NYXO_GIT_SHA`` build-arg (see ``nyxo_cli/build_info.py``).
     The output format is identical regardless of source.
     """
@@ -85,7 +85,7 @@ def _redact(value: str) -> str:
 
     Thin wrapper over :func:`agent.redact.mask_secret`. Returns ``""`` for
     an empty value (matches the historical behavior of this helper —
-    ``hermes dump`` formats empty values as blank, not as ``"(not set)"``).
+    ``flash dump`` formats empty values as blank, not as ``"(not set)"``).
     """
     from agent.redact import mask_secret
     return mask_secret(value)
@@ -109,9 +109,9 @@ def _gateway_status() -> str:
         return "unknown" if sys.platform.startswith(("linux", "darwin")) else "N/A"
 
 
-def _count_skills(hermes_home: Path) -> int:
+def _count_skills(flash_home: Path) -> int:
     """Count installed skills."""
-    skills_dir = hermes_home / "skills"
+    skills_dir = flash_home / "skills"
     if not skills_dir.is_dir():
         return 0
     count = 0
@@ -129,9 +129,9 @@ def _count_mcp_servers(config: dict) -> int:
     return len(servers)
 
 
-def _cron_summary(hermes_home: Path) -> str:
+def _cron_summary(flash_home: Path) -> str:
     """Return cron jobs summary."""
-    jobs_file = hermes_home / "cron" / "jobs.json"
+    jobs_file = flash_home / "cron" / "jobs.json"
     if not jobs_file.exists():
         return "0"
     try:
@@ -246,13 +246,13 @@ def run_dump(args):
 
     # Load env from .env file so key checks work
     env_path = get_env_path()
-    load_hermes_dotenv(
-        hermes_home=env_path.parent,
+    load_flash_dotenv(
+        flash_home=env_path.parent,
         project_env=get_project_root() / ".env",
     )
 
     project_root = get_project_root()
-    hermes_home = get_nyxo_home()
+    flash_home = get_nyxo_home()
 
     try:
         from nyxo_cli import __version__
@@ -306,7 +306,7 @@ def run_dump(args):
     os_info = f"{platform.system()} {platform.release()} {platform.machine()}"
 
     lines = []
-    lines.append("--- hermes dump ---")
+    lines.append("--- flash dump ---")
     # Identify the build by commit + the date that commit was made, resolved
     # live via git.  __release_date__ (the package release date) is
     # intentionally NOT shown here — it reads like a wall-clock timestamp and
@@ -320,7 +320,7 @@ def run_dump(args):
     lines.append(f"python:           {sys.version.split()[0]}")
     lines.append(f"openai_sdk:       {openai_ver}")
     lines.append(f"profile:          {profile}")
-    lines.append(f"hermes_home:      {display_nyxo_home()}")
+    lines.append(f"flash_home:      {display_nyxo_home()}")
     lines.append(f"model:            {model}")
     lines.append(f"provider:         {provider}")
     lines.append(f"terminal:         {backend}")
@@ -361,9 +361,9 @@ def run_dump(args):
             display = _redact(val)
         else:
             display = "set" if val else "not set"
-        # A credential added via `hermes auth add openrouter` lives in the
+        # A credential added via `flash auth add openrouter` lives in the
         # credential pool, not as an env var — surface it so the dump doesn't
-        # misleadingly read "not set" while `hermes auth list` shows it (#42130).
+        # misleadingly read "not set" while `flash auth list` shows it (#42130).
         if not val and label == "openrouter":
             try:
                 from agent.credential_pool import load_pool as _load_pool
@@ -378,7 +378,7 @@ def run_dump(args):
     lines.append("")
     lines.append("features:")
 
-    toolsets = config.get("toolsets", ["hermes-cli"])
+    toolsets = config.get("toolsets", ["flash-cli"])
     lines.append(f"  toolsets:           {', '.join(toolsets) if toolsets else '(default)'}")
     lines.append(f"  mcp_servers:        {_count_mcp_servers(config)}")
     lines.append(f"  memory_provider:    {_memory_provider(config)}")
@@ -386,8 +386,8 @@ def run_dump(args):
 
     platforms = _configured_platforms()
     lines.append(f"  platforms:          {', '.join(platforms) if platforms else 'none'}")
-    lines.append(f"  cron_jobs:          {_cron_summary(hermes_home)}")
-    lines.append(f"  skills:             {_count_skills(hermes_home)}")
+    lines.append(f"  cron_jobs:          {_cron_summary(flash_home)}")
+    lines.append(f"  skills:             {_count_skills(flash_home)}")
 
     # Config overrides (non-default values)
     overrides = _config_overrides(config)

@@ -28,7 +28,7 @@ class ProgressCaptureAdapter(BasePlatformAdapter):
         self.edits = []
         self.typing = []
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         return True
 
     async def disconnect(self) -> None:
@@ -97,13 +97,36 @@ class InterruptedAgent:
     def run_conversation(self, message, conversation_history=None, task_id=None):
         # Parallel tool batch — in production these come from one LLM
         # response with 5 tool_calls.  All are post-interrupt.
-        self.tool_progress_callback("tool.started", "web_search", "cognee nyxo", {})
+        self.tool_progress_callback("tool.started", "web_search", "cognee flash", {})
         self.tool_progress_callback("tool.started", "web_search", "McBee deer hunting", {})
         self.tool_progress_callback("tool.started", "web_search", "kuzu graph db", {})
         self.tool_progress_callback("tool.started", "web_search", "moonshot kimi api", {})
         self.tool_progress_callback("tool.started", "web_search", "platform.moonshot.cn", {})
         time.sleep(0.35)  # let the drain loop attempt to process the queue
         return {"final_response": "interrupted", "messages": [], "api_calls": 1}
+
+
+class PartialTruncationAgent:
+    """Returns an incomplete turn with no visible assistant text."""
+
+    def __init__(self, **kwargs):
+        self.tool_progress_callback = kwargs.get("tool_progress_callback")
+        self.tools = []
+        self._interrupt_requested = False
+
+    @property
+    def is_interrupted(self) -> bool:
+        return self._interrupt_requested
+
+    def run_conversation(self, message, conversation_history=None, task_id=None):
+        return {
+            "final_response": None,
+            "messages": [],
+            "api_calls": 2,
+            "completed": False,
+            "partial": True,
+            "error": "Response truncated due to output length limit",
+        }
 
 
 def _make_runner(adapter):
@@ -131,7 +154,7 @@ def _make_runner(adapter):
 
 
 async def _run_once(monkeypatch, tmp_path, agent_cls, session_id):
-    monkeypatch.setenv("NYXO_TOOL_PROGRESS_MODE", "all")
+    monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
     fake_dotenv.load_dotenv = lambda *args, **kwargs: None
@@ -144,7 +167,7 @@ async def _run_once(monkeypatch, tmp_path, agent_cls, session_id):
     adapter = ProgressCaptureAdapter()
     runner = _make_runner(adapter)
     gateway_run = importlib.import_module("gateway.run")
-    monkeypatch.setattr(gateway_run, "_nyxo_home", tmp_path)
+    monkeypatch.setattr(gateway_run, "_flash_home", tmp_path)
     monkeypatch.setattr(
         gateway_run,
         "_resolve_runtime_agent_kwargs",
@@ -182,6 +205,20 @@ async def test_baseline_non_interrupted_agent_renders_progress(monkeypatch, tmp_
 
 
 @pytest.mark.asyncio
+async def test_partial_empty_agent_response_is_normalized(monkeypatch, tmp_path):
+    """Messaging gateways should not echo raw truncation errors as final text."""
+    adapter, result = await _run_once(
+        monkeypatch, tmp_path, PartialTruncationAgent, "sess-partial-empty"
+    )
+
+    assert result["final_response"].startswith("⚠️ Processing stopped:")
+    assert "Response truncated due to output length limit" in result["final_response"]
+    assert result["final_response"] != "⚠️ Response truncated due to output length limit"
+    assert result["partial"] is True
+    assert adapter.sent == []
+
+
+@pytest.mark.asyncio
 async def test_progress_suppressed_when_agent_is_interrupted(monkeypatch, tmp_path):
     """Post-interrupt tool.started events must not render as bubbles.
 
@@ -202,7 +239,7 @@ async def test_progress_suppressed_when_agent_is_interrupted(monkeypatch, tmp_pa
 
     # None of the post-interrupt queries should appear.
     for leaked_query in (
-        "cognee nyxo",
+        "cognee flash",
         "McBee deer hunting",
         "kuzu graph db",
         "moonshot kimi api",

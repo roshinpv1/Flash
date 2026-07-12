@@ -1,8 +1,8 @@
 """Auto-installation of LSP server binaries.
 
 Tries to install missing servers using whatever package manager is
-appropriate.  All installs go to a Nyxo-owned bin staging dir,
-``<NYXO_HOME>/lsp/bin/``, so we don't pollute the user's global
+appropriate.  All installs go to a Hermes-owned bin staging dir,
+``<HERMES_HOME>/lsp/bin/``, so we don't pollute the user's global
 toolchain.
 
 Strategies:
@@ -10,7 +10,7 @@ Strategies:
 - ``auto`` — attempt to install with the best available package
   manager.  This is the default.
 - ``manual`` — never install; if a binary is missing, the server is
-  silently skipped and the user is told about it via ``nyxo lsp
+  silently skipped and the user is told about it via ``flash lsp
   status``.
 - ``off`` — same as ``manual`` for now (kept distinct so we can
   evolve behavior later, e.g. logging differently).
@@ -40,7 +40,7 @@ logger = logging.getLogger("agent.lsp.install")
 # Package-name → install-strategy hint registry.  Each entry is a
 # tuple of strategy name + package name + executable name.  When the
 # install completes, we look for the executable in
-# ``<NYXO_HOME>/lsp/bin/`` first, then on PATH.
+# ``<HERMES_HOME>/lsp/bin/`` first, then on PATH.
 #
 # Optional fields:
 #   - ``extra_pkgs``: list of sibling packages to install alongside
@@ -102,6 +102,11 @@ INSTALL_RECIPES: Dict[str, Dict[str, Any]] = {
     # Lua — manual (LuaLS is platform-specific binaries from GitHub
     # releases; complex enough that we punt to the user)
     "lua-language-server": {"strategy": "manual", "pkg": "", "bin": "lua-language-server"},
+    # PowerShell — PowerShellEditorServices ships as a GitHub release
+    # zip driven by a pwsh bootstrap script, not a single binary.  We
+    # require a manual bundle install and probe for the pwsh host so
+    # `flash lsp status` reports the host's presence.
+    "powershell": {"strategy": "manual", "pkg": "", "bin": "pwsh"},
 }
 
 
@@ -115,11 +120,11 @@ def _is_windows() -> bool:
     return os.name == "nt"
 
 
-def nyxo_lsp_bin_dir() -> Path:
-    """Return the Nyxo-owned bin staging dir for LSP servers."""
-    home = os.environ.get("NYXO_HOME")
+def flash_lsp_bin_dir() -> Path:
+    """Return the Hermes-owned bin staging dir for LSP servers."""
+    home = os.environ.get("HERMES_HOME")
     if home is None:
-        home = os.path.join(os.path.expanduser("~"), ".nyxo")
+        home = os.path.join(os.path.expanduser("~"), ".flash")
     p = Path(home) / "lsp" / "bin"
     p.mkdir(parents=True, exist_ok=True)
     return p
@@ -141,7 +146,7 @@ def _native_binary_candidates(base: Path) -> list[Path]:
 
 def _existing_binary(name: str) -> Optional[str]:
     """Probe the staging dir + PATH for a binary named ``name``."""
-    for staged in _native_binary_candidates(nyxo_lsp_bin_dir() / name):
+    for staged in _native_binary_candidates(flash_lsp_bin_dir() / name):
         if staged.exists() and os.access(staged, os.X_OK):
             return str(staged)
     on_path = shutil.which(name)
@@ -248,7 +253,7 @@ def _install_npm(
     if npm is None:
         logger.info("[install] cannot install %s: npm not on PATH", pkg)
         return None
-    staging = nyxo_lsp_bin_dir().parent  # <NYXO_HOME>/lsp/
+    staging = flash_lsp_bin_dir().parent  # <HERMES_HOME>/lsp/
     install_targets = [pkg] + list(extra_pkgs or [])
     try:
         logger.info(
@@ -278,7 +283,7 @@ def _install_npm(
     for c in _native_binary_candidates(nm_bin):
         if c.exists():
             # Symlink into our `lsp/bin/` for stable PATH access.
-            link = nyxo_lsp_bin_dir() / c.name
+            link = flash_lsp_bin_dir() / c.name
             if not link.exists():
                 try:
                     link.symlink_to(c)
@@ -299,7 +304,7 @@ def _install_go(pkg: str, bin_name: str) -> Optional[str]:
     if go is None:
         logger.info("[install] cannot install %s: go not on PATH", pkg)
         return None
-    staging = nyxo_lsp_bin_dir()
+    staging = flash_lsp_bin_dir()
     env = dict(os.environ)
     env["GOBIN"] = str(staging)
     try:
@@ -331,7 +336,7 @@ def _install_go(pkg: str, bin_name: str) -> Optional[str]:
 
 
 def _install_pip(pkg: str, bin_name: str) -> Optional[str]:
-    """Install a Python package into a nyxo-owned target dir.
+    """Install a Python package into a flash-owned target dir.
 
     We avoid polluting the user's site-packages by using
     ``pip install --target``.  Bins go into
@@ -339,21 +344,19 @@ def _install_pip(pkg: str, bin_name: str) -> Optional[str]:
     ``<staging>/bin``.  Note: this only works for packages that ship a
     console script.
     """
-    pip_target = nyxo_lsp_bin_dir().parent / "python-packages"
+    pip_target = flash_lsp_bin_dir().parent / "python-packages"
     pip_target.mkdir(parents=True, exist_ok=True)
     try:
         logger.info("[install] pip install --target %s %s", pip_target, pkg)
-        proc = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "--target", str(pip_target), "--quiet", pkg],
-            check=False,
-            capture_output=True,
-            text=True,
+        from flash_cli.tools_config import _pip_install
+
+        proc = _pip_install(
+            ["--target", str(pip_target), "--quiet", pkg],
             timeout=300,
-            stdin=subprocess.DEVNULL,
         )
         if proc.returncode != 0:
             logger.warning(
-                "[install] pip install failed for %s: %s", pkg, proc.stderr.strip()[:500]
+                "[install] pip install failed for %s: %s", pkg, (proc.stderr or "").strip()[:500]
             )
             return None
     except (subprocess.TimeoutExpired, OSError) as e:
@@ -367,7 +370,7 @@ def _install_pip(pkg: str, bin_name: str) -> Optional[str]:
     for script_dir in script_dirs:
         for bin_path in _native_binary_candidates(script_dir / bin_name):
             if bin_path.exists():
-                link = nyxo_lsp_bin_dir() / bin_path.name
+                link = flash_lsp_bin_dir() / bin_path.name
                 if not link.exists():
                     try:
                         link.symlink_to(bin_path)
@@ -383,7 +386,7 @@ def _install_pip(pkg: str, bin_name: str) -> Optional[str]:
 def detect_status(pkg: str) -> str:
     """Return ``installed``, ``missing``, or ``manual-only`` for a package.
 
-    Used by the ``nyxo lsp status`` CLI to give users a quick
+    Used by the ``flash lsp status`` CLI to give users a quick
     overview of what's available without spawning anything.
     """
     recipe = INSTALL_RECIPES.get(pkg)
@@ -399,5 +402,5 @@ __all__ = [
     "INSTALL_RECIPES",
     "try_install",
     "detect_status",
-    "nyxo_lsp_bin_dir",
+    "flash_lsp_bin_dir",
 ]

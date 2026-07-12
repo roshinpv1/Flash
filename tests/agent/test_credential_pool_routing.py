@@ -32,8 +32,8 @@ class TestCliTurnRoutePool:
             service_tier=None,
         )
 
-        from cli import NyxoCLI
-        bound = NyxoCLI._resolve_turn_agent_config.__get__(shell)
+        from cli import HermesCLI
+        bound = HermesCLI._resolve_turn_agent_config.__get__(shell)
         route = bound("test message")
 
         assert route["runtime"]["credential_pool"] is fake_pool
@@ -155,6 +155,9 @@ class TestPoolRotationCycle:
 
         pool = MagicMock()
         pool.has_credentials.return_value = True
+        # Must be set explicitly — MagicMock.provider returns a truthy
+        # child mock, which would trigger the provider-mismatch guard.
+        pool.provider = ""
 
         # mark_exhausted_and_rotate returns next entry until exhausted
         self._rotation_index = 0

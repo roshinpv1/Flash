@@ -57,7 +57,7 @@ class TestQQAdapterInit:
 
     def test_dm_policy_default(self):
         adapter = self._make(app_id="a", client_secret="b")
-        assert adapter._dm_policy == "open"
+        assert adapter._dm_policy == "pairing"
 
     def test_dm_policy_explicit(self):
         adapter = self._make(app_id="a", client_secret="b", dm_policy="allowlist")
@@ -65,7 +65,7 @@ class TestQQAdapterInit:
 
     def test_group_policy_default(self):
         adapter = self._make(app_id="a", client_secret="b")
-        assert adapter._group_policy == "open"
+        assert adapter._group_policy == "pairing"
 
     def test_allow_from_parsing_string(self):
         adapter = self._make(app_id="a", client_secret="b", allow_from="x, y , z")
@@ -190,6 +190,21 @@ class TestVoiceAttachmentSSRFProtection:
         assert kwargs.get("follow_redirects") is True
         assert kwargs.get("event_hooks", {}).get("response") == [_ssrf_redirect_guard]
 
+    def test_connect_accepts_is_reconnect_param(self):
+        """connect() must accept is_reconnect for interface conformance with
+        the base adapter, which the reconnect watcher calls with
+        is_reconnect=True."""
+        from gateway.platforms.qqbot import QQAdapter
+
+        adapter = QQAdapter(_make_config(app_id="a", client_secret="b"))
+        adapter._ensure_token = mock.AsyncMock(side_effect=RuntimeError("stop after client init"))
+
+        # Both forms must not raise TypeError.
+        connected_default = asyncio.run(adapter.connect())
+        connected_explicit = asyncio.run(adapter.connect(is_reconnect=True))
+        assert connected_default is False
+        assert connected_explicit is False
+
 
 # ---------------------------------------------------------------------------
 # WebSocket proxy handling
@@ -267,9 +282,15 @@ class TestDmAllowed:
         from gateway.platforms.qqbot import QQAdapter
         return QQAdapter(_make_config(**extra))
 
-    def test_open_policy(self):
+    def test_open_policy_requires_opt_in(self):
+        adapter = self._make_adapter(app_id="a", client_secret="b", dm_policy="open")
+        assert adapter._is_dm_allowed("any_user") is False
+
+    def test_open_policy_with_opt_in(self, monkeypatch):
+        monkeypatch.setenv("GATEWAY_ALLOW_ALL_USERS", "true")
         adapter = self._make_adapter(app_id="a", client_secret="b", dm_policy="open")
         assert adapter._is_dm_allowed("any_user") is True
+        assert adapter._is_dm_intake_allowed("any_user") is True
 
     def test_disabled_policy(self):
         adapter = self._make_adapter(app_id="a", client_secret="b", dm_policy="disabled")
@@ -309,6 +330,19 @@ class TestGroupAllowed:
         adapter = self._make_adapter(app_id="a", client_secret="b", group_policy="allowlist", group_allow_from="grp1")
         assert adapter._is_group_allowed("grp2", "user1") is False
 
+    def test_pairing_default_blocks_groups(self):
+        adapter = self._make_adapter(app_id="a", client_secret="b")
+        assert adapter._group_policy == "pairing"
+        assert adapter._is_group_allowed("grp1", "user1") is False
+
+    def test_pairing_default_strict_dm_auth_denies_unknown(self):
+        adapter = self._make_adapter(app_id="a", client_secret="b")
+        assert adapter._dm_policy == "pairing"
+        assert adapter._is_dm_allowed("any_user") is False
+
+    def test_pairing_default_forwards_dm_to_gateway_intake(self):
+        adapter = self._make_adapter(app_id="a", client_secret="b")
+        assert adapter._is_dm_intake_allowed("any_user") is True
 
 # ---------------------------------------------------------------------------
 # _resolve_stt_config
@@ -1653,13 +1687,13 @@ class TestDefaultInteractionDispatch:
 
     @pytest.mark.asyncio
     async def test_update_prompt_click_writes_response_file(self, tmp_path, monkeypatch):
-        """update_prompt:y click writes 'y' to ~/.nyxo/.update_response."""
+        """update_prompt:y click writes 'y' to ~/.flash/.update_response."""
         adapter = self._make_adapter()
-        nyxo_home = tmp_path / "nyxo_home"
-        nyxo_home.mkdir()
+        flash_home = tmp_path / "flash_home"
+        flash_home.mkdir()
         monkeypatch.setattr(
-            "nyxo_constants.get_nyxo_home",
-            lambda: nyxo_home,
+            "flash_constants.get_flash_home",
+            lambda: flash_home,
         )
 
         from gateway.platforms.qqbot.keyboards import parse_interaction_event
@@ -1669,18 +1703,18 @@ class TestDefaultInteractionDispatch:
         })
         await adapter._default_interaction_dispatch(event)
 
-        response = nyxo_home / ".update_response"
+        response = flash_home / ".update_response"
         assert response.exists()
         assert response.read_text() == "y"
 
     @pytest.mark.asyncio
     async def test_update_prompt_click_no_writes_n(self, tmp_path, monkeypatch):
         adapter = self._make_adapter()
-        nyxo_home = tmp_path / "nyxo_home"
-        nyxo_home.mkdir()
+        flash_home = tmp_path / "flash_home"
+        flash_home.mkdir()
         monkeypatch.setattr(
-            "nyxo_constants.get_nyxo_home",
-            lambda: nyxo_home,
+            "flash_constants.get_flash_home",
+            lambda: flash_home,
         )
         from gateway.platforms.qqbot.keyboards import parse_interaction_event
         event = parse_interaction_event({
@@ -1688,7 +1722,7 @@ class TestDefaultInteractionDispatch:
             "data": {"resolved": {"button_data": "update_prompt:n"}},
         })
         await adapter._default_interaction_dispatch(event)
-        response = nyxo_home / ".update_response"
+        response = flash_home / ".update_response"
         assert response.read_text() == "n"
 
     @pytest.mark.asyncio

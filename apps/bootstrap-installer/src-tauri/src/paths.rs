@@ -1,12 +1,12 @@
 //! Filesystem paths + logging setup.
 //!
-//! Mirrors `nyxo_constants.get_nyxo_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\nyxo
-//!   macOS:   ~/.nyxo
-//!   Linux:   ~/.nyxo  (override via $NYXO_HOME)
+//! Mirrors `flash_constants.get_flash_home()` from the Python CLI:
+//!   Windows: %LOCALAPPDATA%\flash
+//!   macOS:   ~/.flash
+//!   Linux:   ~/.flash  (override via $HERMES_HOME)
 //!
-//! NOTE (macOS): Python's get_nyxo_home(), scripts/install.sh, and the
-//! Electron desktop's resolveNyxoHome() ALL use ~/.nyxo on macOS — there
+//! NOTE (macOS): Python's get_flash_home(), scripts/install.sh, and the
+//! Electron desktop's resolveHermesHome() ALL use ~/.flash on macOS — there
 //! is no ~/Library/Application Support branch anywhere else. An earlier
 //! version of this file used Application Support, which drifted from every
 //! other component: the installer wrote the install to one dir and the
@@ -21,9 +21,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing_appender::non_blocking::WorkerGuard;
 
-/// Returns the canonical Nyxo home directory, respecting $NYXO_HOME if set.
-pub fn nyxo_home() -> PathBuf {
-    if let Ok(override_path) = std::env::var("NYXO_HOME") {
+/// Returns the canonical Hermes home directory, respecting $HERMES_HOME if set.
+pub fn flash_home() -> PathBuf {
+    if let Ok(override_path) = std::env::var("HERMES_HOME") {
         if !override_path.trim().is_empty() {
             return PathBuf::from(override_path);
         }
@@ -31,25 +31,25 @@ pub fn nyxo_home() -> PathBuf {
 
     #[cfg(target_os = "windows")]
     {
-        // %LOCALAPPDATA%\nyxo — matches scripts/install.ps1's $NyxoHome.
+        // %LOCALAPPDATA%\flash — matches scripts/install.ps1's $HermesHome.
         if let Some(local_app_data) = dirs::data_local_dir() {
-            return local_app_data.join("nyxo");
+            return local_app_data.join("flash");
         }
     }
 
-    // macOS + Linux + fallback: ~/.nyxo (matches Python get_nyxo_home(),
-    // install.sh, and the Electron desktop's resolveNyxoHome()).
+    // macOS + Linux + fallback: ~/.flash (matches Python get_flash_home(),
+    // install.sh, and the Electron desktop's resolveHermesHome()).
     if let Some(home) = dirs::home_dir() {
-        return home.join(".nyxo");
+        return home.join(".flash");
     }
 
     // Last resort — current dir, almost certainly wrong but at least
     // doesn't panic.
-    PathBuf::from(".nyxo")
+    PathBuf::from(".flash")
 }
 
 pub fn log_dir() -> PathBuf {
-    nyxo_home().join("logs")
+    flash_home().join("logs")
 }
 
 pub fn log_path() -> PathBuf {
@@ -57,37 +57,37 @@ pub fn log_path() -> PathBuf {
 }
 
 pub fn bootstrap_cache_dir() -> PathBuf {
-    nyxo_home().join("bootstrap-cache")
+    flash_home().join("bootstrap-cache")
 }
 
 /// Stable location the installer copies itself to after a successful install.
 /// The desktop app re-invokes this with `--update`, and the start-menu /
 /// desktop shortcuts can point users back to it. Lives directly under
-/// NYXO_HOME so it survives repo checkout deletion (unlike anything under
-/// nyxo-agent/).
+/// HERMES_HOME so it survives repo checkout deletion (unlike anything under
+/// flash-agent/).
 ///
-/// On Windows this is `%LOCALAPPDATA%\nyxo\nyxo-setup.exe`; on other
+/// On Windows this is `%LOCALAPPDATA%\flash\flash-setup.exe`; on other
 /// platforms the extension differs but the directory is the same.
 pub fn installer_dest() -> PathBuf {
     let name = if cfg!(target_os = "windows") {
-        "nyxo-setup.exe"
+        "flash-setup.exe"
     } else {
-        "nyxo-setup"
+        "flash-setup"
     };
-    nyxo_home().join(name)
+    flash_home().join(name)
 }
 
 /// Marker the updater writes for the duration of an in-app update and removes
 /// when it finishes (see update.rs `UpdateMarkerGuard`). A freshly-launched
 /// desktop checks this before spawning its own local backend: spawning one
-/// mid-update re-locks the venv shim and triggers `force_kill_other_nyxo`,
+/// mid-update re-locks the venv shim and triggers `force_kill_other_flash`,
 /// which then kills that legitimate backend in a respawn loop (#50238).
 ///
-/// Lives directly under NYXO_HOME (same rationale as `installer_dest`) so the
-/// Electron desktop — which resolves NYXO_HOME identically and pins it into
+/// Lives directly under HERMES_HOME (same rationale as `installer_dest`) so the
+/// Electron desktop — which resolves HERMES_HOME identically and pins it into
 /// the updater's env — agrees on the exact path.
 pub fn update_in_progress_marker() -> PathBuf {
-    nyxo_home().join(".nyxo-update-in-progress")
+    flash_home().join(".flash-update-in-progress")
 }
 
 /// Copy the currently-running installer binary to `installer_dest()` so it's
@@ -98,7 +98,7 @@ pub fn update_in_progress_marker() -> PathBuf {
 /// that path), where copying onto ourselves would be a Windows sharing
 /// violation. Best-effort: a failure here must not fail the install, so the
 /// caller logs and continues.
-pub fn copy_self_to_nyxo_home() -> std::io::Result<()> {
+pub fn copy_self_to_flash_home() -> std::io::Result<()> {
     let src = std::env::current_exe()?;
     let dest = installer_dest();
 
@@ -119,7 +119,7 @@ pub fn copy_self_to_nyxo_home() -> std::io::Result<()> {
     }
     std::fs::copy(&src, &dest)?;
     repair_macos_installer_helper(&dest);
-    tracing::info!(?src, ?dest, "copied installer to NYXO_HOME");
+    tracing::info!(?src, ?dest, "copied installer to HERMES_HOME");
     Ok(())
 }
 
@@ -150,15 +150,15 @@ fn repair_macos_installer_helper(path: &Path) {
 fn repair_macos_installer_helper(_path: &Path) {}
 
 /// Where install.ps1 writes the bootstrap-complete marker (existence-only file
-/// the Electron app also checks). Per main.cjs:
-///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_NYXO_ROOT, '.nyxo-bootstrap-complete')
-/// We don't always know ACTIVE_NYXO_ROOT until install.ps1 reports it, so
+/// the Electron app also checks). Per main.ts:
+///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.flash-bootstrap-complete')
+/// We don't always know ACTIVE_HERMES_ROOT until install.ps1 reports it, so
 /// this is a probe helper, not a definitive path.
 pub fn likely_bootstrap_marker(install_root: &Path) -> PathBuf {
-    install_root.join(".nyxo-bootstrap-complete")
+    install_root.join(".flash-bootstrap-complete")
 }
 
-/// Initializes tracing to bootstrap-installer.log under NYXO_HOME/logs/.
+/// Initializes tracing to bootstrap-installer.log under HERMES_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
 /// the lifetime of the process.
 pub fn init_logging() -> Option<WorkerGuard> {
@@ -166,14 +166,14 @@ pub fn init_logging() -> Option<WorkerGuard> {
     if let Err(err) = std::fs::create_dir_all(&dir) {
         // No log dir → log to stderr only. Don't panic; the installer
         // should still be usable on an exotic filesystem.
-        eprintln!("[nyxo-setup] could not create log dir {dir:?}: {err}");
+        eprintln!("[flash-setup] could not create log dir {dir:?}: {err}");
         return None;
     }
 
     let file_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
-    let env_filter = tracing_subscriber::EnvFilter::try_from_env("NYXO_BOOTSTRAP_LOG")
+    let env_filter = tracing_subscriber::EnvFilter::try_from_env("HERMES_BOOTSTRAP_LOG")
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
 
     tracing_subscriber::fmt()
@@ -196,8 +196,8 @@ pub fn get_log_path() -> String {
 }
 
 #[tauri::command]
-pub fn get_nyxo_home() -> String {
-    nyxo_home().to_string_lossy().into_owned()
+pub fn get_flash_home() -> String {
+    flash_home().to_string_lossy().into_owned()
 }
 
 #[tauri::command]

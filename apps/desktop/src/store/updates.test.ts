@@ -31,13 +31,13 @@ vi.mock('@/store/notifications', () => ({
   dismissNotification: (...args: unknown[]) => dismissSpy(...args)
 }))
 
-const checkNyxoUpdateSpy = vi.fn()
-const updateNyxoSpy = vi.fn()
+const checkHermesUpdateSpy = vi.fn()
+const updateHermesSpy = vi.fn()
 const getActionStatusSpy = vi.fn()
 
-vi.mock('@/nyxo', () => ({
-  checkNyxoUpdate: (...args: unknown[]) => checkNyxoUpdateSpy(...args),
-  updateNyxo: (...args: unknown[]) => updateNyxoSpy(...args),
+vi.mock('@/flash', () => ({
+  checkHermesUpdate: (...args: unknown[]) => checkHermesUpdateSpy(...args),
+  updateHermes: (...args: unknown[]) => updateHermesSpy(...args),
   getActionStatus: (...args: unknown[]) => getActionStatusSpy(...args)
 }))
 
@@ -51,8 +51,12 @@ const {
   applyUpdates,
   $updateApply,
   $updateOverlayOpen,
-  resetUpdateApplyState
+  resetUpdateApplyState,
+  startUpdatePoller,
+  stopUpdatePoller,
+  $updateStatus
 } = await import('./updates')
+
 const { setConnection } = await import('./session')
 
 const status = (over: Partial<DesktopUpdateStatus> = {}): DesktopUpdateStatus => ({
@@ -75,6 +79,7 @@ describe('maybeNotifyUpdateAvailable', () => {
   it('shows when an update is available and not snoozed', () => {
     maybeNotifyUpdateAvailable(status())
     expect(notifySpy).toHaveBeenCalledTimes(1)
+    expect(notifySpy.mock.calls[0]?.[0]).toMatchObject({ icon: 'gift' })
   })
 
   it('stays quiet for new commits once the toast was closed', () => {
@@ -165,7 +170,7 @@ describe('checkBackendUpdates', () => {
   beforeEach(() => {
     storage.clear()
     notifySpy.mockClear()
-    checkNyxoUpdateSpy.mockReset()
+    checkHermesUpdateSpy.mockReset()
     $backendUpdateStatus.set(null)
     vi.useRealTimers()
   })
@@ -184,29 +189,49 @@ describe('checkBackendUpdates', () => {
 
   it('maps the backend /update/check onto the backend status, including commits', async () => {
     setRemote(true)
-    checkNyxoUpdateSpy.mockResolvedValue({
+    checkHermesUpdateSpy.mockResolvedValue({
       install_method: 'git',
       current_version: '0.16.0',
       behind: 2,
       update_available: true,
       can_apply: true,
-      update_command: 'nyxo update',
+      update_command: 'flash update',
       message: null,
       commits: [{ sha: 'abc1234', summary: 'feat: x', author: 'a', at: 1 }]
     })
 
     const result = await checkBackendUpdates()
 
-    expect(checkNyxoUpdateSpy).toHaveBeenCalled()
+    expect(checkHermesUpdateSpy).toHaveBeenCalled()
     expect(result?.behind).toBe(2)
+    expect(result?.updateAvailable).toBe(true)
     expect(result?.commits?.[0]?.sha).toBe('abc1234')
     expect(result?.supported).toBe(true)
     expect($backendUpdateStatus.get()?.commits?.[0]?.summary).toBe('feat: x')
   })
 
+  it('preserves backend update_available when the backend cannot count commits', async () => {
+    setRemote(true)
+    checkHermesUpdateSpy.mockResolvedValue({
+      install_method: 'nixos',
+      current_version: '0.16.0',
+      behind: -1,
+      update_available: true,
+      can_apply: false,
+      update_command: 'managed outside dashboard',
+      message: 'Update available.'
+    })
+
+    const result = await checkBackendUpdates()
+
+    expect(result?.behind).toBe(0)
+    expect(result?.updateAvailable).toBe(true)
+    expect(result?.targetSha).toBe('backend:0.16.0')
+  })
+
   it('honours can_apply=false (docker/nix): not supported, carries message', async () => {
     setRemote(true)
-    checkNyxoUpdateSpy.mockResolvedValue({
+    checkHermesUpdateSpy.mockResolvedValue({
       install_method: 'docker',
       current_version: '0.16.0',
       behind: null,
@@ -225,7 +250,7 @@ describe('checkBackendUpdates', () => {
   it('is a no-op in local mode (backend check only runs when remote)', async () => {
     setRemote(false)
     await checkBackendUpdates()
-    expect(checkNyxoUpdateSpy).not.toHaveBeenCalled()
+    expect(checkHermesUpdateSpy).not.toHaveBeenCalled()
   })
 })
 
@@ -239,9 +264,9 @@ describe('applyUpdates terminal state', () => {
     applyMock.mockReset()
     resetUpdateApplyState()
     $updateOverlayOpen.set(true)
-    ;(globalThis as unknown as { window: unknown }).window = {
-      nyxoDesktop: { updates: { apply: applyMock } }
-    }
+      ; (globalThis as unknown as { window: unknown }).window = {
+        flashDesktop: { updates: { apply: applyMock } }
+      }
     vi.useRealTimers()
   })
 
@@ -286,12 +311,12 @@ describe('applyUpdates terminal state', () => {
   })
 
   it('keeps the manual command state for CLI installs with no staged updater', async () => {
-    applyMock.mockResolvedValue({ ok: true, manual: true, command: 'nyxo update' })
+    applyMock.mockResolvedValue({ ok: true, manual: true, command: 'flash update' })
 
     await applyUpdates()
 
     expect($updateApply.get().stage).toBe('manual')
-    expect($updateApply.get().command).toBe('nyxo update')
+    expect($updateApply.get().command).toBe('flash update')
     expect($updateOverlayOpen.get()).toBe(true)
     expect(notifySpy).not.toHaveBeenCalled()
   })
@@ -328,7 +353,7 @@ describe('applyUpdates terminal state', () => {
       guiUpdated: false,
       manualRestart: true,
       sandboxBlocked: true,
-      message: 'Backend updated. Quit and reopen Nyxo to finish.'
+      message: 'Backend updated. Quit and reopen Hermes to finish.'
     })
 
     const result = await applyUpdates()
@@ -345,10 +370,18 @@ describe('applyUpdates terminal state', () => {
 describe('applyBackendUpdate recovery', () => {
   beforeEach(() => {
     storage.clear()
-    checkNyxoUpdateSpy.mockReset()
-    updateNyxoSpy.mockReset()
+    checkHermesUpdateSpy.mockReset()
+    updateHermesSpy.mockReset()
     getActionStatusSpy.mockReset()
-    $backendUpdateApply.set({ applying: false, stage: 'idle', message: '', percent: null, error: null, command: null, log: [] })
+    $backendUpdateApply.set({
+      applying: false,
+      stage: 'idle',
+      message: '',
+      percent: null,
+      error: null,
+      command: null,
+      log: []
+    })
     vi.useFakeTimers()
   })
 
@@ -357,9 +390,17 @@ describe('applyBackendUpdate recovery', () => {
   })
 
   it('waits for the backend to return after the restart drops the connection, then clears the overlay', async () => {
-    updateNyxoSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
+    updateHermesSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
     getActionStatusSpy.mockRejectedValue(new Error('ECONNREFUSED'))
-    checkNyxoUpdateSpy.mockResolvedValue({ install_method: 'git', current_version: '0.16.0', behind: 0, update_available: false, can_apply: true, update_command: 'nyxo update', message: null })
+    checkHermesUpdateSpy.mockResolvedValue({
+      install_method: 'git',
+      current_version: '0.16.0',
+      behind: 0,
+      update_available: false,
+      can_apply: true,
+      update_command: 'flash update',
+      message: null
+    })
 
     const promise = applyBackendUpdate()
     await vi.advanceTimersByTimeAsync(5000)
@@ -371,7 +412,7 @@ describe('applyBackendUpdate recovery', () => {
   })
 
   it('surfaces backend update action log lines while the action is running', async () => {
-    updateNyxoSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
+    updateHermesSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
     getActionStatusSpy
       .mockResolvedValueOnce({
         exit_code: null,
@@ -381,13 +422,13 @@ describe('applyBackendUpdate recovery', () => {
         running: true
       })
       .mockRejectedValueOnce(new Error('ECONNREFUSED'))
-    checkNyxoUpdateSpy.mockResolvedValue({
+    checkHermesUpdateSpy.mockResolvedValue({
       install_method: 'git',
       current_version: '0.16.0',
       behind: 0,
       update_available: false,
       can_apply: true,
-      update_command: 'nyxo update',
+      update_command: 'flash update',
       message: null
     })
 
@@ -405,9 +446,9 @@ describe('applyBackendUpdate recovery', () => {
   })
 
   it('surfaces an error when the backend never comes back after the restart', async () => {
-    updateNyxoSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
+    updateHermesSpy.mockResolvedValue({ ok: true, name: 'update', pid: 1 })
     getActionStatusSpy.mockRejectedValue(new Error('ECONNREFUSED'))
-    checkNyxoUpdateSpy.mockRejectedValue(new Error('ECONNREFUSED'))
+    checkHermesUpdateSpy.mockRejectedValue(new Error('ECONNREFUSED'))
 
     const promise = applyBackendUpdate()
     await vi.advanceTimersByTimeAsync(70000)
@@ -415,5 +456,74 @@ describe('applyBackendUpdate recovery', () => {
 
     expect(result.ok).toBe(false)
     expect($backendUpdateApply.get().stage).toBe('error')
+  })
+})
+
+describe('startUpdatePoller', () => {
+  const checkMock = vi.fn()
+  const onProgressMock = vi.fn()
+  const listeners: Record<string, Function> = {}
+
+  beforeEach(() => {
+    storage.clear()
+    checkMock.mockReset()
+    onProgressMock.mockReset()
+    Object.keys(listeners).forEach(k => delete listeners[k])
+    checkMock.mockResolvedValue({
+      supported: true,
+      behind: 5,
+      targetSha: 'sha-abc',
+      fetchedAt: 0
+    })
+    $updateStatus.set(null)
+      ; (globalThis as unknown as { window: unknown }).window = {
+        flashDesktop: { updates: { check: checkMock, onProgress: onProgressMock } },
+        addEventListener: vi.fn((event: string, handler: Function) => {
+          listeners[event] = handler
+        }),
+        removeEventListener: vi.fn()
+      }
+    vi.useFakeTimers()
+    stopUpdatePoller()
+  })
+
+  afterEach(() => {
+    stopUpdatePoller()
+    delete (globalThis as unknown as { window?: unknown }).window
+    vi.useRealTimers()
+  })
+
+  it('calls checkUpdates() on startup so the version pill populates immediately', async () => {
+    startUpdatePoller()
+
+    // checkUpdates() is async — flush microtasks without advancing the 30-min interval.
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(checkMock).toHaveBeenCalled()
+    expect($updateStatus.get()?.behind).toBe(5)
+  })
+
+  it('calls checkUpdates() on each interval tick', async () => {
+    startUpdatePoller()
+    await vi.advanceTimersByTimeAsync(0)
+    checkMock.mockClear()
+
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+    expect(checkMock).toHaveBeenCalled()
+  })
+
+  it('calls checkUpdates() when the window regains focus', async () => {
+    startUpdatePoller()
+    await vi.advanceTimersByTimeAsync(0)
+    checkMock.mockClear()
+
+    // Invoke the registered focus handler directly (the mock window doesn't
+    // propagate DOM events, so call the stored listener).
+    listeners['focus']?.()
+
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(checkMock).toHaveBeenCalled()
   })
 })

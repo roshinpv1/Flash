@@ -2,7 +2,7 @@
 
 The agent's system prompt is built once per session and reused across all
 turns — only context compression triggers a rebuild.  This keeps the
-upstream prefix cache warm.  See ``nyxo-agent-dev``'s
+upstream prefix cache warm.  See ``flash-agent-dev``'s
 ``references/system-prompt-invariant.md`` for the invariants and
 ``references/self-improvement-loop.md`` for how the background-review
 fork inherits the cached prompt verbatim.
@@ -24,12 +24,13 @@ Pure helpers that read the agent's state.  AIAgent keeps thin forwarders.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Dict, List, Optional
 
 from agent.prompt_builder import (
     DEFAULT_AGENT_IDENTITY,
     GOOGLE_MODEL_OPERATIONAL_GUIDANCE,
-    NYXO_AGENT_HELP_GUIDANCE,
+    HERMES_AGENT_HELP_GUIDANCE,
     KANBAN_GUIDANCE,
     MEMORY_GUIDANCE,
     OPENAI_MODEL_EXECUTION_GUIDANCE,
@@ -44,6 +45,7 @@ from agent.prompt_builder import (
     drain_truncation_warnings,
 )
 from agent.runtime_cwd import resolve_context_cwd
+from utils import is_truthy_value
 
 
 def _ra():
@@ -110,6 +112,36 @@ def _resolve_platform_hint(agent: Any, platform_key: str, default_hint: str) -> 
     return base
 
 
+_TUI_EMBEDDED_PANE_CLARIFIER = (
+    " You're in its embedded terminal pane, beside the GUI chat — the user can "
+    "select your output (Option-drag on macOS, Shift-drag elsewhere) and press "
+    "Cmd/Ctrl+L to send it to the chat composer."
+)
+
+
+def _tui_embedded_pane_clarifier(hint: str) -> str:
+    """Append the desktop-embedded-terminal-pane clarifier to a tui hint.
+
+    Triggered by ``HERMES_DESKTOP_TERMINAL=1`` (set by ``main.cjs`` only on the
+    shell env of the desktop's embedded TUI PTY — never on the chat backend).
+    This is a runtime-surface qualifier, not a config override, so it lives at
+    the resolution site rather than inside ``_resolve_platform_hint`` (which
+    is purely the config-platform_hints override applier). Byte-stable for the
+    cache: called once per session build, deterministically from env state.
+
+    Idempotent and empty-safe: re-applying on an already-augmented hint is a
+    no-op, and an empty input returns empty (we never synthesize the
+    clarifier without its tui framing).
+    """
+    if not hint:
+        return hint
+    if _TUI_EMBEDDED_PANE_CLARIFIER in hint:
+        return hint
+    if not is_truthy_value(os.getenv("HERMES_DESKTOP_TERMINAL")):
+        return hint
+    return hint + _TUI_EMBEDDED_PANE_CLARIFIER
+
+
 def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) -> Dict[str, str]:
     """Assemble the system prompt as three ordered parts.
 
@@ -124,7 +156,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
 
     Joined into a single string by :func:`build_system_prompt` and
     cached on ``agent._cached_system_prompt`` for the lifetime of the
-    AIAgent.  Nyxo never re-renders parts of this string mid-
+    AIAgent.  Hermes never re-renders parts of this string mid-
     session — that's the only way to keep upstream prompt caches
     warm across turns.
     """
@@ -148,7 +180,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     stable_parts: List[str] = []
 
     # Try SOUL.md as primary identity unless the caller explicitly skipped it.
-    # Some execution modes (cron) still want NYXO_HOME persona while keeping
+    # Some execution modes (cron) still want HERMES_HOME persona while keeping
     # cwd project instructions disabled.
     _soul_loaded = False
     if agent.load_soul_identity or not agent.skip_context_files:
@@ -161,8 +193,8 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         # Fallback to hardcoded identity
         stable_parts.append(DEFAULT_AGENT_IDENTITY)
 
-    # Pointer to the nyxo-agent skill + docs for user questions about Nyxo itself.
-    stable_parts.append(NYXO_AGENT_HELP_GUIDANCE)
+    # Pointer to the flash-agent skill + docs for user questions about Hermes itself.
+    stable_parts.append(HERMES_AGENT_HELP_GUIDANCE)
 
     # Universal task-completion / no-fabrication guidance.  Applied to ALL
     # models regardless of tool_use_enforcement gating — the failure modes
@@ -194,7 +226,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         tool_guidance.append(SKILLS_GUIDANCE)
     # Kanban worker/orchestrator lifecycle — only present when the
     # dispatcher spawned this process (kanban_show check_fn gates on
-    # NYXO_KANBAN_TASK env var). Normal chat sessions never see
+    # HERMES_KANBAN_TASK env var). Normal chat sessions never see
     # this block. Resolved once at __init__ (see _kanban_worker_guidance).
     _kanban_guidance = getattr(agent, "_kanban_worker_guidance", None)
     if _kanban_guidance:
@@ -310,7 +342,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     if _env_hints:
         stable_parts.append(_env_hints)
 
-    # Coding posture (base Nyxo, any interactive coding surface in a code
+    # Coding posture (base Hermes, any interactive coding surface in a code
     # workspace — see agent/coding_context.py). The operating brief + the live
     # git/workspace snapshot are built once here and cached for the session;
     # the snapshot is never re-probed per turn (that would break the prompt
@@ -347,9 +379,9 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
             # Probe failure must never block prompt build.
             pass
 
-    # Active-profile hint — names the Nyxo profile the agent is running
-    # under so it doesn't conflate ~/.nyxo/skills/ (default profile) with
-    # ~/.nyxo/profiles/<active>/skills/ (this profile's). Deterministic
+    # Active-profile hint — names the Hermes profile the agent is running
+    # under so it doesn't conflate ~/.flash/skills/ (default profile) with
+    # ~/.flash/profiles/<active>/skills/ (this profile's). Deterministic
     # for the lifetime of the agent — profile name doesn't change
     # mid-session, so this doesn't break the prompt cache.
     # See file_safety._resolve_active_profile_name + classify_cross_profile_target
@@ -361,8 +393,8 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         active_profile = "default"
     if active_profile == "default":
         stable_parts.append(
-            "Active Nyxo profile: default. Other profiles (if any) live "
-            "under ~/.nyxo/profiles/<name>/. Each profile has its own "
+            "Active Hermes profile: default. Other profiles (if any) live "
+            "under ~/.flash/profiles/<name>/. Each profile has its own "
             "skills/, plugins/, cron/, and memories/ that affect a different "
             "session than this one. Do not modify another profile's "
             "skills/plugins/cron/memories unless the user explicitly directs "
@@ -370,10 +402,10 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         )
     else:
         stable_parts.append(
-            f"Active Nyxo profile: {active_profile}. This session reads "
-            f"and writes ~/.nyxo/profiles/{active_profile}/. The default "
-            f"profile's data lives at ~/.nyxo/skills/, ~/.nyxo/plugins/, "
-            f"~/.nyxo/cron/, ~/.nyxo/memories/ — those belong to a "
+            f"Active Hermes profile: {active_profile}. This session reads "
+            f"and writes ~/.flash/profiles/{active_profile}/. The default "
+            f"profile's data lives at ~/.flash/skills/, ~/.flash/plugins/, "
+            f"~/.flash/cron/, ~/.flash/memories/ — those belong to a "
             f"different session run from a different shell. Do NOT modify "
             f"another profile's skills/plugins/cron/memories unless the user "
             f"explicitly directs you to. The cross-profile write guard will "
@@ -398,6 +430,8 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
             pass
 
     _effective_hint = _resolve_platform_hint(agent, platform_key, _default_hint)
+    if platform_key == "tui" and _effective_hint:
+        _effective_hint = _tui_embedded_pane_clarifier(_effective_hint)
     if _effective_hint:
         stable_parts.append(_effective_hint)
 
@@ -443,8 +477,8 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         except Exception:
             pass
 
-    from nyxo_time import now as _nyxo_now
-    now = _nyxo_now()
+    from flash_time import now as _flash_now
+    now = _flash_now()
     # Date-only (not minute-precision) so the system prompt is byte-stable
     # for the full day.  Minute-precision changes invalidate prefix-cache KV
     # on every rebuild path (compression boundary, fresh-agent gateway turns,
@@ -478,7 +512,7 @@ def build_system_prompt(agent: Any, system_message: Optional[str] = None) -> str
     Layers are ordered cache-friendly: stable identity/guidance first,
     then session-stable context files, then per-call volatile content
     (memory, USER profile, timestamp).  The whole string is treated as
-    one cached block — Nyxo never rebuilds or reinjects parts of it
+    one cached block — Hermes never rebuilds or reinjects parts of it
     mid-session, which is the only way to keep upstream prompt caches
     warm across turns.
     """

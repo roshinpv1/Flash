@@ -1,13 +1,15 @@
 """Tests for FileSyncManager — mtime tracking, deletion detection, transactional rollback."""
 
+import io
 import os
+import tarfile
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tools.environments.file_sync import FileSyncManager, _FORCE_SYNC_ENV
+from tools.environments.file_sync import FileSyncManager, _FORCE_SYNC_ENV, iter_sync_files
 
 
 @pytest.fixture
@@ -21,7 +23,7 @@ def tmp_files(tmp_path):
     return files
 
 
-def _make_get_files(tmp_files, remote_base="/root/.nyxo"):
+def _make_get_files(tmp_files, remote_base="/root/.hermes"):
     """Return a get_files_fn that maps local files to remote paths."""
     mapping = [(hp, f"{remote_base}/{name}") for name, hp in tmp_files.items()]
 
@@ -31,7 +33,7 @@ def _make_get_files(tmp_files, remote_base="/root/.nyxo"):
     return get_files
 
 
-def _make_manager(tmp_files, remote_base="/root/.nyxo", upload=None, delete=None):
+def _make_manager(tmp_files, remote_base="/root/.hermes", upload=None, delete=None):
     """Create a FileSyncManager with test callbacks."""
     return FileSyncManager(
         get_files_fn=_make_get_files(tmp_files, remote_base),
@@ -245,7 +247,7 @@ class TestEdgeCases:
 
         upload = MagicMock()
         mgr = FileSyncManager(
-            get_files_fn=lambda: [(str(f), "/root/.nyxo/ephemeral.txt")],
+            get_files_fn=lambda: [(str(f), "/root/.hermes/ephemeral.txt")],
             upload_fn=upload,
             delete_fn=MagicMock(),
         )
@@ -255,6 +257,60 @@ class TestEdgeCases:
 
         mgr.sync(force=True)
         upload.assert_not_called()  # _file_mtime_key returns None, skipped
+
+
+class TestSyncBackSecurity:
+    def test_sync_back_does_not_overwrite_uploaded_credential_files(self, tmp_path, monkeypatch):
+        credential = tmp_path / "token.json"
+        credential.write_text("host-token", encoding="utf-8")
+        skill = tmp_path / "skill.py"
+        skill.write_text("host-skill", encoding="utf-8")
+
+        monkeypatch.setattr(
+            "tools.credential_files.get_credential_file_mounts",
+            lambda: [
+                {
+                    "host_path": str(credential),
+                    "container_path": "/root/.hermes/credentials/token.json",
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            "tools.credential_files.iter_skills_files",
+            lambda container_base="/root/.hermes": [
+                {
+                    "host_path": str(skill),
+                    "container_path": f"{container_base}/skills/skill.py",
+                }
+            ],
+        )
+        monkeypatch.setattr(
+            "tools.credential_files.iter_cache_files",
+            lambda container_base="/root/.hermes": [],
+        )
+
+        def bulk_download(dest: Path) -> None:
+            with tarfile.open(dest, "w") as tar:
+                for name, data in {
+                    "root/.hermes/credentials/token.json": b"remote-token",
+                    "root/.hermes/skills/skill.py": b"remote-skill",
+                }.items():
+                    info = tarfile.TarInfo(name)
+                    info.size = len(data)
+                    tar.addfile(info, io.BytesIO(data))
+
+        mgr = FileSyncManager(
+            get_files_fn=lambda: iter_sync_files("/root/.hermes"),
+            upload_fn=MagicMock(),
+            delete_fn=MagicMock(),
+            bulk_download_fn=bulk_download,
+        )
+
+        mgr.sync(force=True)
+        mgr.sync_back(hermes_home=tmp_path)
+
+        assert credential.read_text(encoding="utf-8") == "host-token"
+        assert skill.read_text(encoding="utf-8") == "remote-skill"
 
 
 class TestBulkUpload:

@@ -210,7 +210,7 @@ class TestHandleVoiceCommand:
 
         fake_cfg = {"voice": {"auto_tts": True}}
         monkeypatch.setattr(
-            "nyxo_cli.config.load_config",
+            "flash_cli.config.load_config",
             lambda: fake_cfg,
         )
         adapter = SimpleNamespace(
@@ -607,13 +607,13 @@ class TestVoiceInHelp:
 
     def test_voice_in_help_output(self):
         """The gateway help text includes /voice (generated from registry)."""
-        from nyxo_cli.commands import gateway_help_lines
+        from flash_cli.commands import gateway_help_lines
         help_text = "\n".join(gateway_help_lines())
         assert "/voice" in help_text
 
     def test_voice_is_known_command(self):
         """The /voice command is in GATEWAY_KNOWN_COMMANDS."""
-        from nyxo_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from flash_cli.commands import GATEWAY_KNOWN_COMMANDS
         assert "voice" in GATEWAY_KNOWN_COMMANDS
 
 
@@ -837,7 +837,7 @@ class TestVoiceChannelCommands:
         mock_adapter._voice_input_callback = None
         event = self._make_discord_event()
         event.source.chat_type = "group"
-        event.source.chat_name = "Nyxo Server / #general"
+        event.source.chat_name = "Hermes Server / #general"
         runner.adapters[event.source.platform] = mock_adapter
         result = await runner._handle_voice_channel_join(event)
         assert "joined" in result.lower()
@@ -971,7 +971,7 @@ class TestVoiceChannelCommands:
 
         bound_source = SessionSource(
             chat_id="123",
-            chat_name="Nyxo Server / #general",
+            chat_name="Hermes Server / #general",
             chat_type="group",
             user_id="user1",
             user_name="user1",
@@ -993,7 +993,7 @@ class TestVoiceChannelCommands:
         event = mock_adapter.handle_message.call_args[0][0]
         assert event.source.chat_id == "123"
         assert event.source.chat_type == "group"
-        assert event.source.chat_name == "Nyxo Server / #general"
+        assert event.source.chat_name == "Hermes Server / #general"
         assert event.source.user_id == "42"
 
     @pytest.mark.asyncio
@@ -1211,7 +1211,7 @@ class TestDiscordVoiceChannelMethods:
 
     def test_is_allowed_user_empty_list(self):
         adapter = self._make_adapter()
-        assert adapter._is_allowed_user("42") is True
+        assert adapter._is_allowed_user("42") is False
 
     def test_is_allowed_user_in_list(self):
         adapter = self._make_adapter()
@@ -1222,6 +1222,32 @@ class TestDiscordVoiceChannelMethods:
         adapter = self._make_adapter()
         adapter._allowed_user_ids = {"99"}
         assert adapter._is_allowed_user("42") is False
+
+    def test_is_allowed_user_wildcard_only(self):
+        """``DISCORD_ALLOWED_USERS="*"`` opens access to all users.
+
+        Mirrors ``SIGNAL_ALLOWED_USERS`` and the existing
+        ``DISCORD_ALLOWED_CHANNELS`` / ``_IGNORED_CHANNELS`` /
+        ``_FREE_RESPONSE_CHANNELS`` wildcard handling. This is the
+        convention ``claw migrate`` emits (#22334).
+        """
+        adapter = self._make_adapter()
+        adapter._allowed_user_ids = {"*"}
+        assert adapter._is_allowed_user("42") is True
+        assert adapter._is_allowed_user("999999999999999999") is True
+
+    def test_is_allowed_user_wildcard_mixed_with_ids(self):
+        """``DISCORD_ALLOWED_USERS="123,*"`` honors ``*`` for any user."""
+        adapter = self._make_adapter()
+        adapter._allowed_user_ids = {"123456789012345678", "*"}
+        assert adapter._is_allowed_user("42") is True
+        assert adapter._is_allowed_user("123456789012345678") is True
+
+    def test_is_allowed_user_wildcard_in_dm(self):
+        """Wildcard short-circuits before role-auth gating, so DMs honor it too."""
+        adapter = self._make_adapter()
+        adapter._allowed_user_ids = {"*"}
+        assert adapter._is_allowed_user("42", is_dm=True) is True
 
     @pytest.mark.asyncio
     async def test_process_voice_input_success(self):
@@ -2139,7 +2165,7 @@ class TestSendVoiceReplyCleanup:
         runner._get_guild_id = MagicMock(return_value=None)
 
         # Create a fake audio file that TTS would produce
-        fake_audio = tmp_path / "nyxo_voice"
+        fake_audio = tmp_path / "flash_voice"
         fake_audio.mkdir()
         audio_file = fake_audio / "test.mp3"
         audio_file.write_bytes(b"fake audio")
@@ -2203,7 +2229,7 @@ class TestVoiceChannelAwareness:
         adapter._voice_sources = {}
         adapter._voice_receivers = {}
         adapter._client = MagicMock()
-        adapter._client.user = SimpleNamespace(id=99999, name="NyxoBot")
+        adapter._client.user = SimpleNamespace(id=99999, name="HermesBot")
         return adapter
 
     def _make_member(self, user_id, display_name, is_bot=False):
@@ -2226,7 +2252,7 @@ class TestVoiceChannelAwareness:
         adapter = self._make_adapter()
         vc = MagicMock()
         vc.is_connected.return_value = True
-        bot_member = self._make_member(99999, "NyxoBot", is_bot=True)
+        bot_member = self._make_member(99999, "HermesBot", is_bot=True)
         user_a = self._make_member(1001, "Alice")
         user_b = self._make_member(1002, "Bob")
         vc.channel.name = "general-voice"
@@ -2240,7 +2266,7 @@ class TestVoiceChannelAwareness:
         names = [m["display_name"] for m in info["members"]]
         assert "Alice" in names
         assert "Bob" in names
-        assert "NyxoBot" not in names
+        assert "HermesBot" not in names
 
     def test_speaking_detection(self):
         adapter = self._make_adapter()

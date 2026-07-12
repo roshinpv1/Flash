@@ -18,14 +18,14 @@ permissions:
 
 jobs:
   check-freshness:
-    if: github.repository == 'NousResearch/nyxo-agent'
+    if: github.repository == 'FlashOrg/flash-agent'
     runs-on: ubuntu-latest
     steps:
       - name: Probe live index
         id: probe
         run: |
           set -e
-          URL="https://nyxo-agent.nousresearch.com/docs/api/skills-index.json"
+          URL="https://flash-agent.flashorg.com/docs/api/skills-index.json"
           echo "Probing $URL"
           # -L follows redirects; -f fails on HTTP errors; -s suppresses progress
           if ! curl -fsSL -o /tmp/skills-index.json "$URL"; then

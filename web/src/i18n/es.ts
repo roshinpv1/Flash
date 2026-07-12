@@ -50,7 +50,7 @@ export const es: Translations = {
   },
 
   app: {
-    brand: "Nyxo Agent",
+    brand: "Hermes Agent",
     brandShort: "HA",
     closeNavigation: "Cerrar navegación",
     closeModelTools: "Cerrar modelo y herramientas",
@@ -120,8 +120,8 @@ export const es: Translations = {
     starting: "Iniciando",
     startedInBackground: "Iniciado en segundo plano — revisa los registros para ver el progreso",
     stopped: "Detenido",
-    updateNyxo: "Actualizar Nyxo",
-    updatingNyxo: "Actualizando Nyxo…",
+    updateHermes: "Actualizar Hermes",
+    updatingHermes: "Actualizando Hermes…",
     waitingForOutput: "Esperando salida…",
   },
 
@@ -321,7 +321,7 @@ export const es: Translations = {
     enableRuntime: "Habilitar",
     forceReinstall: "Forzar reinstalación (eliminar carpeta existente primero)",
     headline:
-      "Descubre, instala, habilita y actualiza complementos de Nyxo (equivalente a `nyxo plugins`).",
+      "Descubre, instala, habilita y actualiza complementos de Hermes (equivalente a `hermes plugins`).",
     identifierLabel: "URL de Git u owner/repo",
     inactive: "inactivo",
     installBtn: "Instalar",
@@ -338,8 +338,8 @@ export const es: Translations = {
     providersHint:
       "Escribe memory.provider (vacío = incorporado) y context.engine en config.yaml. Surte efecto en la próxima sesión.",
     refreshDashboard: "Volver a escanear extensiones del panel",
-    removeConfirm: "¿Eliminar este complemento de ~/.nyxo/plugins/?",
-    removeHint: "Solo se pueden eliminar complementos instalados por el usuario en ~/.nyxo/plugins.",
+    removeConfirm: "¿Eliminar este complemento de ~/.hermes/plugins/?",
+    removeHint: "Solo se pueden eliminar complementos instalados por el usuario en ~/.hermes/plugins.",
     rescanHeading: "Registro de complementos SPA",
     rescanHint: "Vuelve a escanear tras añadir archivos en disco para que la barra lateral del panel detecte nuevos manifiestos.",
     runtimeHeading: "Tiempo de ejecución del Gateway (complementos YAML)",
@@ -361,7 +361,7 @@ export const es: Translations = {
     all: "Todas",
     categories: "Categorías",
     filters: "Filtros",
-    noSkills: "No se encontraron habilidades. Las habilidades se cargan desde ~/.nyxo/skills/",
+    noSkills: "No se encontraron habilidades. Las habilidades se cargan desde ~/.hermes/skills/",
     noSkillsMatch: "Ninguna habilidad coincide con tu búsqueda o filtro.",
     skillCount: "{count} habilidad{s}",
     resultCount: "{count} resultado{s}",
@@ -375,7 +375,7 @@ export const es: Translations = {
   },
 
   config: {
-    configPath: "~/.nyxo/config.yaml",
+    configPath: "~/.hermes/config.yaml",
     filters: "Filtros",
     sections: "Secciones",
     exportConfig: "Exportar configuración como JSON",
@@ -434,21 +434,32 @@ export const es: Translations = {
     replaceCurrentValue: "Reemplazar valor actual ({preview})",
     showValue: "Mostrar valor real",
     hideValue: "Ocultar valor",
+    customTitle: "Claves personalizadas",
+    customHint: "Variables de entorno arbitrarias almacenadas en tu .env que Hermes no reconoce. Úsalas para inyectar variables de entorno para skills, servidores MCP o tus propias herramientas.",
+    customConfigured: "{count} clave(s) personalizada(s) configurada(s)",
+    addCustomKey: "Añadir una clave personalizada",
+    customKeyName: "Nombre de la variable",
+    customKeyNamePlaceholder: "p. ej. MY_SERVICE_API_KEY",
+    add: "Añadir",
+    invalidKeyName: "Usa solo letras, números y guiones bajos (debe empezar por una letra o un guion bajo).",
   },
 
   oauth: {
     title: "Inicios de sesión de proveedores (OAuth)",
     providerLogins: "Inicios de sesión de proveedores (OAuth)",
-    description: "{connected} de {total} proveedores OAuth conectados. Los flujos de inicio de sesión actualmente se ejecutan a través de la CLI; haz clic en Copiar comando y pégalo en una terminal para configurar.",
+    description:
+      "{connected} de {total} proveedores OAuth conectados. Usa Iniciar sesión para los flujos compatibles con el panel; los comandos CLI siguen disponibles para configuración externa o de respaldo.",
     connected: "Conectado",
     expired: "Caducado",
-    notConnected: "No conectado. Ejecuta {command} en una terminal.",
+    notConnected: "No conectado. Usa Iniciar sesión si está disponible, o ejecuta {command} en una terminal.",
     runInTerminal: "en una terminal.",
     noProviders: "No se han detectado proveedores compatibles con OAuth.",
     login: "Iniciar sesión",
     disconnect: "Desconectar",
     managedExternally: "Gestionado externamente",
     copied: "Copiado ✓",
+    copyCode: "Copiar código",
+    copyFailed: "No se pudo copiar automáticamente. Selecciona el código y cópialo manualmente.",
     cli: "Copiar",
     copyCliCommand: "Copiar comando CLI (para externo / alternativa)",
     connect: "Conectar",
@@ -486,11 +497,11 @@ export const es: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Nyxo Achievements",
+      title: "Hermes Achievements",
       subtitle:
-        "Insignias coleccionables de Nyxo ganadas a partir del historial real de sesiones. Los logros conocidos no completados se muestran como Descubiertos; los logros secretos permanecen ocultos hasta que aparece el primer comportamiento coincidente.",
+        "Insignias coleccionables de Hermes ganadas a partir del historial real de sesiones. Los logros conocidos no completados se muestran como Descubiertos; los logros secretos permanecen ocultos hasta que aparece el primer comportamiento coincidente.",
       scan_subtitle:
-        "Escaneando el historial de sesiones de Nyxo. El primer escaneo puede tardar 5–10 segundos en historiales grandes.",
+        "Escaneando el historial de sesiones de Hermes. El primer escaneo puede tardar 5–10 segundos en historiales grandes.",
     },
     actions: {
       rescan: "Volver a escanear",
@@ -505,7 +516,7 @@ export const es: Translations = {
       highest_tier: "Nivel más alto",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Más reciente",
-      latest_hint_empty: "usa Nyxo más",
+      latest_hint_empty: "usa Hermes más",
       none_yet: "Ninguno aún",
     },
     state: {
@@ -536,10 +547,10 @@ export const es: Translations = {
       tiers_header: "Niveles",
       secret_header: "Logros secretos",
       secret_body:
-        "Los secretos ocultan su disparador exacto. Una vez que Nyxo detecta una señal relacionada, la tarjeta pasa a Descubierto y muestra su requisito.",
+        "Los secretos ocultan su disparador exacto. Una vez que Hermes detecta una señal relacionada, la tarjeta pasa a Descubierto y muestra su requisito.",
       scan_status_header: "Estado del escaneo",
       scan_status_body:
-        "Nyxo está escaneando el historial local una vez, después las tarjetas aparecerán automáticamente. No hay nada bloqueado si tarda unos segundos.",
+        "Hermes está escaneando el historial local una vez, después las tarjetas aparecerán automáticamente. No hay nada bloqueado si tarda unos segundos.",
       what_scanned_header: "Qué se escanea",
       what_scanned_body:
         "Sesiones, llamadas a herramientas, metadatos del modelo, errores, logros y estado de desbloqueo local.",
@@ -586,7 +597,7 @@ export const es: Translations = {
         "Compartir en X abre una publicación predefinida en una nueva pestaña. Haz clic primero en Copiar imagen si quieres adjuntar la insignia 1200×630: X te permite pegarla directamente en el redactor del tuit. Descargar PNG guarda el archivo para usarlo en cualquier lugar.",
       clipboard_unsupported:
         "Este navegador no admite copiar imágenes al portapapeles: usa Descargar en su lugar.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in Nyxo Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in Hermes Agent ☤",
     },
   },
   kanban: {

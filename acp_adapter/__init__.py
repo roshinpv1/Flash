@@ -1,1 +1,1 @@
-"""ACP (Agent Communication Protocol) adapter for nyxo-agent."""
+"""ACP (Agent Communication Protocol) adapter for flash-agent."""

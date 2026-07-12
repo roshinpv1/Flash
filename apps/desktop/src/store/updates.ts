@@ -13,12 +13,12 @@ import type {
   DesktopUpdateStatus,
   DesktopVersionInfo
 } from '@/global'
-import { checkNyxoUpdate, getActionStatus, updateNyxo } from '@/nyxo'
+import { checkHermesUpdate, getActionStatus, updateHermes } from '@/flash'
 import { translateNow } from '@/i18n'
 import { persistString, storedString } from '@/lib/storage'
 import { dismissNotification, notify } from '@/store/notifications'
 import { $connection } from '@/store/session'
-import type { BackendUpdateCheckResponse } from '@/types/nyxo'
+import type { BackendUpdateCheckResponse } from '@/types/flash'
 
 export interface UpdateApplyState {
   applying: boolean
@@ -57,11 +57,13 @@ export type UpdateTarget = 'client' | 'backend'
 export const $updateOverlayTarget = atom<UpdateTarget>('client')
 
 export const setUpdateOverlayOpen = (open: boolean) => $updateOverlayOpen.set(open)
+
 export const openUpdateOverlayFor = (target: UpdateTarget) => {
   $updateOverlayTarget.set(target)
   $updateOverlayOpen.set(true)
   void (target === 'backend' ? checkBackendUpdates() : checkUpdates())
 }
+
 export const resetUpdateApplyState = () => {
   $updateApply.set(IDLE)
   $backendUpdateApply.set(IDLE)
@@ -72,7 +74,7 @@ const UPDATE_TOAST_ID = 'desktop-update-available'
 // a day, so a "don't show this exact sha again" guard re-popped the toast on
 // every new commit. We instead suppress the toast for a cooldown window that
 // (re)starts whenever the user closes it.
-const UPDATE_TOAST_SNOOZE_KEY = 'nyxo:update-toast-snooze-until'
+const UPDATE_TOAST_SNOOZE_KEY = 'flash:update-toast-snooze-until'
 const UPDATE_TOAST_COOLDOWN_MS = 24 * 60 * 60 * 1000
 
 function snoozeUpdateToast(): void {
@@ -96,7 +98,7 @@ const SKEW_TOAST_ID = 'backend-contract-skew'
 // right after they closed it. Mirror the update toast: persist a cooldown when
 // the user dismisses it. It still reminds again after the window if the backend
 // is still behind, and clears immediately once the backend catches up.
-const SKEW_TOAST_SNOOZE_KEY = 'nyxo:backend-skew-toast-snooze-until'
+const SKEW_TOAST_SNOOZE_KEY = 'flash:backend-skew-toast-snooze-until'
 const SKEW_TOAST_COOLDOWN_MS = 24 * 60 * 60 * 1000
 
 function snoozeSkewToast(): void {
@@ -105,6 +107,24 @@ function snoozeSkewToast(): void {
 
 function isSkewToastSnoozed(): boolean {
   const until = Number(storedString(SKEW_TOAST_SNOOZE_KEY) || 0)
+
+  return Number.isFinite(until) && Date.now() < until
+}
+
+const INSTALL_METHOD_TOAST_ID = 'install-method-not-supported'
+// Same time-based snooze pattern as the update/skew toasts: the warning is
+// re-derived from every session.info (session.create/resume/activate all
+// route through applyRuntimeInfo), so without a snooze it would re-pop on
+// every session switch even right after the user dismissed it.
+const INSTALL_METHOD_TOAST_SNOOZE_KEY = 'flash:install-method-toast-snooze-until'
+const INSTALL_METHOD_TOAST_COOLDOWN_MS = 24 * 60 * 60 * 1000
+
+function snoozeInstallMethodToast(): void {
+  persistString(INSTALL_METHOD_TOAST_SNOOZE_KEY, String(Date.now() + INSTALL_METHOD_TOAST_COOLDOWN_MS))
+}
+
+function isInstallMethodToastSnoozed(): boolean {
+  const until = Number(storedString(INSTALL_METHOD_TOAST_SNOOZE_KEY) || 0)
 
   return Number.isFinite(until) && Date.now() < until
 }
@@ -134,7 +154,7 @@ export function reportBackendContract(contract: number | undefined): void {
 
   notify({
     action: {
-      label: translateNow('notifications.updateNyxo'),
+      label: translateNow('notifications.updateHermes'),
       onClick: () => {
         snoozeSkewToast()
         void applyBackendUpdate()
@@ -146,6 +166,27 @@ export function reportBackendContract(contract: number | undefined): void {
     message: translateNow('notifications.backendOutOfDateMessage'),
     onDismiss: () => snoozeSkewToast(),
     title: translateNow('notifications.backendOutOfDateTitle')
+  })
+}
+
+export function reportInstallMethodWarning(message: string | undefined): void {
+  if (!message) {
+    dismissNotification(INSTALL_METHOD_TOAST_ID)
+
+    return
+  }
+
+  if (isInstallMethodToastSnoozed()) {
+    return
+  }
+
+  notify({
+    durationMs: 0,
+    id: INSTALL_METHOD_TOAST_ID,
+    kind: 'warning',
+    message,
+    onDismiss: () => snoozeInstallMethodToast(),
+    title: translateNow('notifications.installMethodUnsupportedTitle')
   })
 }
 
@@ -183,6 +224,7 @@ export function maybeNotifyUpdateAvailable(status: DesktopUpdateStatus | null) {
       }
     },
     durationMs: 0,
+    icon: 'gift',
     id: UPDATE_TOAST_ID,
     kind: 'info',
     message: translateNow('notifications.updateReadyMessage', behind),
@@ -225,7 +267,7 @@ export async function refreshDesktopVersion(): Promise<DesktopVersionInfo | null
   // mid-reload, or the bridge not yet ready on first paint) would surface
   // as an unhandled promise rejection in the renderer. Swallow it.
   try {
-    const next = await window.nyxoDesktop?.getVersion?.()
+    const next = await window.flashDesktop?.getVersion?.()
 
     if (next) {
       $desktopVersion.set(next)
@@ -247,6 +289,7 @@ function mapBackendCheck(res: BackendUpdateCheckResponse): DesktopUpdateStatus {
   return {
     supported: res.can_apply,
     message: res.message ?? undefined,
+    updateAvailable: res.update_available,
     behind: behind > 0 ? behind : 0,
     targetSha: res.update_available ? `backend:${res.current_version}` : undefined,
     commits: res.commits,
@@ -262,7 +305,7 @@ export async function checkBackendUpdates(): Promise<DesktopUpdateStatus | null>
   $backendUpdateChecking.set(true)
 
   try {
-    const status = mapBackendCheck(await checkNyxoUpdate(true))
+    const status = mapBackendCheck(await checkHermesUpdate(true))
     $backendUpdateStatus.set(status)
     maybeNotifyUpdateAvailable(status)
 
@@ -284,7 +327,7 @@ export async function checkBackendUpdates(): Promise<DesktopUpdateStatus | null>
 }
 
 export async function checkUpdates(): Promise<DesktopUpdateStatus | null> {
-  const bridge = window.nyxoDesktop?.updates
+  const bridge = window.flashDesktop?.updates
 
   if (!bridge || $updateChecking.get()) {
     return $updateStatus.get()
@@ -319,7 +362,7 @@ export async function checkUpdates(): Promise<DesktopUpdateStatus | null> {
 }
 
 export async function applyUpdates(opts: DesktopUpdateApplyOptions = {}): Promise<DesktopUpdateApplyResult> {
-  const bridge = window.nyxoDesktop?.updates
+  const bridge = window.flashDesktop?.updates
 
   if (!bridge) {
     return { ok: false, error: 'unavailable', message: 'Desktop bridge unavailable.' }
@@ -332,15 +375,15 @@ export async function applyUpdates(opts: DesktopUpdateApplyOptions = {}): Promis
     const result = await bridge.apply(opts)
 
     // CLI install with no staged updater: not an error — the user just runs
-    // `nyxo update` themselves. Land on a dedicated manual state so the
+    // `flash update` themselves. Land on a dedicated manual state so the
     // overlay shows the command + copy button instead of a dead retry loop.
     if (result?.manual) {
       $updateApply.set({
         ...IDLE,
         applying: false,
         stage: 'manual',
-        message: result.command ?? 'nyxo update',
-        command: result.command ?? 'nyxo update'
+        message: result.command ?? 'flash update',
+        command: result.command ?? 'flash update'
       })
 
       return result
@@ -395,6 +438,10 @@ export async function applyUpdates(opts: DesktopUpdateApplyOptions = {}): Promis
           id: UPDATE_TOAST_ID,
           kind: 'success',
           message: translateNow('updates.manualPickedUp'),
+          // No action button here, but it's still update-lifecycle news — keep
+          // it with the other update toasts instead of the ambient bottom-right
+          // stack.
+          placement: 'default',
           title: translateNow('updates.allSetTitle')
         })
       } else {
@@ -423,8 +470,9 @@ const BACKEND_RETURN_MAX_ATTEMPTS = 40
 async function waitForBackendReturn(): Promise<boolean> {
   for (let attempt = 0; attempt < BACKEND_RETURN_MAX_ATTEMPTS; attempt += 1) {
     await new Promise(resolve => globalThis.setTimeout(resolve, BACKEND_RETURN_POLL_MS))
+
     try {
-      await checkNyxoUpdate()
+      await checkHermesUpdate()
 
       return true
     } catch {
@@ -457,10 +505,12 @@ function finishBackendApply(returned: boolean): DesktopUpdateApplyResult {
 
 function ingestBackendActionStatus(status: Awaited<ReturnType<typeof getActionStatus>>): void {
   const current = $backendUpdateApply.get()
+
   const log = status.lines
     .filter(line => line.trim().length > 0)
     .map(line => ({ at: Date.now(), message: line, stage: current.stage }))
     .slice(-50)
+
   const latest = log.at(-1)?.message
 
   if (log.length === 0 && !latest) {
@@ -476,24 +526,36 @@ function ingestBackendActionStatus(status: Awaited<ReturnType<typeof getActionSt
 
 export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
   dismissNotification(UPDATE_TOAST_ID)
-  $backendUpdateApply.set({ ...IDLE, applying: true, stage: 'prepare', message: translateNow('updates.applyStatus.preparing') })
+  $backendUpdateApply.set({
+    ...IDLE,
+    applying: true,
+    stage: 'prepare',
+    message: translateNow('updates.applyStatus.preparing')
+  })
 
   try {
-    const started = await updateNyxo()
+    const started = await updateHermes()
 
     if (!started.ok) {
       const message = (started as { message?: string }).message || translateNow('updates.applyStatus.notAvailable')
-      const command = (started as { update_command?: string }).update_command || 'nyxo update'
+      const command = (started as { update_command?: string }).update_command || 'flash update'
       $backendUpdateApply.set({ ...IDLE, applying: false, stage: 'manual', message, command })
 
       return { ok: false, error: 'manual', manual: true, message, command }
     }
 
-    $backendUpdateApply.set({ ...IDLE, applying: true, stage: 'pull', message: translateNow('updates.applyStatus.pulling') })
+    $backendUpdateApply.set({
+      ...IDLE,
+      applying: true,
+      stage: 'pull',
+      message: translateNow('updates.applyStatus.pulling')
+    })
 
     let last: Awaited<ReturnType<typeof getActionStatus>> | null = null
+
     for (let attempt = 0; attempt < 30; attempt += 1) {
       await new Promise(resolve => globalThis.setTimeout(resolve, 1500))
+
       try {
         last = await getActionStatus(started.name, 200)
         ingestBackendActionStatus(last)
@@ -515,8 +577,14 @@ export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
     }
 
     const ok = !!last && (last.exit_code ?? 1) === 0
+
     if (ok) {
-      $backendUpdateApply.set({ ...$backendUpdateApply.get(), applying: true, stage: 'restart', message: translateNow('updates.applyStatus.restarting') })
+      $backendUpdateApply.set({
+        ...$backendUpdateApply.get(),
+        applying: true,
+        stage: 'restart',
+        message: translateNow('updates.applyStatus.restarting')
+      })
 
       return finishBackendApply(await waitForBackendReturn())
     }
@@ -532,7 +600,13 @@ export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
     return { ok: false, error: 'apply-failed', message: 'Backend update failed.' }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    $backendUpdateApply.set({ ...$backendUpdateApply.get(), applying: false, stage: 'error', error: 'apply-failed', message })
+    $backendUpdateApply.set({
+      ...$backendUpdateApply.get(),
+      applying: false,
+      stage: 'error',
+      error: 'apply-failed',
+      message
+    })
 
     return { ok: false, error: 'apply-failed', message }
   }
@@ -541,6 +615,7 @@ export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
 function ingestProgress(payload: DesktopUpdateProgress): void {
   const current = $updateApply.get()
   const log = [...current.log, { stage: payload.stage, message: payload.message, at: payload.at }].slice(-50)
+
   const terminal =
     payload.stage === 'error' ||
     payload.stage === 'restart' ||
@@ -573,7 +648,7 @@ export function startUpdatePoller(): void {
     return
   }
 
-  const bridge = window.nyxoDesktop?.updates
+  const bridge = window.flashDesktop?.updates
 
   if (!bridge) {
     return
@@ -592,17 +667,22 @@ export function startUpdatePoller(): void {
     if (conn?.mode === lastConnectionMode) {
       return
     }
+
     lastConnectionMode = conn?.mode
+
     if (conn?.mode === 'remote') {
       void checkBackendUpdates()
     }
   })
 
   window.addEventListener('focus', onFocus)
-  backgroundTimer = setInterval(() => {
-    void checkUpdates()
-    void checkBackendUpdates()
-  }, 30 * 60 * 1000)
+  backgroundTimer = setInterval(
+    () => {
+      void checkUpdates()
+      void checkBackendUpdates()
+    },
+    30 * 60 * 1000
+  )
 }
 
 export function stopUpdatePoller(): void {

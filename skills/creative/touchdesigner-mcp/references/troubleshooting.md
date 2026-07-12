@@ -133,11 +133,11 @@ n.cook(force=True)
 actual = str(n.width) + 'x' + str(n.height)
 ```
 
-## 5. Nyxo Configuration
+## 5. Hermes Configuration
 
 ### Config location
 
-`$NYXO_HOME/config.yaml` (defaults to `~/.nyxo/config.yaml` when `NYXO_HOME` is unset)
+`$HERMES_HOME/config.yaml` (defaults to `~/.flash/config.yaml` when `HERMES_HOME` is unset)
 
 ### MCP entry format
 
@@ -150,7 +150,7 @@ mcpServers:
 
 ### After config changes
 
-Restart the Nyxo session for changes to take effect. The MCP connection is
+Restart the Hermes session for changes to take effect. The MCP connection is
 established at session startup.
 
 ### Verifying MCP tools are available

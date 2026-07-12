@@ -25,8 +25,11 @@ _MAX_TEXT_CHARS = 2000
 
 
 def _store_path() -> str:
-    home = os.environ.get("NYXO_HOME") or os.path.expanduser("~/.nyxo")
-    return os.path.join(home, "state", "rich_sent_index.json")
+    # Resolve via get_flash_home() so the active profile override is honored.
+    from flash_constants import get_flash_home
+
+    home = get_flash_home()
+    return os.path.join(str(home), "state", "rich_sent_index.json")
 
 
 def _key(chat_id, message_id) -> str:

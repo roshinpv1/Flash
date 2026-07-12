@@ -42,7 +42,7 @@ def _make_event(text):
 
 
 def _fake_switch_result():
-    from nyxo_cli.model_switch import ModelSwitchResult
+    from flash_cli.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -60,7 +60,7 @@ def _fake_warning():
     return SimpleNamespace(
         message=(
             "!!! EXPENSIVE MODEL WARNING !!!\n"
-            "openai/gpt-5.5-pro has known pricing above Nyxo' safety threshold.\n"
+            "openai/gpt-5.5-pro has known pricing above Hermes' safety threshold.\n"
             "did you mean to select openai/gpt-5.5?"
         ),
     )
@@ -69,24 +69,24 @@ def _fake_warning():
 def _setup_isolated_home(tmp_path, monkeypatch, *, warn):
     import gateway.run as gateway_run
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    cfg_path = nyxo_home / "config.yaml"
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    cfg_path = flash_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": {"default": "old-model", "provider": "openrouter"}, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.switch_model",
+        "flash_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
-    monkeypatch.setattr("nyxo_constants.get_nyxo_home", lambda: nyxo_home)
-    monkeypatch.setattr("nyxo_cli.config.get_nyxo_home", lambda: nyxo_home)
+    monkeypatch.setattr("flash_constants.get_flash_home", lambda: flash_home)
+    monkeypatch.setattr("flash_cli.config.get_flash_home", lambda: flash_home)
     monkeypatch.setattr(
-        "nyxo_cli.model_cost_guard.expensive_model_warning",
+        "flash_cli.model_cost_guard.expensive_model_warning",
         (lambda *a, **kw: _fake_warning()) if warn else (lambda *a, **kw: None),
     )
     return cfg_path

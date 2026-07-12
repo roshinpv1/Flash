@@ -32,13 +32,13 @@ import { api } from "@/lib/api";
 
 /** LocalStorage key — pre-applied before the React tree mounts to avoid
  *  a visible flash of the default palette on theme-overridden installs. */
-const STORAGE_KEY = "nyxo-dashboard-theme";
+const STORAGE_KEY = "hermes-dashboard-theme";
 
 /** LocalStorage key for the font override (independent of theme). Holds a
  *  font id from the catalog in `fonts.ts`, or the `THEME_DEFAULT_FONT_ID`
  *  sentinel / absent = "use the active theme's font". Pre-applied before
  *  the React tree mounts (see `main.tsx`) to avoid a font flash. */
-const FONT_STORAGE_KEY = "nyxo-dashboard-font";
+const FONT_STORAGE_KEY = "hermes-dashboard-font";
 
 /** Renames of built-in theme keys we've shipped previously. Without this,
  *  users who saved one of the old names in localStorage (or had it
@@ -82,8 +82,6 @@ function paletteVars(palette: ThemePalette): Record<string, string> {
     ...layerVars("background", palette.background),
     ...layerVars("midground", palette.midground),
     ...layerVars("foreground", palette.foreground),
-    "--warm-glow": palette.warmGlow,
-    "--noise-opacity-mul": String(palette.noiseOpacity),
   };
 }
 
@@ -183,7 +181,7 @@ function seriesColorVars(
 // ---------------------------------------------------------------------------
 
 /** Well-known named asset slots a theme may populate. Kept in sync with
- *  `_THEME_NAMED_ASSET_KEYS` in `nyxo_cli/web_server.py`. */
+ *  `_THEME_NAMED_ASSET_KEYS` in `hermes_cli/web_server.py`. */
 const NAMED_ASSET_KEYS = ["bg", "hero", "logo", "crest", "sidebar", "header"] as const;
 
 /** Component buckets mirrored from the backend's `_THEME_COMPONENT_BUCKETS`.
@@ -259,7 +257,7 @@ let _PREV_DYNAMIC_VAR_KEYS: Set<string> = new Set();
 
 /** ID for the injected <style> tag that carries a theme's customCSS.
  *  A single tag is reused + replaced on every theme switch. */
-const CUSTOM_CSS_STYLE_ID = "nyxo-theme-custom-css";
+const CUSTOM_CSS_STYLE_ID = "hermes-theme-custom-css";
 
 function applyCustomCSS(css: string | undefined) {
   if (typeof document === "undefined") return;
@@ -271,7 +269,7 @@ function applyCustomCSS(css: string | undefined) {
   if (!el) {
     el = document.createElement("style");
     el.id = CUSTOM_CSS_STYLE_ID;
-    el.setAttribute("data-nyxo-theme-css", "true");
+    el.setAttribute("data-hermes-theme-css", "true");
     document.head.appendChild(el);
   }
   el.textContent = css;
@@ -303,7 +301,7 @@ function injectFontStylesheet(url: string | undefined) {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = url;
-  link.setAttribute("data-nyxo-theme-font", "true");
+  link.setAttribute("data-hermes-theme-font", "true");
   document.head.appendChild(link);
   INJECTED_FONT_URLS.add(url);
 }
@@ -391,10 +389,14 @@ function applyTheme(theme: DashboardTheme) {
   applyCustomCSS(theme.customCSS);
   applyLayoutVariant(theme.layoutVariant);
 
-  // Terminal background — read by ChatPage via useTheme(); also available as CSS var.
+  // Terminal colors — read by ChatPage via useTheme(); also available as CSS vars.
   root.style.setProperty(
     "--theme-terminal-background",
     theme.terminalBackground ?? "#000000",
+  );
+  root.style.setProperty(
+    "--theme-terminal-foreground",
+    theme.terminalForeground ?? "#f0e6d2",
   );
 
   // Re-assert the font override last: theme application just rewrote

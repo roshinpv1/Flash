@@ -147,11 +147,7 @@ function rgbToHsl(red: number, green: number, blue: number): [number, number, nu
   const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min)
 
   const hue =
-    max === rn
-      ? (gn - bn) / delta + (gn < bn ? 6 : 0)
-      : max === gn
-        ? (bn - rn) / delta + 2
-        : (rn - gn) / delta + 4
+    max === rn ? (gn - bn) / delta + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / delta + 2 : (rn - gn) / delta + 4
 
   return [hue / 6, saturation, lightness]
 }
@@ -162,8 +158,8 @@ function circularDistance(a: number, b: number): number {
   return Math.min(distance, 1 - distance)
 }
 
-// Mirrors @nyxo/ink's colorize.ts. Keep local: app code compiles from
-// ui-tui/src, while @nyxo/ink is bundled separately from packages/.
+// Mirrors @hermes/ink's colorize.ts. Keep local: app code compiles from
+// ui-tui/src, while @hermes/ink is bundled separately from packages/.
 function richEightBitColorNumber(red: number, green: number, blue: number): number {
   const [, saturation, lightness] = rgbToHsl(red, green, blue)
 
@@ -227,9 +223,10 @@ function normalizeAnsiForeground(color: string): string {
   const richAnsi = richEightBitColorNumber(rgb[0], rgb[1], rgb[2])
   const richRgb = xtermEightBitRgb(richAnsi)
 
-  const ansi = relativeLuminance(richRgb[0], richRgb[1], richRgb[2]) > ANSI_LIGHT_MAX_LUMINANCE
-    ? bestReadableAnsiColor(rgb[0], rgb[1], rgb[2])
-    : richAnsi
+  const ansi =
+    relativeLuminance(richRgb[0], richRgb[1], richRgb[2]) > ANSI_LIGHT_MAX_LUMINANCE
+      ? bestReadableAnsiColor(rgb[0], rgb[1], rgb[2])
+      : richAnsi
 
   return `ansi256(${ansi})`
 }
@@ -237,7 +234,7 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Nyxo Agent',
+  name: 'Hermes Agent',
   icon: '⚕',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',
@@ -354,13 +351,13 @@ const FALSE_RE = /^(?:0|false|no|off)$/
 
 // TERM_PROGRAM fallback allow-list for terminals whose default profile is
 // light and which may not expose COLORFGBG. This currently includes Apple
-// Terminal. Explicit NYXO_TUI_THEME / COLORFGBG signals above still win,
+// Terminal. Explicit HERMES_TUI_THEME / COLORFGBG signals above still win,
 // so dark Apple Terminal profiles that advertise a dark background stay dark.
 const LIGHT_DEFAULT_TERM_PROGRAMS = new Set<string>(['Apple_Terminal'])
 
 // Best-effort RGB → luminance check.  Currently only accepts a 3- or
 // 6-digit hex value (with or without a leading `#`); the env var name
-// `NYXO_TUI_BACKGROUND` is intentionally generic so a future OSC11
+// `HERMES_TUI_BACKGROUND` is intentionally generic so a future OSC11
 // query helper can cache its answer there too, but additional formats
 // (rgb()/hsl()/named colours) would need explicit parsing here first.
 const LUMA_LIGHT_THRESHOLD = 0.6
@@ -397,12 +394,12 @@ function backgroundLuminance(raw: string): null | number {
 
 // Pick light vs dark with ordered, explainable signals (#11300):
 //
-//   1. `NYXO_TUI_LIGHT` boolean — `1`/`true`/`yes`/`on` → light;
+//   1. `HERMES_TUI_LIGHT` boolean — `1`/`true`/`yes`/`on` → light;
 //      `0`/`false`/`no`/`off` → dark.  Either explicit value wins
 //      regardless of any later signal.
-//   2. `NYXO_TUI_THEME` named override — `light` / `dark` win over
+//   2. `HERMES_TUI_THEME` named override — `light` / `dark` win over
 //      every signal below.
-//   3. `NYXO_TUI_BACKGROUND` hex hint (3- or 6-digit) — luminance
+//   3. `HERMES_TUI_BACKGROUND` hex hint (3- or 6-digit) — luminance
 //      ≥ LUMA_LIGHT_THRESHOLD → light.
 //   4. `COLORFGBG` last field — XFCE / rxvt / Terminal.app emit
 //      slot 7 or 15 on light profiles; 0–15 ranges are otherwise
@@ -410,7 +407,7 @@ function backgroundLuminance(raw: string): null | number {
 //      allow-list below cannot override an explicit dark profile.
 //   5. `TERM_PROGRAM` light-default allow-list.
 //
-// Anything we can't decide stays dark — the default Nyxo palette
+// Anything we can't decide stays dark — the default Hermes palette
 // is the dark one.
 export function detectLightMode(
   env: NodeJS.ProcessEnv = process.env,
@@ -418,7 +415,7 @@ export function detectLightMode(
   // precedence rule even though the production allow-list is empty.
   lightDefaultTermPrograms: ReadonlySet<string> = LIGHT_DEFAULT_TERM_PROGRAMS
 ): boolean {
-  const lightFlag = (env.NYXO_TUI_LIGHT ?? '').trim().toLowerCase()
+  const lightFlag = (env.HERMES_TUI_LIGHT ?? '').trim().toLowerCase()
 
   if (TRUE_RE.test(lightFlag)) {
     return true
@@ -428,7 +425,7 @@ export function detectLightMode(
     return false
   }
 
-  const themeFlag = (env.NYXO_TUI_THEME ?? '').trim().toLowerCase()
+  const themeFlag = (env.HERMES_TUI_THEME ?? '').trim().toLowerCase()
 
   if (themeFlag === 'light') {
     return true
@@ -438,7 +435,7 @@ export function detectLightMode(
     return false
   }
 
-  const bgHint = backgroundLuminance(env.NYXO_TUI_BACKGROUND ?? '')
+  const bgHint = backgroundLuminance(env.HERMES_TUI_BACKGROUND ?? '')
 
   if (bgHint !== null) {
     return bgHint >= LUMA_LIGHT_THRESHOLD
@@ -537,53 +534,60 @@ export function fromSkin(
   const completionMetaBg = c('completion_menu_meta_bg') ?? completionBg
   const completionMetaCurrentBg = c('completion_menu_meta_current_bg') ?? completionCurrentBg
 
-  return normalizeThemeForAnsiLightTerminal({
-    color: {
-      primary: c('ui_primary') ?? c('banner_title') ?? d.color.primary,
-      accent,
-      border: c('ui_border') ?? c('banner_border') ?? d.color.border,
-      text: c('ui_text') ?? c('banner_text') ?? d.color.text,
-      muted,
-      completionBg,
-      completionCurrentBg,
-      completionMetaBg,
-      completionMetaCurrentBg,
+  return normalizeThemeForAnsiLightTerminal(
+    {
+      color: {
+        primary: c('ui_primary') ?? c('banner_title') ?? d.color.primary,
+        accent,
+        border: c('ui_border') ?? c('banner_border') ?? d.color.border,
+        text: c('ui_text') ?? c('banner_text') ?? d.color.text,
+        muted,
+        completionBg,
+        completionCurrentBg,
+        completionMetaBg,
+        completionMetaCurrentBg,
 
-      label: c('ui_label') ?? d.color.label,
-      ok: c('ui_ok') ?? d.color.ok,
-      error: c('ui_error') ?? d.color.error,
-      warn: c('ui_warn') ?? d.color.warn,
+        label: c('ui_label') ?? d.color.label,
+        ok: c('ui_ok') ?? d.color.ok,
+        error: c('ui_error') ?? d.color.error,
+        warn: c('ui_warn') ?? d.color.warn,
 
-      prompt: c('prompt') ?? c('banner_text') ?? d.color.prompt,
-      sessionLabel: c('session_label') ?? muted,
-      sessionBorder: c('session_border') ?? muted,
+        prompt: c('prompt') ?? c('banner_text') ?? d.color.prompt,
+        sessionLabel: c('session_label') ?? muted,
+        sessionBorder: c('session_border') ?? muted,
 
-      statusBg: d.color.statusBg,
-      statusFg: d.color.statusFg,
-      statusGood: c('ui_ok') ?? d.color.statusGood,
-      statusWarn: c('ui_warn') ?? d.color.statusWarn,
-      statusBad: d.color.statusBad,
-      statusCritical: d.color.statusCritical,
-      selectionBg: c('selection_bg') ?? c('completion_menu_current_bg') ?? (hasSkinColors ? completionCurrentBg : d.color.selectionBg),
+        statusBg: d.color.statusBg,
+        statusFg: d.color.statusFg,
+        statusGood: c('ui_ok') ?? d.color.statusGood,
+        statusWarn: c('ui_warn') ?? d.color.statusWarn,
+        statusBad: d.color.statusBad,
+        statusCritical: d.color.statusCritical,
+        selectionBg:
+          c('selection_bg') ??
+          c('completion_menu_current_bg') ??
+          (hasSkinColors ? completionCurrentBg : d.color.selectionBg),
 
-      diffAdded: d.color.diffAdded,
-      diffRemoved: d.color.diffRemoved,
-      diffAddedWord: d.color.diffAddedWord,
-      diffRemovedWord: d.color.diffRemovedWord,
-      shellDollar: c('shell_dollar') ?? d.color.shellDollar
+        diffAdded: d.color.diffAdded,
+        diffRemoved: d.color.diffRemoved,
+        diffAddedWord: d.color.diffAddedWord,
+        diffRemovedWord: d.color.diffRemovedWord,
+        shellDollar: c('shell_dollar') ?? d.color.shellDollar
+      },
+
+      brand: {
+        name: branding.agent_name ?? d.brand.name,
+        icon: d.brand.icon,
+        prompt: cleanPromptSymbol(branding.prompt_symbol, d.brand.prompt),
+        welcome: branding.welcome ?? d.brand.welcome,
+        goodbye: branding.goodbye ?? d.brand.goodbye,
+        tool: toolPrefix || d.brand.tool,
+        helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
+      },
+
+      bannerLogo,
+      bannerHero
     },
-
-    brand: {
-      name: branding.agent_name ?? d.brand.name,
-      icon: d.brand.icon,
-      prompt: cleanPromptSymbol(branding.prompt_symbol, d.brand.prompt),
-      welcome: branding.welcome ?? d.brand.welcome,
-      goodbye: branding.goodbye ?? d.brand.goodbye,
-      tool: toolPrefix || d.brand.tool,
-      helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
-    },
-
-    bannerLogo,
-    bannerHero
-  }, process.env, DEFAULT_LIGHT_MODE)
+    process.env,
+    DEFAULT_LIGHT_MODE
+  )
 }

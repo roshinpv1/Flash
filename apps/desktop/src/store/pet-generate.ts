@@ -1,6 +1,7 @@
 import { atom } from 'nanostores'
 
 import { persistBoolean, persistString, storedBoolean, storedString } from '@/lib/storage'
+import { capitalize } from '@/lib/text'
 import { $gateway } from '@/store/gateway'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { notify } from '@/store/notifications'
@@ -67,11 +68,7 @@ export function cleanPetName(prompt: string): string {
   const meaningful = words.filter(w => !NAME_STOPWORDS.has(w.toLowerCase()))
   const picked = (meaningful.length ? meaningful : words).slice(0, 3)
 
-  const name = picked
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-    .slice(0, 28)
-    .trim()
+  const name = picked.map(capitalize).join(' ').slice(0, 28).trim()
 
   return name || 'Pet'
 }
@@ -82,15 +79,7 @@ export interface PetDraft {
   dataUri: string
 }
 
-export type PetGenStatus =
-  | 'idle'
-  | 'generating'
-  | 'ready'
-  | 'hatching'
-  | 'preview'
-  | 'adopting'
-  | 'error'
-  | 'stale'
+export type PetGenStatus = 'idle' | 'generating' | 'ready' | 'hatching' | 'preview' | 'adopting' | 'error' | 'stale'
 
 /** Live hatch step for the egg screen — which row is being drawn, then compose/save. */
 export interface PetHatchStage {
@@ -117,8 +106,8 @@ export interface PetGenProvider {
   default: boolean
 }
 
-const PROVIDER_KEY = 'nyxo.desktop.petgen.provider'
-const REMIX_CONFIRMED_KEY = 'nyxo.desktop.petgen.remixConfirmed'
+const PROVIDER_KEY = 'flash.desktop.petgen.provider'
+const REMIX_CONFIRMED_KEY = 'flash.desktop.petgen.remixConfirmed'
 
 /** Reference-capable providers available to pick (from `pet.generate.status`). */
 export const $petGenProviders = atom<PetGenProvider[]>([])
@@ -223,7 +212,7 @@ export function cleanupPetGenOnClose(request: GatewayRequest): void {
   const preview = $petGenPreview.get()
 
   if ((status === 'preview' || status === 'adopting') && preview?.slug) {
-    void request('pet.remove', { slug: preview.slug }).catch(() => {})
+    void request('pet.remove', { slug: preview.slug }).catch(() => { })
     resetPetGen()
   }
 }
@@ -357,7 +346,7 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
     const token = $petGenToken.get()
 
     if (token) {
-      void request('pet.cancel', { token }).catch(() => {})
+      void request('pet.cancel', { token }).catch(() => { })
     }
   })
 
@@ -365,7 +354,7 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
   const preview = $petGenPreview.get()
 
   if (preview?.slug) {
-    await request('pet.remove', { slug: preview.slug }).catch(() => {})
+    await request('pet.remove', { slug: preview.slug }).catch(() => { })
   }
 
   $petGenStatus.set('generating')
@@ -410,10 +399,8 @@ export async function generateDrafts(request: GatewayRequest, options: GenerateO
         return
       }
 
-      $petGenDrafts.set(
-        [...current, { index: draft.index, dataUri: draft.dataUri }].sort((a, b) => a.index - b.index)
-      )
-    }) ?? (() => {})
+      $petGenDrafts.set([...current, { index: draft.index, dataUri: draft.dataUri }].sort((a, b) => a.index - b.index))
+    }) ?? (() => { })
 
   try {
     const result = await request<{ ok: boolean; token: string; drafts: PetDraft[] }>(
@@ -498,7 +485,7 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
   const controller = new AbortController()
   hatch.arm(() => {
     controller.abort()
-    void request('pet.cancel', { token: cancelToken }).catch(() => {})
+    void request('pet.cancel', { token: cancelToken }).catch(() => { })
   })
 
   $petGenStatus.set('hatching')
@@ -529,7 +516,7 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
         } else if (p.event === 'save') {
           $petGenStage.set({ phase: 'save' })
         }
-      }) ?? (() => {})
+      }) ?? (() => { })
 
   try {
     const result = await request<{ ok: boolean; slug: string; displayName: string; pet?: PetInfo }>(
@@ -551,7 +538,7 @@ export async function hatchSelected(request: GatewayRequest, options: HatchOptio
     // Stopped mid-hatch: the server created the pet anyway, so delete it.
     if (!hatch.isCurrent(hatchRunId)) {
       if (result?.slug) {
-        void request('pet.remove', { slug: result.slug }).catch(() => {})
+        void request('pet.remove', { slug: result.slug }).catch(() => { })
       }
 
       return false
@@ -656,7 +643,7 @@ export async function discardHatched(request: GatewayRequest): Promise<void> {
   const preview = $petGenPreview.get()
 
   if (preview?.slug) {
-    await request('pet.remove', { slug: preview.slug }).catch(() => {})
+    await request('pet.remove', { slug: preview.slug }).catch(() => { })
   }
 
   $petGenPreview.set(null)

@@ -61,7 +61,7 @@ def _seed(db, sid, title, n=8):
 class TestInPlaceCompaction:
     def test_in_place_keeps_same_session_id(self):
         """In-place mode: id unchanged, no child row, no rename, history kept."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -126,7 +126,7 @@ class TestInPlaceCompaction:
 
     def test_in_place_alternation_preserved(self):
         """The compacted list must not introduce consecutive same-role messages."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,7 +146,7 @@ class TestInPlaceCompaction:
         rewrites the whole row, so a flush would INSERT rows it immediately
         deletes (wasted writes). The current-turn tail survives via the
         compressor's `compressed` output, not the flush."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -166,7 +166,7 @@ class TestInPlaceCompaction:
     def test_rotation_still_preflushes(self):
         """Rotation MUST pre-flush so current-turn messages survive in the
         preserved old (parent) session before it is ended (#47202)."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -184,10 +184,12 @@ class TestInPlaceCompaction:
             assert calls["n"] == 1
 
 
-class TestRotationStillDefault:
+class TestRotationFallbackWhenFlagOff:
     def test_rotation_when_flag_off(self):
-        """Regression guard: flag off => legacy rotation is unchanged."""
-        from nyxo_state import SessionDB
+        """Rotation is now the OPT-OUT fallback (default flipped to in-place in
+        #38763). With in_place=False explicitly set, legacy rotation is
+        unchanged — forks a renamed continuation session."""
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -222,7 +224,7 @@ class TestInPlaceSignalForGateway:
     read (instead of an id-change diff) to re-baseline transcript handling."""
 
     def test_signal_set_on_in_place_unset_on_rotation(self):
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
         from agent.conversation_compression import compress_context
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -247,10 +249,12 @@ class TestInPlaceSignalForGateway:
 
 
 class TestInPlaceConfigDefault:
-    def test_flag_defaults_off(self):
-        from nyxo_cli.config import DEFAULT_CONFIG
+    def test_flag_defaults_on(self):
+        """In-place is the default as of #38763 (rotation is now opt-out via
+        compression.in_place: false)."""
+        from flash_cli.config import DEFAULT_CONFIG
 
-        assert DEFAULT_CONFIG["compression"].get("in_place") is False
+        assert DEFAULT_CONFIG["compression"].get("in_place") is True
 
 
 class TestCompactedTurnsStaySearchable:
@@ -261,7 +265,7 @@ class TestCompactedTurnsStaySearchable:
     the active flag but are distinguished by the compacted flag."""
 
     def test_compacted_turns_found_by_default_search(self):
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmp:
             db = SessionDB(db_path=Path(tmp) / "t.db")
@@ -298,7 +302,7 @@ class TestCompactedTurnsStaySearchable:
     def test_rewound_turns_stay_hidden(self):
         """Rewind/undo (active=0, compacted=0) must NOT leak into default
         search — the distinction the compacted flag preserves."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmp:
             db = SessionDB(db_path=Path(tmp) / "t.db")

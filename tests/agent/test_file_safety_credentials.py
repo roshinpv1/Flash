@@ -1,13 +1,13 @@
-"""Tests for NYXO_HOME credential-file read blocking in file_safety.
+"""Tests for HERMES_HOME credential-file read blocking in file_safety.
 
-Regression for https://github.com/NousResearch/nyxo-agent/issues/17656 —
-``read_file`` was previously only sandboxed against ``NYXO_HOME`` itself,
+Regression for https://github.com/FlashOrg/flash-agent/issues/17656 —
+``read_file`` was previously only sandboxed against ``HERMES_HOME`` itself,
 which left ``auth.json`` and ``.anthropic_oauth.json`` (plaintext provider
 keys + OAuth tokens) readable by the agent. A prompt-injection reaching
 ``read_file`` could exfiltrate active credentials.
 
 These tests verify that ``get_read_block_error`` returns a denial message
-for the credential stores while leaving arbitrary ``NYXO_HOME`` files
+for the credential stores while leaving arbitrary ``HERMES_HOME`` files
 readable, and that the existing ``skills/.hub`` deny still applies.
 """
 
@@ -21,12 +21,12 @@ import pytest
 
 @pytest.fixture()
 def fake_home(tmp_path, monkeypatch):
-    """Point ``_nyxo_home_path()`` at a tmp dir for isolated checks."""
+    """Point ``_flash_home_path()`` at a tmp dir for isolated checks."""
     import agent.file_safety as fs
 
-    home = tmp_path / "nyxo_home"
+    home = tmp_path / "flash_home"
     home.mkdir()
-    monkeypatch.setattr(fs, "_nyxo_home_path", lambda: home)
+    monkeypatch.setattr(fs, "_flash_home_path", lambda: home)
     return home
 
 
@@ -76,8 +76,8 @@ def test_google_oauth_json_blocked(fake_home):
     assert "credential store" in err
 
 
-def test_arbitrary_nyxo_home_file_not_blocked(fake_home):
-    """Non-credential files inside NYXO_HOME stay readable."""
+def test_arbitrary_flash_home_file_not_blocked(fake_home):
+    """Non-credential files inside HERMES_HOME stay readable."""
     from agent.file_safety import get_read_block_error
 
     safe = _create(fake_home, "session_log.txt")
@@ -100,25 +100,25 @@ def test_skills_hub_block_still_applies(fake_home):
     hub_file = _create(fake_home, "skills/.hub/manifest.json")
     err = get_read_block_error(str(hub_file))
     assert err is not None
-    assert "internal Nyxo cache file" in err
+    assert "internal Hermes cache file" in err
 
 
 def test_path_traversal_resolves_to_blocked(fake_home, tmp_path):
-    """A path that traverses through a sibling dir back into NYXO_HOME's
+    """A path that traverses through a sibling dir back into HERMES_HOME's
     auth.json must still be caught — the check resolves through realpath."""
     from agent.file_safety import get_read_block_error
 
     _create(fake_home, "auth.json")
     sibling = tmp_path / "elsewhere"
     sibling.mkdir()
-    traversal = sibling / ".." / "nyxo_home" / "auth.json"
+    traversal = sibling / ".." / "flash_home" / "auth.json"
     err = get_read_block_error(str(traversal))
     assert err is not None
     assert "credential store" in err
 
 
 def test_symlink_to_auth_json_blocked(fake_home, tmp_path):
-    """A symlink pointing at NYXO_HOME/auth.json from outside the home
+    """A symlink pointing at HERMES_HOME/auth.json from outside the home
     must be blocked — readlink-resolution catches the indirection."""
     from agent.file_safety import get_read_block_error
 
@@ -137,7 +137,7 @@ def test_read_file_tool_blocks_relative_path_under_terminal_cwd(
     fake_home, tmp_path, monkeypatch
 ):
     """Bypass guard: a relative path like ``"auth.json"`` resolved by
-    ``read_file_tool`` against ``TERMINAL_CWD == NYXO_HOME`` must still
+    ``read_file_tool`` against ``TERMINAL_CWD == HERMES_HOME`` must still
     be blocked, even though ``get_read_block_error``'s own ``resolve()``
     is anchored at the (different) Python process cwd.
     """
@@ -146,7 +146,7 @@ def test_read_file_tool_blocks_relative_path_under_terminal_cwd(
     import tools.file_tools as ft
 
     _create(fake_home, "auth.json")
-    # Force the file_tools resolver to anchor relative paths at NYXO_HOME
+    # Force the file_tools resolver to anchor relative paths at HERMES_HOME
     # while the Python process cwd remains tmp_path (a different directory).
     monkeypatch.setenv("TERMINAL_CWD", str(fake_home))
     monkeypatch.chdir(tmp_path)
@@ -190,13 +190,105 @@ def test_read_file_tool_blocks_nested_google_oauth_path(
     assert "ACCESS_TOKEN_MARKER" not in json.dumps(out)
 
 
+def test_search_tool_blocks_direct_auth_json_path(fake_home, monkeypatch):
+    """Searching a credential file directly must not invoke the search backend."""
+    import json
+
+    import tools.file_tools as ft
+
+    auth = _create(fake_home, "auth.json")
+    auth.write_text("SEARCH_DIRECT_AUTH_SECRET", encoding="utf-8")
+
+    def fail_if_called(task_id="default"):
+        raise AssertionError("search backend should not run for blocked path")
+
+    monkeypatch.setattr(ft, "_get_file_ops", fail_if_called)
+
+    out = json.loads(
+        ft.search_tool(
+            pattern="SEARCH_DIRECT_AUTH_SECRET",
+            path=str(auth),
+            task_id="search-direct-auth-json",
+        )
+    )
+    raw = json.dumps(out)
+    assert "error" in out
+    assert "credential store" in out["error"]
+    assert "SEARCH_DIRECT_AUTH_SECRET" not in raw
+
+
+def test_search_tool_filters_credential_results(fake_home, tmp_path, monkeypatch):
+    """Directory searches omit credential and MCP-token result entries."""
+    import json
+
+    from tools.file_operations import SearchMatch, SearchResult
+    import tools.file_tools as ft
+
+    auth = _create(fake_home, "auth.json")
+    token = _create(fake_home, Path("mcp-tokens") / "provider.json")
+    safe = _create(fake_home, "notes.txt")
+
+    class FakeFileOps:
+        def search(self, **kwargs):
+            return SearchResult(
+                matches=[
+                    SearchMatch(
+                        path=str(auth),
+                        line_number=1,
+                        content="SEARCH_AUTH_SECRET",
+                    ),
+                    SearchMatch(
+                        path=str(token),
+                        line_number=1,
+                        content="SEARCH_MCP_SECRET",
+                    ),
+                    SearchMatch(
+                        path=str(safe),
+                        line_number=1,
+                        content="public note",
+                    ),
+                ],
+                files=[str(auth), str(token), str(safe)],
+                total_count=5,
+                truncated=True,
+            )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(ft, "_get_file_ops", lambda task_id="default": FakeFileOps())
+    monkeypatch.setattr(
+        ft, "_get_live_tracking_cwd", lambda task_id="default": None
+    )
+
+    search_response = ft.search_tool(
+        pattern="SEARCH",
+        path=str(fake_home),
+        task_id="search-filter-credentials",
+    )
+    out = json.loads(search_response.split("\n\n[Hint:", 1)[0])
+    raw = json.dumps(out)
+    returned_paths = {
+        match["path"] for match in out.get("matches", [])
+    } | set(out.get("files", []))
+
+    assert "SEARCH_AUTH_SECRET" not in raw
+    assert "SEARCH_MCP_SECRET" not in raw
+    assert str(auth) not in returned_paths
+    assert str(token) not in returned_paths
+    assert "public note" in raw
+    assert str(safe) in returned_paths
+    assert out["_omitted"].startswith("4 result(s) omitted")
+    assert out["total_count"] == 5
+    assert out["truncated"] is True
+    assert "[Hint: Results truncated." in search_response
+
+
 # ---------------------------------------------------------------------------
 # Widening: .env, webhook_subscriptions.json, mcp-tokens/
 # ---------------------------------------------------------------------------
 
 
 def test_dotenv_blocked(fake_home):
-    """.env in NYXO_HOME holds API keys — blocked."""
+    """.env in HERMES_HOME holds API keys — blocked."""
     from agent.file_safety import get_read_block_error
 
     env = _create(fake_home, ".env")
@@ -246,11 +338,11 @@ def test_mcp_tokens_dir_itself_blocked(fake_home):
     assert "MCP token" in err
 
 
-def test_identically_named_nyxo_files_outside_home_not_blocked(
+def test_identically_named_flash_files_outside_home_not_blocked(
     fake_home, tmp_path
 ):
-    """Nyxo-specific filenames (``auth.json``, ``mcp-tokens/``, ``google_oauth.json``)
-    outside NYXO_HOME must remain readable — the gate is per-location for
+    """Hermes-specific filenames (``auth.json``, ``mcp-tokens/``, ``google_oauth.json``)
+    outside HERMES_HOME must remain readable — the gate is per-location for
     those, not per-filename. ``.env`` is the exception: it's blocked anywhere
     on disk (see test_project_local_env_blocked) because the basename always
     means \"secret-bearing environment file\" regardless of directory."""
@@ -258,11 +350,11 @@ def test_identically_named_nyxo_files_outside_home_not_blocked(
 
     project = tmp_path / "myproject"
     project.mkdir()
-    # auth.json outside NYXO_HOME — readable (per-location gate).
+    # auth.json outside HERMES_HOME — readable (per-location gate).
     p = project / "auth.json"
     p.write_text("not secret here", encoding="utf-8")
     assert get_read_block_error(str(p)) is None, (
-        "auth.json outside NYXO_HOME should NOT be blocked"
+        "auth.json outside HERMES_HOME should NOT be blocked"
     )
 
     google_oauth = project / "auth" / "google_oauth.json"
@@ -296,16 +388,16 @@ def test_config_yaml_not_blocked(fake_home):
 
 
 def test_profile_mode_blocks_root_credentials(tmp_path, monkeypatch):
-    """Under a profile, NYXO_HOME = <root>/profiles/<name>, but
+    """Under a profile, HERMES_HOME = <root>/profiles/<name>, but
     <root>/auth.json must ALSO be blocked — credentials at root are
     inherited by every profile."""
     import agent.file_safety as fs
 
-    root = tmp_path / "nyxo"
+    root = tmp_path / "flash"
     profile = root / "profiles" / "coder"
     profile.mkdir(parents=True)
-    monkeypatch.setattr(fs, "_nyxo_home_path", lambda: profile)
-    monkeypatch.setattr(fs, "_nyxo_root_path", lambda: root)
+    monkeypatch.setattr(fs, "_flash_home_path", lambda: profile)
+    monkeypatch.setattr(fs, "_flash_root_path", lambda: root)
 
     from agent.file_safety import get_read_block_error
 

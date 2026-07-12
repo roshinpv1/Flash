@@ -1,22 +1,24 @@
 //! Update orchestration.
 //!
-//! Driven when the installer is launched as `Nyxo-Setup.exe --update` (see
+//! Driven when the installer is launched as `Hermes-Setup.exe --update` (see
 //! `AppMode` in lib.rs). The desktop app hands off to us — it exits, then we:
 //!
-//!   1. wait for the old Nyxo desktop process to fully exit (so both the
-//!      venv shim and packaged app.asar are free; otherwise `nyxo update`
+//!   1. wait for the old Hermes desktop process to fully exit (so both the
+//!      venv shim and packaged app.asar are free; otherwise `flash update`
 //!      or repair bootstrap can race locked files),
-//!   2. run `nyxo update --yes --gateway` (Python/repo update; this does NOT
-//!      rebuild apps/desktop by design — see cmd_update in nyxo_cli/main.py),
-//!   3. run `nyxo desktop --build-only` (the rebuild step update skips),
+//!   2. run `flash update --yes --gateway` (Python/repo update; this does NOT
+//!      rebuild apps/desktop by design — see cmd_update in flash_cli/main.py),
+//!   3. run `flash desktop --build-only` (the rebuild step update skips),
 //!   4. launch the freshly-built desktop (reuses bootstrap::launch logic).
 //!
 //! We reuse the `BootstrapEvent` channel + the existing progress UI by
-//! emitting a synthetic two-stage manifest ("update", "rebuild"). To the
-//! frontend an update looks like a short bootstrap.
+//! emitting a synthetic multi-stage manifest (handoff → update → rebuild, plus
+//! an install stage on macOS). To the frontend an update looks like a short
+//! bootstrap, broken into the real operations run_update performs so the user
+//! sees discrete steps (with the live log underneath) instead of one bar.
 //!
-//! Cross-platform note: `nyxo update` already handles macOS/Linux (git/pip).
-//! The only OS-specific bits here are the venv shim path (resolve_nyxo) and
+//! Cross-platform note: `flash update` already handles macOS/Linux (git/pip).
+//! The only OS-specific bits here are the venv shim path (resolve_flash) and
 //! the no-window creation flag — both already cfg-gated. Keep new logic
 //! OS-agnostic so the mac/linux port stays "fill in the paths".
 
@@ -34,13 +36,13 @@ use tokio::process::Command;
 
 use crate::events::{BootstrapEvent, LogStream, StageInfo, StageState};
 
-/// `nyxo update` exit code meaning "another nyxo process is holding the
+/// `flash update` exit code meaning "another flash process is holding the
 /// venv shim open / dirty precondition" — see _cmd_update_impl in
-/// nyxo_cli/main.py (sys.exit(2)). We surface a targeted message for this.
+/// flash_cli/main.py (sys.exit(2)). We surface a targeted message for this.
 const UPDATE_EXIT_CONCURRENT: i32 = 2;
 
 /// How long to wait for the old desktop process to release files under the
-/// install tree before giving up and letting `nyxo update`'s own guard decide.
+/// install tree before giving up and letting `flash update`'s own guard decide.
 const DESKTOP_EXIT_WAIT: Duration = Duration::from_secs(20);
 const DESKTOP_EXIT_POLL: Duration = Duration::from_millis(500);
 
@@ -70,17 +72,10 @@ pub async fn start_update(app: AppHandle) -> Result<(), String> {
         } else {
             None
         };
-        let mut stages = vec![
-            stage_info("update", "Updating Nyxo"),
-            stage_info("rebuild", "Rebuilding the desktop app"),
-        ];
-        if cfg!(target_os = "macos") && target_app.is_some() {
-            stages.push(stage_info("install", "Installing the updated app"));
-        }
         emit(
             &app,
             BootstrapEvent::Manifest {
-                stages,
+                stages: update_stages(target_app.is_some()),
                 protocol_version: None,
             },
         );
@@ -147,13 +142,13 @@ impl Drop for UpdateMarkerGuard {
 }
 
 async fn run_update(app: AppHandle) -> Result<()> {
-    let nyxo_home = crate::paths::nyxo_home();
-    let install_root = nyxo_home.join("nyxo-agent");
+    let flash_home = crate::paths::flash_home();
+    let install_root = flash_home.join("flash-agent");
 
     // Mutual exclusion (#50238): publish an "update in progress" marker for the
     // entire duration of this update. A desktop instance the user relaunches
     // mid-update consults this before spawning its own local backend — without
-    // it, that backend re-locks the venv shim, our `force_kill_other_nyxo`
+    // it, that backend re-locks the venv shim, our `force_kill_other_flash`
     // straggler-cleanup kills it, and the relaunch/kill cycle loops. The guard
     // removes the marker on every exit path (incl. early returns / panics).
     let _update_marker = UpdateMarkerGuard::acquire(crate::paths::update_in_progress_marker());
@@ -167,9 +162,9 @@ async fn run_update(app: AppHandle) -> Result<()> {
         None
     };
 
-    let nyxo = resolve_nyxo(&install_root).ok_or_else(|| {
+    let flash = resolve_flash(&install_root).ok_or_else(|| {
         let msg = format!(
-            "Could not find the nyxo CLI under {}. Is Nyxo installed? \
+            "Could not find the flash CLI under {}. Is Hermes installed? \
              Re-run the installer to repair the install.",
             install_root.display()
         );
@@ -183,36 +178,39 @@ async fn run_update(app: AppHandle) -> Result<()> {
         anyhow!(msg)
     })?;
 
-    // Synthetic manifest so the existing progress UI renders our two stages.
-    let mut stages = vec![
-        stage_info("update", "Updating Nyxo"),
-        stage_info("rebuild", "Rebuilding the desktop app"),
-    ];
-    if cfg!(target_os = "macos") && target_app.is_some() {
-        stages.push(stage_info("install", "Installing the updated app"));
-    }
-
+    // Synthetic manifest so the existing progress UI renders our stages.
     emit(
         &app,
         BootstrapEvent::Manifest {
-            stages,
+            stages: update_stages(target_app.is_some()),
             protocol_version: None,
         },
     );
 
-    // ---- pre-step: wait for the old desktop to die -----------------------
+    // ---- stage 1: wait for the old desktop to die ------------------------
     // The desktop exec'd us then called app.exit(), but process teardown is
-    // async on Windows. If it still holds the venv shim, `nyxo update`
+    // async on Windows. If it still holds the venv shim, `flash update`
     // aborts with exit 2. If it still holds the packaged app.asar,
     // install.ps1's repair/re-clone path cannot move/remove the install tree.
-    // Give both handles a bounded window to clear.
-    wait_for_install_locks_free(&install_root, &app, "update").await;
+    // Give both handles a bounded window to clear. Surfaced as its own stage
+    // (rather than a silent pre-step) so a slow close / force-kill reads as
+    // real progress instead of a frozen first bar.
+    let started = Instant::now();
+    emit_stage(&app, "handoff", StageState::Running, None, None);
+    wait_for_install_locks_free(&install_root, &app, "handoff").await;
+    emit_stage(
+        &app,
+        "handoff",
+        StageState::Succeeded,
+        Some(started.elapsed().as_millis() as u64),
+        None,
+    );
 
-    // ---- stage 1: nyxo update -----------------------------------------
-    // Pass --branch so `nyxo update` targets the branch this installer was
+    // ---- stage 2: flash update -----------------------------------------
+    // Pass --branch so `flash update` targets the branch this installer was
     // built/pinned against (BUILD_PIN_BRANCH), NOT its built-in default of
     // `main`. The install was a detached-HEAD checkout of a specific commit;
-    // without --branch, `nyxo update` switches the checkout to `main` (a
+    // without --branch, `flash update` switches the checkout to `main` (a
     // divergent branch that may not even have the desktop CLI command), then
     // reports "already up to date" against the wrong branch. The desktop
     // detected the update against this same branch, so we must update against
@@ -226,12 +224,20 @@ async fn run_update(app: AppHandle) -> Result<()> {
     let child_env = update_child_env(&install_root);
     let mut update_args: Vec<String> =
         vec!["update".into(), "--yes".into(), "--gateway".into()];
-    // --force skips `nyxo update`'s Windows running-exe guard (which would
+    // --force skips `flash update`'s Windows running-exe guard (which would
     // `sys.exit(2)` and dead-end the handoff). By contract the desktop has
     // already exited and waited for the install locks to clear before launching
     // us, and wait_for_install_locks_free below force-kills any straggler — so by the
-    // time `nyxo update` runs there is no legitimate nyxo.exe to protect,
-    // and the guard would only produce a false "Nyxo is still running" stop.
+    // time `flash update` runs there is no legitimate flash.exe to protect,
+    // and the guard would only produce a false "Hermes is still running" stop.
+    //
+    // NOTE: --force does NOT bypass the venv-python holder guard (that needs
+    // an explicit `--force-venv`, which we deliberately do not pass). Our lock
+    // probe only checks the flash.exe shim and app.asar, so an external venv
+    // python holding a native .pyd (a user terminal, an unmanaged gateway)
+    // could still be alive here — mutating the venv under it would strand the
+    // install half-updated. If that guard fires, it exits 2 and the match arm
+    // below surfaces the correct "close all Hermes windows" message.
     update_args.push("--force".into());
     update_args.push("--branch".into());
     update_args.push(update_branch);
@@ -240,7 +246,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     let started = Instant::now();
     let mut update = run_streamed(
         &app,
-        &nyxo,
+        &flash,
         &update_args,
         &install_root,
         &child_env,
@@ -248,7 +254,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     )
     .await?;
 
-    // Retry-once for the update-boundary crash. `nyxo update` lazily imports
+    // Retry-once for the update-boundary crash. `flash update` lazily imports
     // the FRESHLY PULLED modules, but the dependency-install step still runs the
     // already-in-memory pre-pull code for one invocation. A release that changed
     // an updater-path contract across that boundary (e.g. #39780's `_UvResult`,
@@ -256,10 +262,10 @@ async fn run_update(app: AppHandle) -> Result<()> {
     // `list2cmdline` with `TypeError: sequence item 1: expected str instance,
     // bool found`, fixed in #39820) therefore kills the FIRST update on the
     // parked population — even though the fix is already on disk by then. A
-    // second `nyxo update` runs clean because the now-current module is loaded
+    // second `flash update` runs clean because the now-current module is loaded
     // from the start. Rather than make the parked user click Update twice (and
     // stare at a scary crash first), retry once automatically. Skip the retry
-    // for the concurrent-instance guard (exit 2) — that's a "close Nyxo" state
+    // for the concurrent-instance guard (exit 2) — that's a "close Hermes" state
     // a retry can't fix.
     if !matches!(update.exit_code, Some(0) | Some(UPDATE_EXIT_CONCURRENT)) {
         emit_log(
@@ -271,7 +277,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         );
         update = run_streamed(
             &app,
-            &nyxo,
+            &flash,
             &update_args,
             &install_root,
             &child_env,
@@ -286,7 +292,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             emit_stage(&app, "update", StageState::Succeeded, Some(update_ms), None);
         }
         Some(code) if code == UPDATE_EXIT_CONCURRENT => {
-            let msg = "Nyxo is still running. Close all Nyxo windows and try \
+            let msg = "Hermes is still running. Close all Hermes windows and try \
                        the update again."
                 .to_string();
             emit_stage(
@@ -307,9 +313,9 @@ async fn run_update(app: AppHandle) -> Result<()> {
         }
         other => {
             let msg = format!(
-                "nyxo update failed (exit {:?}). See {} for details.",
+                "flash update failed (exit {:?}). See {} for details.",
                 other,
-                crate::paths::nyxo_home()
+                crate::paths::flash_home()
                     .join("logs")
                     .join("update.log")
                     .display()
@@ -332,15 +338,15 @@ async fn run_update(app: AppHandle) -> Result<()> {
         }
     }
 
-    // ---- stage 2: nyxo desktop --build-only ----------------------------
-    // `nyxo update` deliberately does NOT build apps/desktop (it installs
+    // ---- stage 3: flash desktop --build-only ----------------------------
+    // `flash update` deliberately does NOT build apps/desktop (it installs
     // repo-root deps with --workspaces=false). This is the rebuild it skips.
     emit_stage(&app, "rebuild", StageState::Running, None, None);
     let started = Instant::now();
     let rebuild_args: Vec<String> = vec!["desktop".into(), "--build-only".into()];
     let mut rebuild = run_streamed(
         &app,
-        &nyxo,
+        &flash,
         &rebuild_args,
         &install_root,
         &child_env,
@@ -354,7 +360,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     // (the content-hash stamp makes it a near-no-op when the first actually
     // succeeded). Without this the updater bails here and never reaches the
     // relaunch below — the app updates but doesn't restart. Matches the
-    // retry-once `nyxo update` already does above, and `nyxo update`'s own
+    // retry-once `flash update` already does above, and `flash update`'s own
     // desktop rebuild in cmd_update.
     if rebuild_needs_retry(rebuild.exit_code) {
         emit_log(
@@ -366,7 +372,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         );
         rebuild = run_streamed(
             &app,
-            &nyxo,
+            &flash,
             &rebuild_args,
             &install_root,
             &child_env,
@@ -379,7 +385,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     if rebuild.exit_code != Some(0) {
         let msg = format!(
             "Rebuilding the desktop app failed (exit {:?}). The update was \
-             applied but the app could not be rebuilt; run `nyxo desktop` \
+             applied but the app could not be rebuilt; run `flash desktop` \
              from a terminal to see the error.",
             rebuild.exit_code
         );
@@ -453,11 +459,11 @@ async fn run_update(app: AppHandle) -> Result<()> {
                 &app,
                 None,
                 LogStream::Stderr,
-                &format!("[update] could not auto-launch desktop: {err}. Launch Nyxo manually."),
+                &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
             );
         }
     } else if let Err(err) =
-        crate::bootstrap::launch_nyxo_desktop(app.clone(), install_root.to_string_lossy().into_owned()).await
+        crate::bootstrap::launch_flash_desktop(app.clone(), install_root.to_string_lossy().into_owned()).await
     {
         // Launch failed: don't hard-fail the update (it succeeded); surface a
         // log line so the success screen can still tell the user to launch
@@ -466,7 +472,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             &app,
             None,
             LogStream::Stdout,
-            &format!("[update] could not auto-launch desktop: {err}. Launch Nyxo manually."),
+            &format!("[update] could not auto-launch desktop: {err}. Launch Hermes manually."),
         );
     }
 
@@ -480,7 +486,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
     let lock_targets = install_lock_probe_paths(install_root);
     let deadline = Instant::now() + DESKTOP_EXIT_WAIT;
 
-    emit_log(app, Some(stage), LogStream::Stdout, "[handoff] waiting for Nyxo to exit…");
+    emit_log(app, Some(stage), LogStream::Stdout, "[handoff] waiting for Hermes to exit…");
 
     loop {
         let locked = locked_paths(&lock_targets);
@@ -488,24 +494,24 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
             return;
         }
         if Instant::now() >= deadline {
-            // Last resort: a backend nyxo.exe (or the desktop Nyxo.exe
+            // Last resort: a backend flash.exe (or the desktop Hermes.exe
             // itself) is still holding one of the update-sensitive files. The
             // desktop should have reaped its tree before handing off, but
             // SIGTERM races / detached grandchildren / AV handles can leave a
             // straggler. Rather than "proceed anyway" straight into uv's
             // "Access is denied" or install.ps1's locked app.asar failure,
-            // force-kill every Nyxo.exe except ourselves, then give the OS a
+            // force-kill every Hermes.exe except ourselves, then give the OS a
             // beat to unload the image.
             emit_log(
                 app,
                 Some(stage),
                 LogStream::Stdout,
                 &format!(
-                    "[handoff] Nyxo still holding install files ({}); force-killing stragglers…",
+                    "[handoff] Hermes still holding install files ({}); force-killing stragglers…",
                     format_locked_paths(&locked)
                 ),
             );
-            force_kill_other_nyxo();
+            force_kill_other_flash();
             tokio::time::sleep(Duration::from_millis(800)).await;
             let locked_after_kill = locked_paths(&lock_targets);
             if locked_after_kill.is_empty() {
@@ -533,7 +539,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
 }
 
 fn install_lock_probe_paths(install_root: &Path) -> Vec<PathBuf> {
-    let mut paths = vec![venv_nyxo(install_root)];
+    let mut paths = vec![venv_flash(install_root)];
     paths.extend(desktop_app_payload_paths(install_root));
     paths
 }
@@ -547,8 +553,8 @@ fn desktop_app_payload_paths(install_root: &Path) -> Vec<PathBuf> {
         ]
     } else if cfg!(target_os = "macos") {
         vec![
-            release.join("mac").join("Nyxo.app").join("Contents").join("Resources").join("app.asar"),
-            release.join("mac-arm64").join("Nyxo.app").join("Contents").join("Resources").join("app.asar"),
+            release.join("mac").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
+            release.join("mac-arm64").join("Hermes.app").join("Contents").join("Resources").join("app.asar"),
         ]
     } else {
         vec![release.join("linux-unpacked").join("resources").join("app.asar")]
@@ -563,21 +569,21 @@ fn format_locked_paths(paths: &[PathBuf]) -> String {
     paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ")
 }
 
-/// Force-kill any `nyxo.exe` other than this process. Windows-only; a no-op
+/// Force-kill any `flash.exe` other than this process. Windows-only; a no-op
 /// elsewhere (POSIX has no mandatory-lock contention). We can't selectively
 /// target "the backend" by PID here — the desktop already exited and we never
-/// knew its children — so we kill the whole `nyxo.exe` image tree via
+/// knew its children — so we kill the whole `flash.exe` image tree via
 /// taskkill, excluding our own PID.
 ///
 /// Safe w.r.t. our own update child: this runs inside the install-lock wait,
-/// which completes BEFORE we spawn `venv\Scripts\nyxo.exe update`. And a
+/// which completes BEFORE we spawn `venv\Scripts\flash.exe update`. And a
 /// desktop the user relaunches mid-update will NOT have spawned a backend —
-/// `startNyxo()` in the desktop gates local-backend startup on our
+/// `startHermes()` in the desktop gates local-backend startup on our
 /// update-in-progress marker and parks until we finish (#50238). So the only
-/// nyxo.exe images here are stragglers from the old desktop — exactly what
+/// flash.exe images here are stragglers from the old desktop — exactly what
 /// we want gone. (`/FI PID ne <self>` also spares this Tauri process, though it
-/// isn't named nyxo.exe.)
-fn force_kill_other_nyxo() {
+/// isn't named flash.exe.)
+fn force_kill_other_flash() {
     if !cfg!(target_os = "windows") {
         return;
     }
@@ -590,7 +596,7 @@ fn force_kill_other_nyxo() {
                 "/F",
                 "/T",
                 "/IM",
-                "nyxo.exe",
+                "flash.exe",
                 "/FI",
                 &format!("PID ne {my_pid}"),
             ])
@@ -622,7 +628,7 @@ fn rebuild_needs_retry(exit_code: Option<i32>) -> bool {
     exit_code != Some(0)
 }
 
-/// Spawn `nyxo <args>` from `cwd`, stream stdout/stderr as Log events on the
+/// Spawn `flash <args>` from `cwd`, stream stdout/stderr as Log events on the
 /// bootstrap channel, and return the exit code. Mirrors powershell::run_script
 /// but for an arbitrary command (no install.ps1 -File wrapping).
 async fn run_streamed(
@@ -691,24 +697,24 @@ struct CmdResult {
     exit_code: Option<i32>,
 }
 
-/// Path to the venv nyxo shim under an install root, regardless of existence.
-fn venv_nyxo(install_root: &Path) -> PathBuf {
+/// Path to the venv flash shim under an install root, regardless of existence.
+fn venv_flash(install_root: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
-        install_root.join("venv").join("Scripts").join("nyxo.exe")
+        install_root.join("venv").join("Scripts").join("flash.exe")
     } else {
-        install_root.join("venv").join("bin").join("nyxo")
+        install_root.join("venv").join("bin").join("flash")
     }
 }
 
-/// Resolve the nyxo CLI to drive. Prefer the venv shim in the install we
-/// just updated; fall back to `nyxo` on PATH.
-fn resolve_nyxo(install_root: &Path) -> Option<PathBuf> {
-    let shim = venv_nyxo(install_root);
+/// Resolve the flash CLI to drive. Prefer the venv shim in the install we
+/// just updated; fall back to `flash` on PATH.
+fn resolve_flash(install_root: &Path) -> Option<PathBuf> {
+    let shim = venv_flash(install_root);
     if shim.exists() {
         return Some(shim);
     }
     // PATH fallback. which-style probe via env, kept dependency-free.
-    let exe = if cfg!(target_os = "windows") { "nyxo.exe" } else { "nyxo" };
+    let exe = if cfg!(target_os = "windows") { "flash.exe" } else { "flash" };
     if let Ok(path) = std::env::var("PATH") {
         let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
         for dir in path.split(sep) {
@@ -722,13 +728,13 @@ fn resolve_nyxo(install_root: &Path) -> Option<PathBuf> {
 }
 
 fn update_child_env(install_root: &Path) -> Vec<(String, OsString)> {
-    let nyxo_home = crate::paths::nyxo_home();
+    let flash_home = crate::paths::flash_home();
     let mut envs = vec![(
-        "NYXO_HOME".to_string(),
-        nyxo_home.as_os_str().to_os_string(),
+        "HERMES_HOME".to_string(),
+        flash_home.as_os_str().to_os_string(),
     )];
     if let Some(path) = path_with_prepended_entries(&[
-        nyxo_home.join("node").join("bin"),
+        flash_home.join("node").join("bin"),
         venv_bin_dir(install_root),
     ]) {
         envs.push(("PATH".to_string(), path));
@@ -802,9 +808,9 @@ async fn install_macos_app_update(
         ));
     }
 
-    let rebuilt_app = crate::bootstrap::resolve_nyxo_desktop_app(install_root).ok_or_else(|| {
+    let rebuilt_app = crate::bootstrap::resolve_flash_desktop_app(install_root).ok_or_else(|| {
         anyhow!(
-            "desktop rebuild succeeded but no Nyxo.app was found under {}",
+            "desktop rebuild succeeded but no Hermes.app was found under {}",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
@@ -840,15 +846,15 @@ async fn install_macos_app_update(
     if let Some(parent) = target_app.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    let tmp = PathBuf::from(format!("{}.nyxo-update-new", target_app.display()));
-    let old = PathBuf::from(format!("{}.nyxo-update-old", target_app.display()));
+    let tmp = PathBuf::from(format!("{}.flash-update-new", target_app.display()));
+    let old = PathBuf::from(format!("{}.flash-update-old", target_app.display()));
     remove_dir_if_exists(&tmp).await;
     remove_dir_if_exists(&old).await;
 
     let ditto = Command::new("/usr/bin/ditto")
         .arg(&rebuilt_app)
         .arg(&tmp)
-        .current_dir(crate::paths::nyxo_home())
+        .current_dir(crate::paths::flash_home())
         .status()
         .await
         .map_err(|e| anyhow!("running ditto: {e}"))?;
@@ -868,7 +874,7 @@ async fn install_macos_app_update(
         .arg("-dr")
         .arg("com.apple.quarantine")
         .arg(target_app)
-        .current_dir(crate::paths::nyxo_home())
+        .current_dir(crate::paths::flash_home())
         .status()
         .await;
 
@@ -953,6 +959,23 @@ fn stage_info(name: &str, title: &str) -> StageInfo {
     }
 }
 
+/// The synthetic update manifest. Mirrors the real operations `run_update`
+/// performs so the progress UI shows them as discrete steps (with the live log
+/// underneath) instead of one monolithic bar. `include_install` adds the macOS
+/// app-swap stage. Both the happy path and the re-entrancy guard build the
+/// manifest here so the two can never drift apart.
+fn update_stages(include_install: bool) -> Vec<StageInfo> {
+    let mut stages = vec![
+        stage_info("handoff", "Preparing to update"),
+        stage_info("update", "Downloading the latest version"),
+        stage_info("rebuild", "Rebuilding the desktop app"),
+    ];
+    if include_install {
+        stages.push(stage_info("install", "Installing the update"));
+    }
+    stages
+}
+
 // option_env! only accepts string literals, so the build-time pins are read
 // by their literal names here. Mirrors bootstrap.rs's helper of the same name
 // (kept local rather than shared because option_env! can't be parameterized).
@@ -1011,9 +1034,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn venv_nyxo_is_under_install_root() {
-        let root = Path::new("/x/nyxo-agent");
-        let shim = venv_nyxo(root);
+    fn venv_flash_is_under_install_root() {
+        let root = Path::new("/x/flash-agent");
+        let shim = venv_flash(root);
         assert!(shim.starts_with(root));
         assert!(shim.to_string_lossy().contains("venv"));
     }
@@ -1025,11 +1048,11 @@ mod tests {
 
     #[test]
     fn lock_probe_paths_include_desktop_app_payload() {
-        let root = Path::new("/x/nyxo-agent");
+        let root = Path::new("/x/flash-agent");
         let probes = install_lock_probe_paths(root);
 
         assert!(
-            probes.iter().any(|p| p == &venv_nyxo(root)),
+            probes.iter().any(|p| p == &venv_flash(root)),
             "venv shim remains part of the update lock probe"
         );
         assert!(
@@ -1040,7 +1063,7 @@ mod tests {
 
     #[test]
     fn locked_paths_ignores_missing_payloads() {
-        let root = Path::new("/nonexistent/nyxo-agent");
+        let root = Path::new("/nonexistent/flash-agent");
         let probes = install_lock_probe_paths(root);
 
         assert!(locked_paths(&probes).is_empty());
@@ -1050,7 +1073,7 @@ mod tests {
     fn update_marker_guard_writes_then_removes_on_drop() {
         let dir = unique_tmp_dir("marker-guard");
         std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join(".nyxo-update-in-progress");
+        let marker = dir.join(".flash-update-in-progress");
 
         {
             let _g = UpdateMarkerGuard::acquire(marker.clone());
@@ -1076,7 +1099,7 @@ mod tests {
     fn update_marker_guard_drop_is_quiet_when_already_gone() {
         let dir = unique_tmp_dir("marker-guard-gone");
         std::fs::create_dir_all(&dir).unwrap();
-        let marker = dir.join(".nyxo-update-in-progress");
+        let marker = dir.join(".flash-update-in-progress");
 
         let guard = UpdateMarkerGuard::acquire(marker.clone());
         // Simulate an external cleanup (e.g. the desktop pruned a marker it
@@ -1102,6 +1125,36 @@ mod tests {
     }
 
     #[test]
+    fn update_manifest_leads_with_handoff_and_gates_install() {
+        let base = update_stages(false);
+        assert_eq!(
+            base.first().map(|s| s.name.as_str()),
+            Some("handoff"),
+            "the lock-wait must surface as the first visible step"
+        );
+        assert!(
+            base.iter().any(|s| s.name == "update") && base.iter().any(|s| s.name == "rebuild"),
+            "update + rebuild remain distinct stages"
+        );
+        assert!(
+            base.iter().all(|s| s.name != "install"),
+            "no app-swap stage unless an install target was passed"
+        );
+
+        let with_install = update_stages(true);
+        assert_eq!(
+            with_install.last().map(|s| s.name.as_str()),
+            Some("install"),
+            "the macOS app-swap is the final stage when present"
+        );
+        assert_eq!(
+            with_install.len(),
+            base.len() + 1,
+            "include_install adds exactly one stage"
+        );
+    }
+
+    #[test]
     fn rebuild_retries_only_on_failure() {
         assert!(!rebuild_needs_retry(Some(0)), "a clean rebuild must not retry");
         assert!(rebuild_needs_retry(Some(1)), "a failed rebuild retries once");
@@ -1114,8 +1167,8 @@ mod tests {
     #[test]
     fn parses_only_app_targets() {
         assert_eq!(
-            target_app_from_args(["--update", "--target-app", "/Applications/Nyxo.app"]),
-            Some(PathBuf::from("/Applications/Nyxo.app"))
+            target_app_from_args(["--update", "--target-app", "/Applications/Hermes.app"]),
+            Some(PathBuf::from("/Applications/Hermes.app"))
         );
         assert_eq!(target_app_from_args(["--target-app", "/tmp/not-an-app"]), None);
     }
@@ -1123,7 +1176,7 @@ mod tests {
     // Helpers for the swap tests: make a throwaway dir tree we can rename.
     fn unique_tmp_dir(tag: &str) -> PathBuf {
         let base = std::env::temp_dir().join(format!(
-            "nyxo-swap-test-{tag}-{}-{}",
+            "flash-swap-test-{tag}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
@@ -1142,9 +1195,9 @@ mod tests {
     #[tokio::test]
     async fn swap_installs_new_bundle_and_cleans_up() {
         let base = unique_tmp_dir("ok");
-        let target = base.join("Nyxo.app");
-        let tmp = base.join("Nyxo.app.nyxo-update-new");
-        let old = base.join("Nyxo.app.nyxo-update-old");
+        let target = base.join("Hermes.app");
+        let tmp = base.join("Hermes.app.flash-update-new");
+        let old = base.join("Hermes.app.flash-update-old");
         write_marker(&target, "OLD");
         write_marker(&tmp, "NEW");
 
@@ -1172,9 +1225,9 @@ mod tests {
         //  - `old` is a NON-EMPTY dir  -> rename(target, old) fails
         //  - `tmp` does not exist       -> rename(tmp, target) fails
         let base = unique_tmp_dir("fail");
-        let target = base.join("Nyxo.app");
-        let tmp = base.join("Nyxo.app.nyxo-update-new"); // intentionally absent
-        let old = base.join("Nyxo.app.nyxo-update-old");
+        let target = base.join("Hermes.app");
+        let tmp = base.join("Hermes.app.flash-update-new"); // intentionally absent
+        let old = base.join("Hermes.app.flash-update-old");
         write_marker(&target, "OLD");
         write_marker(&old, "OCCUPIED"); // non-empty => rename(target,old) fails
 
@@ -1195,9 +1248,9 @@ mod tests {
         // Move-aside succeeds but installing the staged bundle fails (tmp
         // absent). The original must be rolled back from `old` to `target`.
         let base = unique_tmp_dir("rollback");
-        let target = base.join("Nyxo.app");
-        let tmp = base.join("Nyxo.app.nyxo-update-new"); // absent
-        let old = base.join("Nyxo.app.nyxo-update-old");
+        let target = base.join("Hermes.app");
+        let tmp = base.join("Hermes.app.flash-update-new"); // absent
+        let old = base.join("Hermes.app.flash-update-old");
         write_marker(&target, "OLD");
 
         let result = swap_in_new_bundle(&tmp, &target, &old).await;

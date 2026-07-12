@@ -4,35 +4,35 @@
 # Differences from docker-compose.yml:
 #   - Removes `network_mode: host` (not supported on Docker Desktop for Windows)
 #   - Uses explicit port mappings instead
-#   - Uses Windows-style volume path for ~/.nyxo
+#   - Uses Windows-style volume path for ~/.hermes
 #
 # Usage:
 #   docker compose -f docker-compose.windows.yml up -d
 #
 services:
   gateway:
-    image: nousresearch/nyxo-agent:latest
-    container_name: nyxo
+    image: flashorg/hermes-agent:latest
+    container_name: hermes
     restart: unless-stopped
     volumes:
-      - ${USERPROFILE}/.nyxo:/opt/data
+      - ${USERPROFILE}/.hermes:/opt/data
     environment:
-      - NYXO_UID=10000
-      - NYXO_GID=10000
+      - HERMES_UID=10000
+      - HERMES_GID=10000
     command: ["gateway", "run"]
 
   dashboard:
-    image: nousresearch/nyxo-agent:latest
-    container_name: nyxo-dashboard
+    image: flashorg/hermes-agent:latest
+    container_name: hermes-dashboard
     restart: unless-stopped
     depends_on:
       - gateway
     volumes:
-      - ${USERPROFILE}/.nyxo:/opt/data
+      - ${USERPROFILE}/.hermes:/opt/data
     environment:
-      - NYXO_UID=10000
-      - NYXO_GID=10000
-      - NYXO_DASHBOARD_HOST=0.0.0.0
+      - HERMES_UID=10000
+      - HERMES_GID=10000
+      - HERMES_DASHBOARD_HOST=0.0.0.0
     ports:
       - "127.0.0.1:9119:9119"
     command: ["dashboard", "--host", "0.0.0.0", "--port", "9119", "--no-open", "--insecure"]

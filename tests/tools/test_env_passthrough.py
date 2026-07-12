@@ -62,7 +62,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": ["MY_CUSTOM_KEY", "ANOTHER_TOKEN"]}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _ep_mod._config_passthrough = None
 
         assert is_env_passthrough("MY_CUSTOM_KEY")
@@ -73,7 +73,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": []}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _ep_mod._config_passthrough = None
 
         assert not is_env_passthrough("ANYTHING")
@@ -82,13 +82,13 @@ class TestConfigPassthrough:
         config = {"terminal": {"backend": "local"}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _ep_mod._config_passthrough = None
 
         assert not is_env_passthrough("ANYTHING")
 
     def test_no_config_file(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _ep_mod._config_passthrough = None
 
         assert not is_env_passthrough("ANYTHING")
@@ -97,7 +97,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": ["CONFIG_KEY"]}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _ep_mod._config_passthrough = None
 
         register_env_passthrough(["SKILL_KEY"])
@@ -163,10 +163,10 @@ class TestTerminalIntegration:
     """Verify that the passthrough is checked in terminal's env sanitizers."""
 
     def test_blocklisted_var_blocked_by_default(self):
-        from tools.environments.local import _sanitize_subprocess_env, _NYXO_PROVIDER_ENV_BLOCKLIST
+        from tools.environments.local import _sanitize_subprocess_env, _HERMES_PROVIDER_ENV_BLOCKLIST
 
         # Pick a var we know is in the blocklist
-        blocked_var = next(iter(_NYXO_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
         env = {blocked_var: "secret_value", "PATH": "/usr/bin"}
         result = _sanitize_subprocess_env(env)
         assert blocked_var not in result
@@ -174,15 +174,15 @@ class TestTerminalIntegration:
 
     def test_passthrough_cannot_override_provider_blocklist(self):
         """GHSA-rhgp-j443-p4rf: register_env_passthrough must NOT accept
-        Nyxo provider credentials — that was the bypass where a skill
+        Hermes provider credentials — that was the bypass where a skill
         could declare ANTHROPIC_TOKEN / OPENAI_API_KEY as passthrough and
         defeat the execute_code sandbox scrubbing."""
         from tools.environments.local import (
             _sanitize_subprocess_env,
-            _NYXO_PROVIDER_ENV_BLOCKLIST,
+            _HERMES_PROVIDER_ENV_BLOCKLIST,
         )
 
-        blocked_var = next(iter(_NYXO_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
         # Attempt to register — must be silently refused (logged warning).
         register_env_passthrough([blocked_var])
 
@@ -195,15 +195,49 @@ class TestTerminalIntegration:
         assert blocked_var not in result
         assert "PATH" in result
 
+    def test_passthrough_cannot_override_internal_dynamic_secret(self):
+        """A skill must NOT be able to register dynamically-named Hermes
+        secrets (AUXILIARY_*_API_KEY / _BASE_URL, GATEWAY_RELAY_* auth) as
+        passthrough — they aren't in the static blocklist, so this is the
+        defense-in-depth layer that keeps env_passthrough consistent with the
+        unconditional strip in the sanitizers."""
+        from tools.environments.local import _sanitize_subprocess_env
+
+        for var in (
+            "AUXILIARY_VISION_API_KEY",
+            "AUXILIARY_VISION_BASE_URL",
+            "GATEWAY_RELAY_SECRET",
+            "GATEWAY_RELAY_DELIVERY_KEY",
+        ):
+            register_env_passthrough([var])
+            assert not is_env_passthrough(var), (
+                f"{var} should be refused passthrough registration"
+            )
+            result = _sanitize_subprocess_env({var: "secret", "PATH": "/usr/bin"})
+            assert var not in result
+            assert "PATH" in result
+
+    def test_passthrough_allows_auxiliary_non_secret_routing(self):
+        """AUXILIARY_*_PROVIDER / _MODEL and GATEWAY_RELAY routing hints are not
+        secrets, so a skill may still register them (they're not protected)."""
+        register_env_passthrough([
+            "AUXILIARY_VISION_PROVIDER",
+            "AUXILIARY_VISION_MODEL",
+            "GATEWAY_RELAY_URL",
+        ])
+        assert is_env_passthrough("AUXILIARY_VISION_PROVIDER")
+        assert is_env_passthrough("AUXILIARY_VISION_MODEL")
+        assert is_env_passthrough("GATEWAY_RELAY_URL")
+
     def test_make_run_env_blocklist_override_rejected(self):
         """_make_run_env must NOT expose a blocklisted var to subprocess env
         even after a skill attempts to register it via passthrough."""
         from tools.environments.local import (
             _make_run_env,
-            _NYXO_PROVIDER_ENV_BLOCKLIST,
+            _HERMES_PROVIDER_ENV_BLOCKLIST,
         )
 
-        blocked_var = next(iter(_NYXO_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
         os.environ[blocked_var] = "secret_value"
         try:
             # Without passthrough — blocked
@@ -217,9 +251,9 @@ class TestTerminalIntegration:
         finally:
             os.environ.pop(blocked_var, None)
 
-    def test_non_nyxo_api_key_still_registerable(self):
+    def test_non_hermes_api_key_still_registerable(self):
         """Third-party API keys (TENOR_API_KEY, NOTION_TOKEN, etc.) are NOT
-        Nyxo provider credentials and must still pass through — skills
+        Hermes provider credentials and must still pass through — skills
         that legitimately wrap third-party APIs must keep working."""
         # TENOR_API_KEY is a real example — used by the gif-search skill
         register_env_passthrough(["TENOR_API_KEY"])
@@ -228,3 +262,52 @@ class TestTerminalIntegration:
         # Arbitrary skill-specific var
         register_env_passthrough(["MY_SKILL_CUSTOM_CONFIG"])
         assert is_env_passthrough("MY_SKILL_CUSTOM_CONFIG")
+
+    def test_provider_blocklist_import_failure_fails_closed(self, monkeypatch):
+        """If the dynamic provider blocklist can't be imported, provider
+        credentials must be treated as protected and refused passthrough —
+        otherwise a skill could tunnel a Hermes credential into the
+        execute_code child (regression for #37950 / GHSA-rhgp-j443-p4rf).
+
+        Verifies the full path: _is_hermes_provider_credential returns True,
+        register_env_passthrough refuses the var, and _scrub_child_env keeps
+        it out of the child env. A non-Hermes key is also rejected here (the
+        fallback is conservative: when we can't tell, we fail closed), which
+        is the safe direction.
+        """
+        import builtins
+
+        from tools.code_execution_tool import _scrub_child_env
+
+        real_import = builtins.__import__
+
+        def fail_local_import(name, *args, **kwargs):
+            if name == "tools.environments.local":
+                raise ImportError("synthetic blocklist import failure")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fail_local_import)
+
+        # Every name is now treated as a protected provider credential.
+        assert _ep_mod._is_hermes_provider_credential("OPENAI_API_KEY")
+        assert _ep_mod._is_hermes_provider_credential("ANTHROPIC_API_KEY")
+        assert _ep_mod._is_hermes_provider_credential("GH_TOKEN")
+
+        # Registration is refused while the blocklist is unavailable.
+        register_env_passthrough(["OPENAI_API_KEY", "ANTHROPIC_API_KEY"])
+        assert not is_env_passthrough("OPENAI_API_KEY")
+        assert not is_env_passthrough("ANTHROPIC_API_KEY")
+
+        # And the credential never reaches the execute_code child.
+        child_env = _scrub_child_env(
+            {
+                "OPENAI_API_KEY": "synthetic-secret",
+                "ANTHROPIC_API_KEY": "synthetic-secret",
+                "PATH": "/usr/bin",
+            },
+            is_passthrough=is_env_passthrough,
+            is_windows=False,
+        )
+        assert "OPENAI_API_KEY" not in child_env
+        assert "ANTHROPIC_API_KEY" not in child_env
+        assert child_env["PATH"] == "/usr/bin"

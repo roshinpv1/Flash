@@ -76,7 +76,7 @@ class TestSecretCaptureGuidance:
     def test_gateway_secret_capture_message_points_to_local_setup(self):
         message = GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
         assert "local cli" in message.lower()
-        assert "~/.nyxo/.env" in message
+        assert "~/.flash/.env" in message
 
 
 class TestSafeUrlForLog:
@@ -544,7 +544,7 @@ class TestMediaInsideSerializedJson:
     def test_media_in_embedded_serialized_reply_not_extracted(self):
         """A serialized tool result that embeds a prior reply's MEDIA: tag."""
         content = (
-            '{"content":"previous reply MEDIA:/Users/ex/.nyxo/media/'
+            '{"content":"previous reply MEDIA:/Users/ex/.flash/media/'
             'generated/stale.png and more text"}'
         )
         media, _ = BasePlatformAdapter.extract_media(content)
@@ -649,6 +649,69 @@ class TestMediaExtensionAllowlistParity:
         assert "Here is your report:" in stripped
 
 
+class TestExtensionlessMediaDelivery:
+    """Regression: MEDIA: tags for extension-less files (Caddyfile, Makefile)."""
+
+    def _patch_allow_root(self, monkeypatch, root):
+        monkeypatch.setattr(
+            "gateway.platforms.base.MEDIA_DELIVERY_SAFE_ROOTS",
+            (str(root),),
+        )
+        monkeypatch.delenv("HERMES_MEDIA_DELIVERY_STRICT", raising=False)
+
+    def test_extensionless_media_extracted_when_file_validates(self, tmp_path, monkeypatch):
+        root = tmp_path / "output"
+        root.mkdir()
+        caddy = root / "Caddyfile"
+        caddy.write_text("localhost {}", encoding="utf-8")
+        self._patch_allow_root(monkeypatch, root)
+
+        content = f"Here is your config:\nMEDIA:{caddy}\nDone."
+        media, cleaned = BasePlatformAdapter.extract_media(content)
+        assert len(media) == 1
+        assert media[0][0] == str(caddy.resolve())
+        assert "MEDIA:" not in cleaned
+        assert "Done." in cleaned
+
+    def test_extensionless_media_left_visible_when_not_on_disk(self, tmp_path, monkeypatch):
+        root = tmp_path / "output"
+        root.mkdir()
+        self._patch_allow_root(monkeypatch, root)
+
+        content = "MEDIA:/nonexistent/Caddyfile"
+        media, cleaned = BasePlatformAdapter.extract_media(content)
+        assert media == []
+        assert "MEDIA:/nonexistent/Caddyfile" in cleaned
+
+    def test_strip_media_directives_for_display_strips_validated_extensionless(
+        self, tmp_path, monkeypatch,
+    ):
+        root = tmp_path / "output"
+        root.mkdir()
+        caddy = root / "Caddyfile"
+        caddy.write_text("x", encoding="utf-8")
+        self._patch_allow_root(monkeypatch, root)
+
+        text = f"MEDIA:{caddy}"
+        stripped = BasePlatformAdapter.strip_media_directives_for_display(text)
+        assert "MEDIA:" not in stripped
+
+    def test_as_document_directive_stripped_without_media_tag(self):
+        """[[as_document]] must be stripped even when no MEDIA: tag is present.
+
+        The display/strip guards short-circuit on text containing none of the
+        delivery directives; [[as_document]] must be in that guard or it leaks
+        to the user as visible text on any image-only response.
+        """
+        from gateway.platforms.base import _strip_media_directives
+
+        text = "Here is your image. [[as_document]]"
+        assert "[[as_document]]" not in _strip_media_directives(text)
+        assert "[[as_document]]" not in (
+            BasePlatformAdapter.strip_media_directives_for_display(text)
+        )
+
+
 class TestMediaDeliveryPathValidation:
     def _patch_roots(self, monkeypatch, *roots):
         monkeypatch.setattr(
@@ -659,11 +722,11 @@ class TestMediaDeliveryPathValidation:
         # recency window + denylist). Force strict on so they keep
         # exercising the legacy path even though the public default
         # flipped to off in 2026-05.
-        monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", "1")
+        monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", "1")
         # Disable recency-based trust by default so the original allowlist
         # tests continue to exercise the strict-allowlist path. Tests that
         # specifically cover recency trust re-enable it themselves.
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "0")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "0")
 
     def test_allows_existing_file_inside_safe_root(self, tmp_path, monkeypatch):
         root = tmp_path / "media-cache"
@@ -719,7 +782,7 @@ class TestMediaDeliveryPathValidation:
         media_file.parent.mkdir(parents=True)
         media_file.write_bytes(b"%PDF-1.4")
         self._patch_roots(monkeypatch)
-        monkeypatch.setenv("NYXO_MEDIA_ALLOW_DIRS", str(extra_root))
+        monkeypatch.setenv("HERMES_MEDIA_ALLOW_DIRS", str(extra_root))
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(media_file)) == str(media_file.resolve())
 
@@ -732,9 +795,9 @@ class TestMediaDeliveryPathValidation:
         allowlist are accepted because the file's mtime is within the window.
         """
         self._patch_roots(monkeypatch)  # zero cache allowlist
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         fresh = tmp_path / "scratch" / "report.pdf"
         fresh.parent.mkdir(parents=True)
@@ -750,9 +813,9 @@ class TestMediaDeliveryPathValidation:
         the trust window.
         """
         self._patch_roots(monkeypatch)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "60")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "60")
 
         stale = tmp_path / "stale.pdf"
         stale.write_bytes(b"%PDF-1.4")
@@ -764,8 +827,8 @@ class TestMediaDeliveryPathValidation:
     def test_recency_trust_disabled_falls_back_to_pure_allowlist(self, tmp_path, monkeypatch):
         """Setting trust_recent_files=false reverts to pre-existing strict behavior."""
         self._patch_roots(monkeypatch)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "0")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "0")
 
         fresh = tmp_path / "report.pdf"
         fresh.write_bytes(b"%PDF-1.4")  # mtime = now
@@ -781,9 +844,9 @@ class TestMediaDeliveryPathValidation:
         ~/.ssh, ~/.aws, etc.
         """
         self._patch_roots(monkeypatch)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         # Simulate $HOME so ~/.ssh resolves into our tmp dir.
         fake_home = tmp_path / "home"
@@ -799,13 +862,13 @@ class TestMediaDeliveryPathValidation:
         """The motivating case: agent produces a PDF in a project directory.
 
         Reproduces the Discord-PDF-not-delivered bug. Before recency trust,
-        files outside ~/.nyxo/cache/* were silently dropped, leaving the
+        files outside ~/.flash/cache/* were silently dropped, leaving the
         user with a raw filepath in chat instead of an attachment.
         """
         self._patch_roots(monkeypatch)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         project = tmp_path / "my-project"
         report = project / "build" / "weekly-report.pdf"
@@ -817,9 +880,9 @@ class TestMediaDeliveryPathValidation:
     def test_filter_keeps_recently_produced_files(self, tmp_path, monkeypatch):
         """End-to-end: filter_local_delivery_paths routes a fresh PDF through."""
         self._patch_roots(monkeypatch)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         fresh = tmp_path / "report.pdf"
         fresh.write_bytes(b"%PDF-1.4")
@@ -847,8 +910,8 @@ class TestMediaDeliveryDefaultMode:
         )
         # Pin strict OFF — the public default. Tests that exercise the
         # strict path live in TestMediaDeliveryPathValidation.
-        monkeypatch.delenv("NYXO_MEDIA_DELIVERY_STRICT", raising=False)
-        monkeypatch.delenv("NYXO_MEDIA_ALLOW_DIRS", raising=False)
+        monkeypatch.delenv("HERMES_MEDIA_DELIVERY_STRICT", raising=False)
+        monkeypatch.delenv("HERMES_MEDIA_ALLOW_DIRS", raising=False)
 
     def test_accepts_stale_file_outside_allowlist(self, tmp_path, monkeypatch):
         """The motivating case — agent says ``MEDIA:/home/user/notes.md``
@@ -908,67 +971,99 @@ class TestMediaDeliveryDefaultMode:
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(secret)) is None
 
-    def test_denylist_blocks_nyxo_credentials(self, tmp_path, monkeypatch):
-        """~/.nyxo/.env and ~/.nyxo/auth.json stay blocked even in
+    def test_denylist_blocks_flash_credentials(self, tmp_path, monkeypatch):
+        """~/.flash/.env and ~/.flash/auth.json stay blocked even in
         default mode. They live under $HOME (not the system prefix list)
         so this exercises the home-relative denied paths.
         """
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        env_file = nyxo_dir / ".env"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        env_file = flash_dir / ".env"
         env_file.write_text("OPENAI_API_KEY=sk-...")
         monkeypatch.setenv("HOME", str(fake_home))
         monkeypatch.setattr(
-            "gateway.platforms.base._NYXO_HOME",
-            nyxo_dir,
+            "gateway.platforms.base._HERMES_HOME",
+            flash_dir,
         )
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(env_file)) is None
 
-    def test_denylist_blocks_nyxo_config_in_active_profile(self, tmp_path, monkeypatch):
+    @pytest.mark.parametrize(
+        "rel",
+        [
+            "mcp-tokens/github.json",
+            "mcp-tokens/github.client.json",
+            "mcp-tokens/github.meta.json",
+        ],
+    )
+    def test_denylist_blocks_mcp_oauth_tokens(self, tmp_path, monkeypatch, rel):
+        """Live MCP OAuth tokens/client creds under ~/.flash/mcp-tokens/ must
+        never deliver as native media — same exfil class as auth.json/.env.
+        Sibling to the pairing/ directory denylist entry.
+        """
+        self._patch_roots(monkeypatch)
+
+        fake_home = tmp_path / "home"
+        flash_dir = fake_home / ".flash"
+        (flash_dir / "mcp-tokens").mkdir(parents=True)
+        secret = flash_dir / rel
+        secret.write_text('{"access_token": "live-bearer-abc123"}')
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setattr(
+            "gateway.platforms.base._HERMES_HOME",
+            flash_dir,
+        )
+        monkeypatch.setattr(
+            "gateway.platforms.base._HERMES_ROOT",
+            flash_dir,
+        )
+
+        assert BasePlatformAdapter.validate_media_delivery_path(str(secret)) is None
+
+    def test_denylist_blocks_flash_config_in_active_profile(self, tmp_path, monkeypatch):
         """The active profile config stays blocked in default mode."""
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        config_file = nyxo_dir / "config.yaml"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        config_file = flash_dir / "config.yaml"
         config_file.write_text("model:\n  provider: openai\n")
         monkeypatch.setenv("HOME", str(fake_home))
         monkeypatch.setattr(
-            "gateway.platforms.base._NYXO_HOME",
-            nyxo_dir,
+            "gateway.platforms.base._HERMES_HOME",
+            flash_dir,
         )
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(config_file)) is None
 
-    def test_denylist_blocks_shared_nyxo_root_config_for_profiles(self, tmp_path, monkeypatch):
-        """Profile-mode gateways must still block the shared Nyxo root config."""
+    def test_denylist_blocks_shared_flash_root_config_for_profiles(self, tmp_path, monkeypatch):
+        """Profile-mode gateways must still block the shared Hermes root config."""
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "home"
-        profile_home = fake_home / ".nyxo" / "profiles" / "work"
+        profile_home = fake_home / ".flash" / "profiles" / "work"
         profile_home.mkdir(parents=True)
-        nyxo_root = fake_home / ".nyxo"
-        config_file = nyxo_root / "config.yaml"
+        flash_root = fake_home / ".flash"
+        config_file = flash_root / "config.yaml"
         config_file.write_text("profiles:\n  active: work\n")
         monkeypatch.setenv("HOME", str(fake_home))
         monkeypatch.setattr(
-            "gateway.platforms.base._NYXO_HOME",
+            "gateway.platforms.base._HERMES_HOME",
             profile_home,
         )
         monkeypatch.setattr(
-            "gateway.platforms.base._NYXO_ROOT",
-            nyxo_root,
+            "gateway.platforms.base._HERMES_ROOT",
+            flash_root,
         )
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(config_file)) is None
 
     def test_denylist_blocks_google_token_default_mode(self, tmp_path, monkeypatch):
-        """Integration credentials at the NYXO_HOME root (google_token.json)
+        """Integration credentials at the HERMES_HOME root (google_token.json)
         must never be deliverable, even though they aren't the historically
         enumerated .env/auth.json/config.yaml files. Regression for a
         refreshed google_token.json being auto-attached to a Slack reply
@@ -977,13 +1072,13 @@ class TestMediaDeliveryDefaultMode:
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        token = nyxo_dir / "google_token.json"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        token = flash_dir / "google_token.json"
         token.write_text('{"access_token": "***", "refresh_token": "***"}')
         monkeypatch.setenv("HOME", str(fake_home))
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
-        monkeypatch.setattr("gateway.platforms.base._NYXO_ROOT", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_ROOT", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(token)) is None
 
@@ -995,85 +1090,85 @@ class TestMediaDeliveryDefaultMode:
         over recency trust.
         """
         self._patch_roots(monkeypatch)  # zero cache allowlist, strict mode on
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        token = nyxo_dir / "google_token.json"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        token = flash_dir / "google_token.json"
         token.write_text('{"access_token": "***"}')  # mtime = now → "recent"
         monkeypatch.setenv("HOME", str(fake_home))
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
-        monkeypatch.setattr("gateway.platforms.base._NYXO_ROOT", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_ROOT", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(token)) is None
 
     def test_denylist_blocks_pairing_directory_contents(self, tmp_path, monkeypatch):
-        """Files under ~/.nyxo/pairing/ (platform pairing tokens) are
+        """Files under ~/.flash/pairing/ (platform pairing tokens) are
         credential material and must not be deliverable.
         """
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        pairing = nyxo_dir / "pairing"
+        flash_dir = fake_home / ".flash"
+        pairing = flash_dir / "pairing"
         pairing.mkdir(parents=True)
         token = pairing / "telegram-approved.json"
         token.write_text('{"approved": ["123"]}')
         monkeypatch.setenv("HOME", str(fake_home))
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
-        monkeypatch.setattr("gateway.platforms.base._NYXO_ROOT", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_ROOT", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(token)) is None
 
-    def test_nyxo_cache_still_delivers_under_denied_home(self, tmp_path, monkeypatch):
+    def test_flash_cache_still_delivers_under_denied_home(self, tmp_path, monkeypatch):
         """The targeted credential denylist must not break legitimate cache
         deliveries: a generated artifact under the allowlisted cache root is
         matched before the denylist and still delivers.
         """
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        cache_dir = nyxo_dir / "cache" / "documents"
+        flash_dir = fake_home / ".flash"
+        cache_dir = flash_dir / "cache" / "documents"
         cache_dir.mkdir(parents=True)
         artifact = cache_dir / "report.pdf"
         artifact.write_bytes(b"%PDF-1.4")
         self._patch_roots(monkeypatch, cache_dir)
         monkeypatch.setenv("HOME", str(fake_home))
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
-        monkeypatch.setattr("gateway.platforms.base._NYXO_ROOT", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_ROOT", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(artifact)) == str(artifact.resolve())
 
-    def test_denylist_blocks_non_cache_file_under_nyxo_home(self, tmp_path, monkeypatch):
-        """A non-credential file the agent wrote directly under ~/.nyxo
+    def test_denylist_blocks_non_cache_file_under_flash_home(self, tmp_path, monkeypatch):
+        """A non-credential file the agent wrote directly under ~/.flash
         (not in a cache subdir) is still deliverable via recency trust — we
         did NOT blanket-deny the tree (per #32090/#34425). This guards against
         accidentally re-introducing the rejected whole-tree deny.
         """
         self._patch_roots(monkeypatch)  # strict mode on
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_SECONDS", "600")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_SECONDS", "600")
 
         fake_home = tmp_path / "home"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        artifact = nyxo_dir / "adhoc_report.pdf"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        artifact = flash_dir / "adhoc_report.pdf"
         artifact.write_bytes(b"%PDF-1.4")  # fresh mtime
         monkeypatch.setenv("HOME", str(fake_home))
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
-        monkeypatch.setattr("gateway.platforms.base._NYXO_ROOT", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_ROOT", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(artifact)) == str(artifact.resolve())
 
     def test_strict_mode_envvar_restores_legacy_behavior(self, tmp_path, monkeypatch):
-        """Setting NYXO_MEDIA_DELIVERY_STRICT=1 reactivates the older
+        """Setting HERMES_MEDIA_DELIVERY_STRICT=1 reactivates the older
         allowlist+recency logic. A stale file outside the allowlist is
         rejected.
         """
         self._patch_roots(monkeypatch)
-        monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", "1")
-        monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "0")
+        monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", "1")
+        monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "0")
 
         stale = tmp_path / "old.pdf"
         stale.write_bytes(b"%PDF-1.4")
@@ -1083,16 +1178,16 @@ class TestMediaDeliveryDefaultMode:
         assert BasePlatformAdapter.validate_media_delivery_path(str(stale)) is None
 
     def test_strict_mode_truthy_aliases(self, monkeypatch, tmp_path):
-        """``NYXO_MEDIA_DELIVERY_STRICT=true|yes|on|1`` all enable strict mode."""
+        """``HERMES_MEDIA_DELIVERY_STRICT=true|yes|on|1`` all enable strict mode."""
         self._patch_roots(monkeypatch)
         from gateway.platforms.base import _media_delivery_strict_mode
 
         for raw in ("1", "true", "TRUE", "yes", "on"):
-            monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", raw)
+            monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", raw)
             assert _media_delivery_strict_mode() is True
 
         for raw in ("0", "false", "no", "off", ""):
-            monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", raw)
+            monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", raw)
             assert _media_delivery_strict_mode() is False
 
     def test_filter_passes_default_files_through(self, tmp_path, monkeypatch):
@@ -1154,25 +1249,88 @@ class TestMediaDeliveryDefaultMode:
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(key)) is None
 
-    def test_root_home_nyxo_env_still_blocked(self, tmp_path, monkeypatch):
-        """``~/.nyxo/.env`` stays blocked under the $HOME exception — it is a
+    def test_root_home_flash_env_still_blocked(self, tmp_path, monkeypatch):
+        """``~/.flash/.env`` stays blocked under the $HOME exception — it is a
         more-specific denied path, not reachable just because home is allowed.
         """
         self._patch_roots(monkeypatch)
 
         fake_home = tmp_path / "root"
-        nyxo_dir = fake_home / ".nyxo"
-        nyxo_dir.mkdir(parents=True)
-        env_file = nyxo_dir / ".env"
+        flash_dir = fake_home / ".flash"
+        flash_dir.mkdir(parents=True)
+        env_file = flash_dir / ".env"
         env_file.write_text("OPENROUTER_API_KEY=sk-...")
         monkeypatch.setenv("HOME", str(fake_home))
         monkeypatch.setattr(
             "gateway.platforms.base._MEDIA_DELIVERY_DENIED_PREFIXES",
             (str(fake_home),),
         )
-        monkeypatch.setattr("gateway.platforms.base._NYXO_HOME", nyxo_dir)
+        monkeypatch.setattr("gateway.platforms.base._HERMES_HOME", flash_dir)
 
         assert BasePlatformAdapter.validate_media_delivery_path(str(env_file)) is None
+
+    def test_profile_scoped_cache_delivers_under_symlinked_root(self, tmp_path, monkeypatch):
+        """Reopened #31733: a profile gateway whose HERMES_HOME is symlinked
+        under a denied prefix (e.g. /opt/data -> /root/.flash) emits
+        profile-scoped paths (``<root>/profiles/<name>/cache/images/x.png``)
+        that resolve under ``/root``. ``$HOME`` is NOT that prefix, so the
+        root-home exception doesn't fire, and the top-level cache allowlist
+        doesn't cover the profile subdir — the file was silently dropped.
+        Per-profile cache roots must be allowlisted so it delivers.
+        """
+        self._patch_roots(monkeypatch)  # strict on, zero top-level cache roots
+
+        # Stand-in for the literal /root deny prefix in the deployment.
+        denied_root = tmp_path / "root"
+        flash_root = denied_root / ".flash"
+        prof_cache = flash_root / "profiles" / "myprof" / "cache" / "images"
+        prof_cache.mkdir(parents=True)
+        image = prof_cache / "gen.png"
+        image.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+        # $HOME is NOT the denied prefix (mirrors HOME=/opt/data/home).
+        fake_home = tmp_path / "opt" / "data" / "home"
+        fake_home.mkdir(parents=True)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setattr(
+            "gateway.platforms.base._MEDIA_DELIVERY_DENIED_PREFIXES",
+            (str(denied_root),),
+        )
+        monkeypatch.setattr(
+            "gateway.platforms.base._HERMES_ROOT", flash_root
+        )
+
+        assert (
+            BasePlatformAdapter.validate_media_delivery_path(str(image))
+            == str(image.resolve())
+        )
+
+    def test_profile_scoped_credential_still_blocked_under_root(self, tmp_path, monkeypatch):
+        """The profile-cache allowlist must not un-block a credential sitting
+        directly in the profile dir (``profiles/<name>/auth.json``): it's not
+        under a cache subdir, so the credential denylist still rejects it.
+        """
+        self._patch_roots(monkeypatch)
+
+        denied_root = tmp_path / "root"
+        flash_root = denied_root / ".flash"
+        prof_dir = flash_root / "profiles" / "myprof"
+        prof_dir.mkdir(parents=True)
+        cred = prof_dir / "auth.json"
+        cred.write_text("{}")
+
+        fake_home = tmp_path / "opt" / "data" / "home"
+        fake_home.mkdir(parents=True)
+        monkeypatch.setenv("HOME", str(fake_home))
+        monkeypatch.setattr(
+            "gateway.platforms.base._MEDIA_DELIVERY_DENIED_PREFIXES",
+            (str(denied_root),),
+        )
+        monkeypatch.setattr(
+            "gateway.platforms.base._HERMES_ROOT", flash_root
+        )
+
+        assert BasePlatformAdapter.validate_media_delivery_path(str(cred)) is None
 
     def test_other_users_home_still_blocked_for_nonroot(self, tmp_path, monkeypatch):
         """The exception only un-blocks the *running user's own* home. A
@@ -1276,7 +1434,7 @@ class TestTruncateMessage:
         """Create a minimal adapter instance for testing static/instance methods."""
 
         class StubAdapter(BasePlatformAdapter):
-            async def connect(self):
+            async def connect(self, *, is_reconnect: bool = False):
                 return True
 
             async def disconnect(self):
@@ -1372,24 +1530,24 @@ class TestTruncateMessage:
 
 class TestGetHumanDelay:
     def test_off_mode(self):
-        with patch.dict(os.environ, {"NYXO_HUMAN_DELAY_MODE": "off"}):
+        with patch.dict(os.environ, {"HERMES_HUMAN_DELAY_MODE": "off"}):
             assert BasePlatformAdapter._get_human_delay() == 0.0
 
     def test_default_is_off(self):
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("NYXO_HUMAN_DELAY_MODE", None)
+            os.environ.pop("HERMES_HUMAN_DELAY_MODE", None)
             assert BasePlatformAdapter._get_human_delay() == 0.0
 
     def test_natural_mode_range(self):
-        with patch.dict(os.environ, {"NYXO_HUMAN_DELAY_MODE": "natural"}):
+        with patch.dict(os.environ, {"HERMES_HUMAN_DELAY_MODE": "natural"}):
             delay = BasePlatformAdapter._get_human_delay()
             assert 0.8 <= delay <= 2.5
 
     def test_natural_mode_ignores_malformed_custom_env_vars(self):
         env = {
-            "NYXO_HUMAN_DELAY_MODE": "natural",
-            "NYXO_HUMAN_DELAY_MIN_MS": "oops",
-            "NYXO_HUMAN_DELAY_MAX_MS": "still-bad",
+            "HERMES_HUMAN_DELAY_MODE": "natural",
+            "HERMES_HUMAN_DELAY_MIN_MS": "oops",
+            "HERMES_HUMAN_DELAY_MAX_MS": "still-bad",
         }
         with patch.dict(os.environ, env):
             delay = BasePlatformAdapter._get_human_delay()
@@ -1397,9 +1555,9 @@ class TestGetHumanDelay:
 
     def test_custom_mode_uses_env_vars(self):
         env = {
-            "NYXO_HUMAN_DELAY_MODE": "custom",
-            "NYXO_HUMAN_DELAY_MIN_MS": "100",
-            "NYXO_HUMAN_DELAY_MAX_MS": "200",
+            "HERMES_HUMAN_DELAY_MODE": "custom",
+            "HERMES_HUMAN_DELAY_MIN_MS": "100",
+            "HERMES_HUMAN_DELAY_MAX_MS": "200",
         }
         with patch.dict(os.environ, env):
             delay = BasePlatformAdapter._get_human_delay()
@@ -1407,9 +1565,9 @@ class TestGetHumanDelay:
 
     def test_custom_mode_tolerates_malformed_env_vars(self):
         env = {
-            "NYXO_HUMAN_DELAY_MODE": "custom",
-            "NYXO_HUMAN_DELAY_MIN_MS": "oops",
-            "NYXO_HUMAN_DELAY_MAX_MS": "still-bad",
+            "HERMES_HUMAN_DELAY_MODE": "custom",
+            "HERMES_HUMAN_DELAY_MIN_MS": "oops",
+            "HERMES_HUMAN_DELAY_MAX_MS": "still-bad",
         }
         with patch.dict(os.environ, env):
             # falls back to the custom-mode defaults instead of crashing
@@ -1598,8 +1756,8 @@ class TestMediaDeliveryDiagnosability:
     def test_rejected_path_appears_in_log(self, tmp_path, caplog):
         outside = tmp_path / "outside.ogg"
         outside.write_bytes(b"OggS")
-        with patch.dict(os.environ, {"NYXO_MEDIA_DELIVERY_STRICT": "1",
-                                     "NYXO_MEDIA_TRUST_RECENT_FILES": "0"}), \
+        with patch.dict(os.environ, {"HERMES_MEDIA_DELIVERY_STRICT": "1",
+                                     "HERMES_MEDIA_TRUST_RECENT_FILES": "0"}), \
                 patch("gateway.platforms.base.MEDIA_DELIVERY_SAFE_ROOTS", ()):
             with caplog.at_level("WARNING"):
                 out = BasePlatformAdapter.filter_media_delivery_paths([(str(outside), False)])
@@ -1611,7 +1769,7 @@ class TestMediaDeliveryDiagnosability:
         """One crafted ~\\x00 path must not drop every other attachment."""
         good = tmp_path / "good.png"
         good.write_bytes(b"\x89PNG")
-        monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", "0")
+        monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", "0")
         out = BasePlatformAdapter.filter_media_delivery_paths([
             ("~\x00evil.png", False),
             (str(good), False),
@@ -1639,3 +1797,126 @@ class TestMediaDeliveryDiagnosability:
         assert any(r.endswith("cache/documents") for r in roots)
         # Legacy layout still present.
         assert any(r.endswith("image_cache") for r in roots)
+
+
+# ---------------------------------------------------------------------------
+# Media-send fallback must not leak host filesystem paths into chat
+# ---------------------------------------------------------------------------
+
+
+class _CapturingAdapter(BasePlatformAdapter):
+    """Minimal concrete BasePlatformAdapter that records what send() sees.
+
+    The four media-send fallbacks (send_voice, send_video, send_document,
+    send_image_file) historically forwarded their *_path argument into the
+    chat text. That argument is a host filesystem path inside the Hermes
+    cache, so any subclass that fell back to super() — like the Telegram
+    adapter on a rejected video — would leak the host's directory layout
+    into the user's chat.
+    """
+
+    def __init__(self):
+        from gateway.config import Platform, PlatformConfig
+        super().__init__(PlatformConfig(enabled=True), Platform.TELEGRAM)
+        self.sent: list[dict] = []
+
+    async def connect(self) -> bool:  # pragma: no cover - not exercised
+        return True
+
+    async def disconnect(self) -> None:  # pragma: no cover - not exercised
+        return None
+
+    async def get_chat_info(self, chat_id):  # pragma: no cover - not exercised
+        return {"name": chat_id, "type": "dm"}
+
+    async def send(self, chat_id, content, reply_to=None, metadata=None):
+        from gateway.platforms.base import SendResult
+        self.sent.append({
+            "chat_id": chat_id,
+            "content": content,
+            "reply_to": reply_to,
+            "metadata": metadata,
+        })
+        return SendResult(success=True, message_id="m1")
+
+
+class TestMediaFallbackDoesNotLeakHostPath:
+    """Regression: the four base-class media fallbacks must not echo *_path.
+
+    Telegram, Discord, and Slack adapters all fall back to these base
+    implementations on native-send failure. When they did, the user saw
+    a chat message like ``🎬 Video: /home/.../flash/cache/video/abc.mp4``
+    — a host filesystem path with no actionable information.
+    """
+
+    SENSITIVE_PATH = "/home/jayne/.flash/cache/media/sensitive_host_path_abc123.bin"
+
+    @pytest.mark.asyncio
+    async def test_send_voice_fallback_omits_audio_path(self):
+        adapter = _CapturingAdapter()
+        result = await adapter.send_voice(chat_id="123", audio_path=self.SENSITIVE_PATH)
+        assert result.success
+        assert len(adapter.sent) == 1
+        sent_text = adapter.sent[0]["content"]
+        assert self.SENSITIVE_PATH not in sent_text
+        assert "/home/" not in sent_text
+        assert "audio" in sent_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_send_video_fallback_omits_video_path(self):
+        adapter = _CapturingAdapter()
+        result = await adapter.send_video(chat_id="123", video_path=self.SENSITIVE_PATH)
+        assert result.success
+        sent_text = adapter.sent[0]["content"]
+        assert self.SENSITIVE_PATH not in sent_text
+        assert "/home/" not in sent_text
+        assert "video" in sent_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_send_document_fallback_omits_file_path(self):
+        adapter = _CapturingAdapter()
+        result = await adapter.send_document(chat_id="123", file_path=self.SENSITIVE_PATH)
+        assert result.success
+        sent_text = adapter.sent[0]["content"]
+        assert self.SENSITIVE_PATH not in sent_text
+        assert "/home/" not in sent_text
+        assert "file" in sent_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_send_document_fallback_includes_explicit_filename_only(self):
+        """A caller-supplied file_name is user-facing and may be shown — but
+        the host file_path argument must still be suppressed."""
+        adapter = _CapturingAdapter()
+        result = await adapter.send_document(
+            chat_id="123",
+            file_path=self.SENSITIVE_PATH,
+            file_name="report.pdf",
+        )
+        assert result.success
+        sent_text = adapter.sent[0]["content"]
+        assert self.SENSITIVE_PATH not in sent_text
+        assert "/home/" not in sent_text
+        assert "report.pdf" in sent_text
+
+    @pytest.mark.asyncio
+    async def test_send_image_file_fallback_omits_image_path(self):
+        adapter = _CapturingAdapter()
+        result = await adapter.send_image_file(chat_id="123", image_path=self.SENSITIVE_PATH)
+        assert result.success
+        sent_text = adapter.sent[0]["content"]
+        assert self.SENSITIVE_PATH not in sent_text
+        assert "/home/" not in sent_text
+        assert "image" in sent_text.lower()
+
+    @pytest.mark.asyncio
+    async def test_caption_is_preserved_in_fallback(self):
+        """The user-supplied caption is still shown — only the path is suppressed."""
+        adapter = _CapturingAdapter()
+        await adapter.send_video(
+            chat_id="123",
+            video_path=self.SENSITIVE_PATH,
+            caption="Here's the daily summary.",
+        )
+        sent_text = adapter.sent[0]["content"]
+        assert "Here's the daily summary." in sent_text
+        assert self.SENSITIVE_PATH not in sent_text

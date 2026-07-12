@@ -20,12 +20,12 @@ def server():
     with patch.dict(
         "sys.modules",
         {
-            "nyxo_constants": MagicMock(
-                get_nyxo_home=MagicMock(return_value="/tmp/nyxo_test_child_mirror")
+            "flash_constants": MagicMock(
+                get_flash_home=MagicMock(return_value="/tmp/flash_test_child_mirror")
             ),
-            "nyxo_cli.env_loader": MagicMock(),
-            "nyxo_cli.banner": MagicMock(),
-            "nyxo_state": MagicMock(),
+            "flash_cli.env_loader": MagicMock(),
+            "flash_cli.banner": MagicMock(),
+            "flash_state": MagicMock(),
         },
     ):
         import importlib

@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import nyxo_cli.plugins as plugins_mod
+import hermes_cli.plugins as plugins_mod
 import tools.terminal_tool as terminal_tool_module
 
 
@@ -52,7 +52,7 @@ def _run_terminal(
     monkeypatch.setitem(terminal_tool_module._last_activity, "default", 0.0)
 
     if invoke_hook is not _UNSET:
-        monkeypatch.setattr("nyxo_cli.plugins.invoke_hook", invoke_hook)
+        monkeypatch.setattr("hermes_cli.plugins.invoke_hook", invoke_hook)
 
     result = json.loads(terminal_tool_module.terminal_tool(command=command))
     return result, mock_env
@@ -115,7 +115,7 @@ def test_terminal_output_transform_still_truncates_long_replacement(monkeypatch,
 
 
 def test_terminal_output_transform_still_runs_strip_and_redact(monkeypatch, tmp_path):
-    # Ensure redaction is active regardless of host NYXO_REDACT_SECRETS state
+    # Ensure redaction is active regardless of host HERMES_REDACT_SECRETS state
     # or collection-time import order (the module snapshots env at import).
     monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 
@@ -128,9 +128,14 @@ def test_terminal_output_transform_still_runs_strip_and_redact(monkeypatch, tmp_
     )
 
     assert "\x1b" not in result["output"]
+    # Terminal output now passes code_file=True: ENV-assignment redaction is
+    # skipped (so code constants like MAX_TOKENS=100 aren't corrupted), but a
+    # real sk-/ghp_/JWT-shaped value is STILL masked by _PREFIX_RE. The full
+    # secret never survives; only the leading prefix marker remains. (#33801)
     assert secret not in result["output"]
     assert "OPENAI_API_KEY=" in result["output"]
-    assert "***" in result["output"]
+    assert "sk-pro" in result["output"]  # prefix marker from _mask_token
+    assert "abc123def456" not in result["output"]  # secret body is gone
 
 
 def test_terminal_output_transform_hook_exception_falls_back(monkeypatch, tmp_path):
@@ -175,8 +180,8 @@ def test_terminal_output_transform_does_not_change_approval_or_exit_code_meaning
 def test_terminal_output_transform_integration_with_real_plugin(monkeypatch, tmp_path):
     import yaml
 
-    nyxo_home = Path(os.environ["NYXO_HOME"])
-    plugins_dir = nyxo_home / "plugins"
+    hermes_home = Path(os.environ["HERMES_HOME"])
+    plugins_dir = hermes_home / "plugins"
     plugin_dir = plugins_dir / "terminal_transform"
     plugin_dir.mkdir(parents=True)
     (plugin_dir / "plugin.yaml").write_text("name: terminal_transform\n", encoding="utf-8")
@@ -187,7 +192,7 @@ def test_terminal_output_transform_integration_with_real_plugin(monkeypatch, tmp
         encoding="utf-8",
     )
     # Plugins are opt-in — must be listed in plugins.enabled to load.
-    cfg_path = nyxo_home / "config.yaml"
+    cfg_path = hermes_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"plugins": {"enabled": ["terminal_transform"]}}),
         encoding="utf-8",

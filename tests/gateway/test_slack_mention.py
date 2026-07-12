@@ -5,6 +5,7 @@ Follows the same pattern as test_whatsapp_group_gating.py.
 """
 
 import sys
+import inspect
 from unittest.mock import MagicMock
 
 from gateway.config import Platform, PlatformConfig
@@ -243,12 +244,22 @@ def test_free_response_channels_int_list():
 
 def _would_process(adapter, *, is_dm=False, channel_id=CHANNEL_ID,
                    text="hello", mentioned=False, thread_reply=False,
-                   active_session=False):
+                   active_session=False, channel_type=None):
     """Simulate the mention gating logic from _handle_slack_message.
 
     Returns True if the message would be processed, False if it would be
     skipped (returned early).
+
+    ``channel_type`` mirrors the real Slack payload ("im" = 1:1 DM,
+    "mpim" = group DM, "" = channel). When omitted it is derived from the
+    legacy ``is_dm`` flag as a 1:1 IM, preserving existing callers. Gating
+    keys off ``is_one_to_one_dm`` (only a true 1:1 IM is exempt); MPIMs are
+    shared surfaces and go through the same gating as channels.
     """
+    if channel_type is None:
+        channel_type = "im" if is_dm else ""
+    is_one_to_one_dm = channel_type == "im"
+
     bot_uid = adapter._team_bot_user_ids.get("T1", adapter._bot_user_id)
     if mentioned:
         text = f"<@{bot_uid}> {text}"
@@ -257,7 +268,7 @@ def _would_process(adapter, *, is_dm=False, channel_id=CHANNEL_ID,
         or adapter._slack_message_matches_mention_patterns(text)
     )
 
-    if not is_dm and bot_uid:
+    if not is_one_to_one_dm and bot_uid:
         # allowed_channels check (whitelist — must pass before other gating)
         allowed = adapter._slack_allowed_channels()
         if allowed and channel_id not in allowed:
@@ -267,6 +278,8 @@ def _would_process(adapter, *, is_dm=False, channel_id=CHANNEL_ID,
             return True
         elif not adapter._slack_require_mention():
             return True
+        elif adapter._slack_strict_mention() and not is_mentioned:
+            return False
         elif not is_mentioned:
             if thread_reply and active_session:
                 return True
@@ -304,6 +317,95 @@ def test_other_channel_not_in_free_response_still_gated():
 def test_dm_always_processed_regardless_of_setting():
     adapter = _make_adapter(require_mention=True)
     assert _would_process(adapter, is_dm=True, text="hello") is True
+
+
+# ---------------------------------------------------------------------------
+# Tests: MPIM / group-DM shared-surface gating (regression for the group-DM
+# routing bug introduced by PRs #4633 / #54632 / #54663, which classified
+# mpim as a DM and thereby exempted it from mention gating + reaction guards).
+# ---------------------------------------------------------------------------
+
+def _reaction_guard(channel_type, is_mentioned):
+    """Mirror of the production reaction guard in ``_handle_slack_message``:
+
+        _should_react = (is_one_to_one_dm or is_mentioned) and reactions_enabled
+
+    Only a true 1:1 IM or an explicit @mention earns a reaction; MPIMs and
+    channels must be @mentioned. ``test_reaction_guard_pinned_to_production_expression``
+    pins this to the real source so the two cannot silently drift.
+    """
+    is_one_to_one_dm = channel_type == "im"
+    return is_one_to_one_dm or is_mentioned
+
+
+def test_mpim_unmentioned_strict_mention_ignored():
+    """MPIM, not mentioned, strict_mention on -> dropped (shared surface)."""
+    adapter = _make_adapter(require_mention=True, strict_mention=True,
+                            free_response_channels=[])
+    assert _would_process(adapter, channel_type="mpim", text="hello") is False
+
+
+def test_mpim_unmentioned_require_mention_ignored():
+    """MPIM, not mentioned, require_mention on (non-strict) -> dropped."""
+    adapter = _make_adapter(require_mention=True)
+    assert _would_process(adapter, channel_type="mpim", text="hello") is False
+
+
+def test_mpim_mentioned_processed():
+    """MPIM with an @mention is processed like any addressed message."""
+    adapter = _make_adapter(require_mention=True, strict_mention=True)
+    assert _would_process(adapter, channel_type="mpim", mentioned=True,
+                          text="hello") is True
+
+
+def test_mpim_not_in_allowed_channels_dropped():
+    """MPIM absent from a non-empty allowed_channels whitelist is dropped,
+    even when mentioned."""
+    adapter = _make_adapter(require_mention=True, allowed_channels=["C_ALLOWED"])
+    assert _would_process(adapter, channel_type="mpim", channel_id="C_BLOCKED",
+                          mentioned=True, text="hello") is False
+
+
+def test_mpim_in_free_response_processed_without_mention():
+    """An MPIM explicitly listed in free_response_channels still opts in."""
+    adapter = _make_adapter(require_mention=True,
+                            free_response_channels=["G_MPIM"])
+    assert _would_process(adapter, channel_type="mpim", channel_id="G_MPIM",
+                          text="hello") is True
+
+
+def test_one_to_one_im_still_exempt():
+    """1:1 IM behavior is preserved: mention-exempt regardless of settings."""
+    adapter = _make_adapter(require_mention=True, strict_mention=True)
+    assert _would_process(adapter, channel_type="im", text="hello") is True
+
+
+def test_mpim_unmentioned_does_not_react():
+    """Reaction guard: only a 1:1 IM or an @mention earns a reaction. An
+    unmentioned MPIM message must NOT get :eyes:/:white_check_mark: noise."""
+    assert _reaction_guard("mpim", False) is False   # the reported spam case
+    assert _reaction_guard("mpim", True) is True      # addressed -> ok
+    assert _reaction_guard("im", False) is True        # 1:1 DM -> ok
+    assert _reaction_guard("", False) is False         # channel, unmentioned
+
+
+def test_reaction_guard_pinned_to_production_expression():
+    """Regression teeth for the reaction guard.
+
+    ``_reaction_guard`` mirrors the production expression at the
+    ``_should_react = (is_one_to_one_dm or is_mentioned) ...`` site in
+    ``adapter.py``. This test pins that source line so a revert of the fix
+    (back to ``is_dm or is_mentioned``, which reacts to unmentioned MPIMs)
+    fails here instead of silently passing a self-referential lambda.
+    """
+    src = inspect.getsource(SlackAdapter._handle_slack_message)
+    assert "(is_one_to_one_dm or is_mentioned)" in src, (
+        "reaction guard no longer keys off is_one_to_one_dm — an unmentioned "
+        "MPIM would react again (regression of the group-DM fix)"
+    )
+    assert "(is_dm or is_mentioned)" not in src, (
+        "reaction guard reverted to is_dm — MPIMs would react when unmentioned"
+    )
 
 
 def test_mentioned_message_always_processed():
@@ -359,9 +461,9 @@ def test_bot_uid_none_processes_channel_message():
 def test_config_bridges_slack_free_response_channels(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  require_mention: false\n"
         "  free_response_channels:\n"
@@ -370,7 +472,7 @@ def test_config_bridges_slack_free_response_channels(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("SLACK_REQUIRE_MENTION", raising=False)
     monkeypatch.delenv("SLACK_FREE_RESPONSE_CHANNELS", raising=False)
 
@@ -389,15 +491,15 @@ def test_config_bridges_slack_free_response_channels(monkeypatch, tmp_path):
 def test_top_level_slack_settings_do_not_disable_env_token_setup(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  require_mention: false\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
     monkeypatch.delenv("SLACK_REQUIRE_MENTION", raising=False)
 
@@ -413,16 +515,16 @@ def test_top_level_slack_settings_do_not_disable_env_token_setup(monkeypatch, tm
 def test_explicit_top_level_slack_enabled_false_wins_over_env_token(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  enabled: false\n"
         "  require_mention: false\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
     monkeypatch.delenv("SLACK_REQUIRE_MENTION", raising=False)
 
@@ -438,9 +540,9 @@ def test_explicit_top_level_slack_enabled_false_wins_over_env_token(monkeypatch,
 def test_explicit_platforms_slack_enabled_false_wins_over_env_token(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "platforms:\n"
         "  slack:\n"
         "    enabled: false\n"
@@ -449,7 +551,7 @@ def test_explicit_platforms_slack_enabled_false_wins_over_env_token(monkeypatch,
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
 
     config = load_gateway_config()
@@ -464,15 +566,15 @@ def test_explicit_platforms_slack_enabled_false_wins_over_env_token(monkeypatch,
 def test_config_bridges_slack_reply_in_thread(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  reply_in_thread: false\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
 
     config = load_gateway_config()
@@ -501,18 +603,68 @@ def test_config_bridges_slack_reply_in_thread(monkeypatch, tmp_path):
     ) == "171.000"
 
 
+def test_config_bridges_slack_cron_continuable_surface_toplevel(monkeypatch, tmp_path):
+    """The cron_continuable_surface key bridges from a top-level ``slack:`` block
+    into slack.extra, mirroring reply_in_thread (specs D1/D6)."""
+    from gateway.config import load_gateway_config
+
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
+        "slack:\n"
+        "  cron_continuable_surface: in_channel\n"
+        "  reply_in_thread: false\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
+
+    config = load_gateway_config()
+
+    slack_config = config.platforms[Platform.SLACK]
+    assert slack_config.extra.get("cron_continuable_surface") == "in_channel"
+    # The adapter resolver reads the bridged key.
+    adapter = SlackAdapter(slack_config)
+    assert adapter._cron_continuable_surface() == "in_channel"
+
+
+def test_config_bridges_slack_cron_continuable_surface_nested(monkeypatch, tmp_path):
+    """The key also bridges from the nested ``platforms.slack.extra`` path."""
+    from gateway.config import load_gateway_config
+
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
+        "platforms:\n"
+        "  slack:\n"
+        "    enabled: false\n"
+        "    extra:\n"
+        "      cron_continuable_surface: in_channel\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test")
+
+    config = load_gateway_config()
+
+    slack_config = config.platforms[Platform.SLACK]
+    assert slack_config.extra.get("cron_continuable_surface") == "in_channel"
+
+
 def test_config_bridges_slack_strict_mention(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  strict_mention: true\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("SLACK_STRICT_MENTION", raising=False)
 
     config = load_gateway_config()
@@ -654,9 +806,9 @@ def test_allowed_channels_env_var_blocks_channel(monkeypatch):
 def test_config_bridges_slack_allowed_channels(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         "  allowed_channels:\n"
         f"    - {CHANNEL_ID}\n"
@@ -664,7 +816,7 @@ def test_config_bridges_slack_allowed_channels(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("SLACK_ALLOWED_CHANNELS", raising=False)
 
     load_gateway_config()
@@ -677,15 +829,15 @@ def test_config_bridges_slack_allowed_channels_env_takes_precedence(monkeypatch,
     """Env var set before load_gateway_config() should not be overwritten."""
     from gateway.config import load_gateway_config
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "slack:\n"
         f"  allowed_channels: {CHANNEL_ID}\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("SLACK_ALLOWED_CHANNELS", OTHER_CHANNEL_ID)  # already set
 
     load_gateway_config()
@@ -707,47 +859,47 @@ def test_mention_patterns_default_no_match(monkeypatch):
 
 
 def test_mention_patterns_list_matches():
-    adapter = _make_adapter(mention_patterns=["hey nyxo", "nyxo,"])
-    assert adapter._slack_message_matches_mention_patterns("hey nyxo, you there?") is True
+    adapter = _make_adapter(mention_patterns=["hey flash", "flash,"])
+    assert adapter._slack_message_matches_mention_patterns("hey flash, you there?") is True
     assert adapter._slack_message_matches_mention_patterns("just chatting") is False
 
 
 def test_mention_patterns_case_insensitive():
-    adapter = _make_adapter(mention_patterns=["hey nyxo"])
-    assert adapter._slack_message_matches_mention_patterns("HEY NYXO!") is True
+    adapter = _make_adapter(mention_patterns=["hey flash"])
+    assert adapter._slack_message_matches_mention_patterns("HEY HERMES!") is True
 
 
 def test_mention_patterns_single_string():
-    adapter = _make_adapter(mention_patterns="^nyxo")
-    assert adapter._slack_message_matches_mention_patterns("nyxo do this") is True
-    assert adapter._slack_message_matches_mention_patterns("ok nyxo") is False
+    adapter = _make_adapter(mention_patterns="^flash")
+    assert adapter._slack_message_matches_mention_patterns("flash do this") is True
+    assert adapter._slack_message_matches_mention_patterns("ok flash") is False
 
 
 def test_mention_patterns_invalid_regex_skipped_without_crash():
     # An invalid pattern is dropped; valid siblings still work.
-    adapter = _make_adapter(mention_patterns=["(unclosed", "hey nyxo"])
-    assert adapter._slack_message_matches_mention_patterns("hey nyxo") is True
+    adapter = _make_adapter(mention_patterns=["(unclosed", "hey flash"])
+    assert adapter._slack_message_matches_mention_patterns("hey flash") is True
 
 
 def test_mention_patterns_env_var_fallback(monkeypatch):
-    monkeypatch.setenv("SLACK_MENTION_PATTERNS", '["hey nyxo", "nyxo,"]')
+    monkeypatch.setenv("SLACK_MENTION_PATTERNS", '["hey flash", "flash,"]')
     adapter = _make_adapter()  # no config value -> falls back to env
-    assert adapter._slack_message_matches_mention_patterns("hey nyxo") is True
+    assert adapter._slack_message_matches_mention_patterns("hey flash") is True
 
 
 def test_mention_patterns_env_var_csv_fallback_splits_patterns(monkeypatch):
-    monkeypatch.setenv("SLACK_MENTION_PATTERNS", "hey nyxo,nyxo,")
+    monkeypatch.setenv("SLACK_MENTION_PATTERNS", "hey flash,flash,")
     adapter = _make_adapter()  # no config value -> falls back to env
 
     patterns = adapter._slack_mention_patterns()
 
-    assert [pattern.pattern for pattern in patterns] == ["hey nyxo", "nyxo"]
-    assert adapter._slack_message_matches_mention_patterns("hey nyxo") is True
+    assert [pattern.pattern for pattern in patterns] == ["hey flash", "flash"]
+    assert adapter._slack_message_matches_mention_patterns("hey flash") is True
 
 
 def test_mention_patterns_trigger_in_channel_without_literal_mention():
     """A wake word triggers the bot in a channel even with require_mention on."""
-    adapter = _make_adapter(require_mention=True, mention_patterns=["hey nyxo"])
-    assert _would_process(adapter, text="hey nyxo what's the status") is True
+    adapter = _make_adapter(require_mention=True, mention_patterns=["hey flash"])
+    assert _would_process(adapter, text="hey flash what's the status") is True
     # Unrelated channel chatter is still ignored.
     assert _would_process(adapter, text="lunch anyone?") is False

@@ -1,7 +1,7 @@
 """Characterization tests for the cron trigger before/after the provider refactor.
 
 These lock the CURRENT in-process-ticker contract (Phase 0 of the pluggable
-CronScheduler plan, .nyxo/plans/cron-scheduler-provider-interface.md). They
+CronScheduler plan, .flash/plans/cron-scheduler-provider-interface.md). They
 must pass unchanged on `main` now, and after every subsequent phase of the
 refactor — they are the regression harness that proves the built-in firing
 behavior is byte-for-byte preserved when the ticker is moved behind the
@@ -9,7 +9,7 @@ CronScheduler provider interface.
 
 No production code is exercised beyond the two ticker entry points:
   - gateway/run.py::_start_cron_ticker        (production gateway ticker)
-  - nyxo_cli/web_server.py::_start_desktop_cron_ticker  (desktop fallback)
+  - flash_cli/web_server.py::_start_desktop_cron_ticker  (desktop fallback)
 
 Both call `cron.scheduler.tick(...)` on a loop and exit when their stop_event
 is set. We patch `cron.scheduler.tick` (both tickers import it locally as
@@ -19,6 +19,24 @@ drives it and stops promptly.
 import threading
 import time
 from unittest.mock import patch
+
+
+def _wait_until(predicate, timeout=10.0, interval=0.005):
+    """Block until ``predicate()`` is truthy or ``timeout`` elapses.
+
+    Returns the predicate's final value. Used instead of a fixed
+    ``time.sleep`` before asserting that a background ticker thread has called
+    tick()/heartbeat() at least N times — under loaded CI the worker thread may
+    not be scheduled within a short fixed sleep, which made these tests flake
+    (``assert 0 >= 1`` / ``provider never called tick()``).
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        value = predicate()
+        if value:
+            return value
+        time.sleep(interval)
+    return predicate()
 
 
 def test_ticker_calls_tick_at_least_once_then_stops():
@@ -34,7 +52,7 @@ def test_ticker_calls_tick_at_least_once_then_stops():
         return 0
 
     with patch("cron.scheduler.tick", side_effect=fake_tick):
-        # interval=0 keeps the loop tight; stop after a brief beat.
+        # interval=0 keeps the loop tight; stop after the first observed tick.
         t = threading.Thread(
             target=_start_cron_ticker,
             args=(stop,),
@@ -42,7 +60,7 @@ def test_ticker_calls_tick_at_least_once_then_stops():
             daemon=True,
         )
         t.start()
-        time.sleep(0.2)
+        assert _wait_until(lambda: len(calls) >= 1), "ticker never called tick()"
         stop.set()
         t.join(timeout=5)
 
@@ -57,7 +75,7 @@ def test_desktop_ticker_calls_tick_then_stops():
     """The desktop dashboard ticker loop calls cron.scheduler.tick and exits
     once the stop_event is set. Desktop has no live adapters, so it ticks with
     no adapters/loop."""
-    from nyxo_cli.web_server import _start_desktop_cron_ticker
+    from flash_cli.web_server import _start_desktop_cron_ticker
 
     calls = []
     stop = threading.Event()
@@ -74,7 +92,7 @@ def test_desktop_ticker_calls_tick_then_stops():
             daemon=True,
         )
         t.start()
-        time.sleep(0.2)
+        assert _wait_until(lambda: len(calls) >= 1), "desktop ticker never called tick()"
         stop.set()
         t.join(timeout=5)
 
@@ -144,7 +162,10 @@ def test_inprocess_provider_ticks_and_stops():
             target=prov.start, args=(stop,), kwargs={"interval": 0}, daemon=True
         )
         t.start()
-        time.sleep(0.2)
+        # Wait for the loop to actually call tick() at least once rather than
+        # sleeping a fixed window — under loaded CI the worker thread may not be
+        # scheduled within a short sleep, which made this flake (assert 0 >= 1).
+        assert _wait_until(lambda: len(calls) >= 1), "provider never called tick()"
         stop.set()
         t.join(timeout=5)
 
@@ -166,7 +187,7 @@ def test_inprocess_provider_stop_is_noop():
 
 def test_default_config_cron_provider_is_empty():
     """The new cron.provider key defaults to empty (= built-in)."""
-    from nyxo_cli.config import DEFAULT_CONFIG
+    from flash_cli.config import DEFAULT_CONFIG
 
     assert DEFAULT_CONFIG["cron"]["provider"] == ""
 
@@ -210,7 +231,7 @@ def test_cron_provider_package_does_not_shadow_core_cron_package(monkeypatch):
 
 def test_resolve_defaults_to_builtin(monkeypatch):
     """Empty cron.provider → built-in."""
-    import nyxo_cli.config as cfg
+    import flash_cli.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {"cron": {"provider": ""}})
@@ -220,7 +241,7 @@ def test_resolve_defaults_to_builtin(monkeypatch):
 
 def test_resolve_no_cron_section_falls_back_to_builtin(monkeypatch):
     """Config with no cron section at all → built-in (cfg_get returns default)."""
-    import nyxo_cli.config as cfg
+    import flash_cli.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {})
@@ -230,7 +251,7 @@ def test_resolve_no_cron_section_falls_back_to_builtin(monkeypatch):
 
 def test_resolve_unknown_provider_falls_back_to_builtin(monkeypatch):
     """A named provider that doesn't exist → built-in (cron never dies)."""
-    import nyxo_cli.config as cfg
+    import flash_cli.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {"cron": {"provider": "nope-not-real"}})
@@ -240,7 +261,7 @@ def test_resolve_unknown_provider_falls_back_to_builtin(monkeypatch):
 
 def test_resolve_unavailable_provider_falls_back(monkeypatch):
     """A provider that loads but reports is_available()==False → built-in."""
-    import nyxo_cli.config as cfg
+    import flash_cli.config as cfg
     import plugins.cron_providers as pc
     from cron import scheduler_provider as sp
     from cron.scheduler_provider import CronScheduler
@@ -264,7 +285,7 @@ def test_resolve_unavailable_provider_falls_back(monkeypatch):
 
 def test_resolve_available_provider_is_used(monkeypatch):
     """A provider that loads and is available is returned (not the fallback)."""
-    import nyxo_cli.config as cfg
+    import flash_cli.config as cfg
     import plugins.cron_providers as pc
     from cron import scheduler_provider as sp
     from cron.scheduler_provider import CronScheduler
@@ -378,7 +399,9 @@ def test_ticker_survives_baseexception_from_tick():
          patch("cron.jobs.record_ticker_heartbeat"):
         t = threading.Thread(target=prov.start, args=(stop,), kwargs={"interval": 0}, daemon=True)
         t.start()
-        time.sleep(0.2)
+        # Survive the BaseException AND keep ticking: wait for ≥2 calls.
+        assert _wait_until(lambda: len(calls) >= 2), \
+            "ticker did not keep ticking after the BaseException"
         stop.set()
         t.join(timeout=5)
 
@@ -399,7 +422,10 @@ def test_ticker_records_heartbeat_each_iteration():
                side_effect=lambda success=False: beats.append(success)):
         t = threading.Thread(target=prov.start, args=(stop,), kwargs={"interval": 0}, daemon=True)
         t.start()
-        time.sleep(0.2)
+        # Wait for the pre-loop liveness beat AND at least one successful
+        # post-tick beat before stopping (was a fixed 0.2s sleep → flaky).
+        assert _wait_until(lambda: any(b is True for b in beats[1:])), \
+            "successful tick did not bump success marker"
         stop.set()
         t.join(timeout=5)
 
@@ -422,7 +448,9 @@ def test_failing_tick_records_liveness_but_not_success():
                side_effect=lambda success=False: beats.append(success)):
         t = threading.Thread(target=prov.start, args=(stop,), kwargs={"interval": 0}, daemon=True)
         t.start()
-        time.sleep(0.2)
+        # Wait for the pre-loop beat + at least one post-tick beat (was flaky
+        # with a fixed 0.2s sleep under loaded CI).
+        assert _wait_until(lambda: len(beats) >= 2), "ticker did not record heartbeats"
         stop.set()
         t.join(timeout=5)
 
@@ -503,9 +531,9 @@ def test_cron_status_reports_alive_but_failing(tmp_path, monkeypatch, capsys):
     """cron_status warns when the ticker is alive (fresh heartbeat) but no tick
     has succeeded recently (#32612: alive-but-failing must not look healthy)."""
     import cron.jobs as jobs
-    from nyxo_cli import cron as cron_cli
+    from flash_cli import cron as cron_cli
 
-    monkeypatch.setattr("nyxo_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("flash_cli.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 5.0)      # fresh
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 9_999.0)    # stale
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -518,9 +546,9 @@ def test_cron_status_reports_alive_but_failing(tmp_path, monkeypatch, capsys):
 
 def test_cron_status_healthy_when_both_fresh(tmp_path, monkeypatch, capsys):
     import cron.jobs as jobs
-    from nyxo_cli import cron as cron_cli
+    from flash_cli import cron as cron_cli
 
-    monkeypatch.setattr("nyxo_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("flash_cli.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 5.0)
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 5.0)
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -532,9 +560,9 @@ def test_cron_status_healthy_when_both_fresh(tmp_path, monkeypatch, capsys):
 
 def test_cron_status_reports_stalled_when_no_heartbeat(tmp_path, monkeypatch, capsys):
     import cron.jobs as jobs
-    from nyxo_cli import cron as cron_cli
+    from flash_cli import cron as cron_cli
 
-    monkeypatch.setattr("nyxo_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("flash_cli.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 9_999.0)  # dead
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 9_999.0)
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -543,3 +571,98 @@ def test_cron_status_reports_stalled_when_no_heartbeat(tmp_path, monkeypatch, ca
     out = capsys.readouterr().out
     assert "STALLED" in out
     assert "will fire automatically" not in out
+
+
+# ── F8: runtime backstop — never resolve a stored pair that exfiltrates a key ──
+
+
+class TestGuardJobCredentialExfil:
+    """run_job() must fail closed before provider resolution when a job's stored
+    provider/base_url pair would ship a named provider's stored credential to an
+    off-host endpoint — covering jobs persisted before the create/update guard
+    or written directly to the store (F8 stored-job path; CWE-200/CWE-522)."""
+
+    def test_named_registry_provider_offhost_is_blocked(self):
+        import pytest
+        from cron.scheduler import _guard_job_credential_exfil
+
+        job = {"id": "j1", "provider": "anthropic",
+               "base_url": "https://evil.example/v1"}
+        with pytest.raises(RuntimeError) as exc:
+            _guard_job_credential_exfil(job)
+        assert "blocked for safety" in str(exc.value)
+
+    def test_named_custom_offhost_is_blocked(self, monkeypatch):
+        import pytest
+        import flash_cli.runtime_provider as rp
+        from cron.scheduler import _guard_job_credential_exfil
+
+        monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
+        monkeypatch.setattr(
+            rp, "_get_named_custom_provider",
+            lambda n: {"name": "legit", "base_url": "https://legit.example/v1",
+                       "api_key": "sk-legit"},
+        )
+        job = {"id": "j2", "provider": "custom:legit",
+               "base_url": "https://evil.example/v1"}
+        with pytest.raises(RuntimeError):
+            _guard_job_credential_exfil(job)
+
+    def test_named_custom_matching_host_is_allowed(self, monkeypatch):
+        import flash_cli.runtime_provider as rp
+        from cron.scheduler import _guard_job_credential_exfil
+
+        monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
+        monkeypatch.setattr(
+            rp, "_get_named_custom_provider",
+            lambda n: {"name": "legit", "base_url": "https://legit.example/v1",
+                       "api_key": "sk-legit"},
+        )
+        job = {"id": "j3", "provider": "custom:legit",
+               "base_url": "https://legit.example/v1"}
+        assert _guard_job_credential_exfil(job) is None
+
+    def test_bare_custom_is_allowed(self):
+        from cron.scheduler import _guard_job_credential_exfil
+
+        job = {"id": "j4", "provider": "custom",
+               "base_url": "https://anything.example/v1"}
+        assert _guard_job_credential_exfil(job) is None
+
+    def test_no_base_url_is_allowed(self):
+        from cron.scheduler import _guard_job_credential_exfil
+
+        assert _guard_job_credential_exfil({"id": "j5", "provider": "anthropic"}) is None
+        assert _guard_job_credential_exfil({"id": "j6"}) is None
+
+    def test_validator_exception_with_base_url_fails_closed(self, monkeypatch):
+        # If the validator/import unexpectedly raises, this last-resort backstop
+        # must NOT allow a base_url-bearing job through to provider resolution
+        # (it cannot prove the stored pair is safe). Regression for the
+        # fail-open `except Exception: err = None` path.
+        import pytest
+        import tools.cronjob_tools as ct
+        from cron.scheduler import _guard_job_credential_exfil
+
+        def _boom(provider, base_url):
+            raise RuntimeError("validator blew up")
+
+        monkeypatch.setattr(ct, "_validate_cron_base_url", _boom)
+        job = {"id": "j7", "provider": "custom:legit",
+               "base_url": "https://evil.example/v1"}
+        with pytest.raises(RuntimeError) as exc:
+            _guard_job_credential_exfil(job)
+        assert "blocked for safety" in str(exc.value)
+
+    def test_validator_exception_without_base_url_still_allowed(self, monkeypatch):
+        # A job with no base_url override can't exfiltrate via this path, so a
+        # validator error must not wedge it — only base_url-bearing jobs fail
+        # closed.
+        import tools.cronjob_tools as ct
+        from cron.scheduler import _guard_job_credential_exfil
+
+        def _boom(provider, base_url):
+            raise RuntimeError("validator blew up")
+
+        monkeypatch.setattr(ct, "_validate_cron_base_url", _boom)
+        assert _guard_job_credential_exfil({"id": "j8", "provider": "anthropic"}) is None

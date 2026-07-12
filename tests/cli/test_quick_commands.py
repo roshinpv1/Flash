@@ -9,7 +9,7 @@ import pytest
 # ── CLI tests ──────────────────────────────────────────────────────────────
 
 class TestCLIQuickCommands:
-    """Test quick command dispatch in NyxoCLI.process_command."""
+    """Test quick command dispatch in HermesCLI.process_command."""
 
     @staticmethod
     def _printed_plain(call_arg):
@@ -18,8 +18,8 @@ class TestCLIQuickCommands:
         return str(call_arg)
 
     def _make_cli(self, quick_commands):
-        from cli import NyxoCLI
-        cli = NyxoCLI.__new__(NyxoCLI)
+        from cli import HermesCLI
+        cli = HermesCLI.__new__(HermesCLI)
         cli.config = {"quick_commands": quick_commands}
         cli.console = MagicMock()
         cli.agent = None
@@ -183,9 +183,8 @@ class TestGatewayQuickCommands:
         """Quick command output must redact sensitive patterns before returning."""
         from gateway.run import GatewayRunner
 
-        # Ensure redaction is active regardless of host NYXO_REDACT_SECRETS state
-        # or test ordering (the module snapshots env at import time, so other
-        # tests in the same xdist worker can flip the flag).
+        # Ensure redaction is active regardless of host HERMES_REDACT_SECRETS state
+        # or test ordering
         monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 
         runner = GatewayRunner.__new__(GatewayRunner)

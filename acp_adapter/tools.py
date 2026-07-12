@@ -1,4 +1,4 @@
-"""ACP tool-call helpers for mapping nyxo tools to ACP ToolKind and building content."""
+"""ACP tool-call helpers for mapping flash tools to ACP ToolKind and building content."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from acp.schema import (
 )
 
 # ---------------------------------------------------------------------------
-# Map nyxo tool names -> ACP ToolKind
+# Map flash tool names -> ACP ToolKind
 # ---------------------------------------------------------------------------
 
 TOOL_KIND_MAP: Dict[str, ToolKind] = {
@@ -74,12 +74,12 @@ _POLISHED_TOOLS = {
     "kanban_create", "kanban_show", "kanban_comment", "kanban_complete",
     "kanban_block", "kanban_link", "kanban_heartbeat",
     "yb_query_group_info", "yb_query_group_members", "yb_search_sticker",
-    "yb_send_dm", "yb_send_sticker", "mixture_of_agents",
+    "yb_send_dm", "yb_send_sticker",
 }
 
 
 def get_tool_kind(tool_name: str) -> ToolKind:
-    """Return the ACP ToolKind for a nyxo tool, defaulting to 'other'."""
+    """Return the ACP ToolKind for a flash tool, defaulting to 'other'."""
     return TOOL_KIND_MAP.get(tool_name, "other")
 
 
@@ -110,7 +110,12 @@ def build_tool_title(tool_name: str, args: Dict[str, Any]) -> str:
     if tool_name == "web_extract":
         urls = args.get("urls", [])
         if urls:
-            return f"extract: {urls[0]}" + (f" (+{len(urls)-1})" if len(urls) > 1 else "")
+            first = urls[0]
+            if isinstance(first, dict):
+                first = first.get("url") or first.get("href") or "?"
+            elif not isinstance(first, str):
+                first = "?"
+            return f"extract: {first}" + (f" (+{len(urls)-1})" if len(urls) > 1 else "")
         return "web extract"
     if tool_name == "process":
         action = str(args.get("action") or "").strip() or "manage"
@@ -192,7 +197,7 @@ def _json_loads_maybe(value: Optional[str]) -> Any:
     except Exception:
         pass
 
-    # Some Nyxo tools append a human hint after a JSON payload, e.g.
+    # Some Hermes tools append a human hint after a JSON payload, e.g.
     # ``{...}\n\n[Hint: Results truncated...]``. Keep the structured rendering path
     # by decoding the first JSON value instead of falling back to raw text.
     try:
@@ -203,7 +208,7 @@ def _json_loads_maybe(value: Optional[str]) -> Any:
 
 
 def _tool_result_failed(result: Optional[str], tool_name: str | None = None) -> bool:
-    """Return True when a structured Nyxo tool result clearly failed.
+    """Return True when a structured Hermes tool result clearly failed.
 
     Keep this deliberately conservative. Plain text can contain words like
     "error" because tests failed or a command printed diagnostics; Zed should
@@ -230,7 +235,7 @@ def _tool_result_failed(result: Optional[str], tool_name: str | None = None) -> 
     if isinstance(exit_code, int) and exit_code != 0:
         return True
 
-    # Nyxo core/polished tools commonly report tool-level failures as a
+    # Hermes core/polished tools commonly report tool-level failures as a
     # structured {"error": "..."} payload without an explicit success flag.
     # Keep generic plugin/unknown tool payloads conservative to avoid marking
     # optional diagnostic messages as failed.
@@ -306,7 +311,7 @@ def _format_read_file_result(result: Optional[str], args: Optional[Dict[str, Any
     header = f"Read {path}{suffix}"
     if data.get("total_lines") is not None:
         header += f" — {data.get('total_lines')} total lines"
-    # Nyxo read_file output is line-numbered with `|`. If we send it as raw
+    # Hermes read_file output is line-numbered with `|`. If we send it as raw
     # Markdown, Zed can interpret pipes as tables and collapse the layout.
     # Fence the payload so file lines stay readable and literal.
     return _truncate_text(f"{header}\n\n{_fenced_text(content)}")
@@ -617,7 +622,7 @@ def _format_session_search_result(result: Optional[str]) -> Optional[str]:
         return None
     mode = data.get("mode") or "search"
     query = data.get("query")
-    lines = ["Recent sessions" if mode == "recent" else f"Session search results" + (f" for `{query}`" if query else "")]
+    lines = ["Recent sessions" if mode == "recent" else "Session search results" + (f" for `{query}`" if query else "")]
     if not results:
         lines.append(str(data.get("message") or "No matching sessions found."))
         return "\n".join(lines)
@@ -1021,7 +1026,7 @@ def build_tool_start(
     *,
     edit_diff: Any = None,
 ) -> ToolCallStart:
-    """Create a ToolCallStart event for the given nyxo tool invocation."""
+    """Create a ToolCallStart event for the given flash tool invocation."""
     kind = get_tool_kind(tool_name)
     title = build_tool_title(tool_name, arguments)
     locations = extract_locations(arguments)

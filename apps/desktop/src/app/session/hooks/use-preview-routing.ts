@@ -13,7 +13,7 @@ import {
   setPreviewTarget
 } from '@/store/preview'
 import { $currentCwd } from '@/store/session'
-import type { RpcEvent } from '@/types/nyxo'
+import type { RpcEvent } from '@/types/flash'
 
 type EventHandler = (event: RpcEvent) => void
 

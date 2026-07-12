@@ -16,7 +16,9 @@ export function GenerateUnavailable({ onSetup }: GenerateUnavailableProps) {
         <PawPrint className="size-5" />
       </span>
       <div className="space-y-1.5">
-        <p className="text-[length:var(--conversation-text-font-size)] font-semibold">Add an image backend to generate</p>
+        <p className="text-[length:var(--conversation-text-font-size)] font-semibold">
+          Add an image backend to generate
+        </p>
         <p className="mx-auto max-w-[19rem] text-[length:var(--conversation-caption-font-size)] leading-relaxed text-(--ui-text-tertiary)">
           Hatching a custom pet needs a provider that can ground on a reference image.
         </p>
@@ -27,7 +29,7 @@ export function GenerateUnavailable({ onSetup }: GenerateUnavailableProps) {
       </Button>
       <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-[0.6875rem] text-(--ui-text-tertiary)">
         <span>Grab a key from</span>
-        <ExternalLink href="https://portal.nousresearch.com" showExternalIcon={false}>
+        <ExternalLink href="https://portal.flashorg.com" showExternalIcon={false}>
           Nous Portal
         </ExternalLink>
         <span>·</span>

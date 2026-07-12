@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { canOpenSessionWindow, openNewSessionInNewWindow, openSessionInNewWindow } from './windows'
 
-const desktopWindow = window as unknown as { nyxoDesktop?: Window['nyxoDesktop'] }
-const initialNyxoDesktop = desktopWindow.nyxoDesktop
+const desktopWindow = window as unknown as { flashDesktop?: Window['flashDesktop'] }
+const initialHermesDesktop = desktopWindow.flashDesktop
 
 const notifyError = vi.fn()
 
@@ -12,13 +12,13 @@ vi.mock('./notifications', () => ({
 }))
 
 function installBridge(
-  openSessionWindow?: Window['nyxoDesktop']['openSessionWindow'],
-  openNewSessionWindow?: Window['nyxoDesktop']['openNewSessionWindow']
+  openSessionWindow?: Window['flashDesktop']['openSessionWindow'],
+  openNewSessionWindow?: Window['flashDesktop']['openNewSessionWindow']
 ) {
-  desktopWindow.nyxoDesktop = {
+  desktopWindow.flashDesktop = {
     ...(openSessionWindow ? { openSessionWindow } : {}),
     ...(openNewSessionWindow ? { openNewSessionWindow } : {})
-  } as unknown as Window['nyxoDesktop']
+  } as unknown as Window['flashDesktop']
 }
 
 beforeEach(() => {
@@ -26,16 +26,16 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialNyxoDesktop) {
-    desktopWindow.nyxoDesktop = initialNyxoDesktop
+  if (initialHermesDesktop) {
+    desktopWindow.flashDesktop = initialHermesDesktop
   } else {
-    delete desktopWindow.nyxoDesktop
+    delete desktopWindow.flashDesktop
   }
 })
 
 describe('canOpenSessionWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.nyxoDesktop
+    delete desktopWindow.flashDesktop
     expect(canOpenSessionWindow()).toBe(false)
   })
 
@@ -62,7 +62,7 @@ describe('openSessionInNewWindow', () => {
   })
 
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.nyxoDesktop
+    delete desktopWindow.flashDesktop
 
     await openSessionInNewWindow('s1')
 
@@ -108,7 +108,7 @@ describe('openSessionInNewWindow', () => {
 
 describe('openNewSessionInNewWindow', () => {
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.nyxoDesktop
+    delete desktopWindow.flashDesktop
 
     await openNewSessionInNewWindow()
 

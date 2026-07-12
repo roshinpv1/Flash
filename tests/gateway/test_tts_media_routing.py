@@ -22,7 +22,7 @@ class _MediaRoutingAdapter(BasePlatformAdapter):
     def __init__(self):
         super().__init__(PlatformConfig(enabled=True, token="test"), Platform.TELEGRAM)
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         return True
 
     async def disconnect(self):
@@ -239,8 +239,8 @@ async def test_streaming_delivery_blocks_media_path_outside_allowed_roots(tmp_pa
     # auto-accepted by the trust window. (Recency trust is covered separately
     # in test_platform_base.py. The public default flipped to non-strict in
     # 2026-05; this test pins strict on explicitly.)
-    monkeypatch.setenv("NYXO_MEDIA_DELIVERY_STRICT", "1")
-    monkeypatch.setenv("NYXO_MEDIA_TRUST_RECENT_FILES", "0")
+    monkeypatch.setenv("HERMES_MEDIA_DELIVERY_STRICT", "1")
+    monkeypatch.setenv("HERMES_MEDIA_TRUST_RECENT_FILES", "0")
     adapter = SimpleNamespace(
         name="test",
         extract_media=BasePlatformAdapter.extract_media,

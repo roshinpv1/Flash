@@ -20,39 +20,44 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from nyxo_state import SessionDB
+from flash_state import SessionDB
 
 
 @pytest.fixture()
-def nyxo_home(tmp_path, monkeypatch):
-    home = tmp_path / ".nyxo"
+def flash_home(tmp_path, monkeypatch):
+    home = tmp_path / ".flash"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("NYXO_HOME", str(home))
+    monkeypatch.setenv("HERMES_HOME", str(home))
     yield home
 
 
 @pytest.fixture()
-def server(nyxo_home):
+def server(flash_home):
     with patch.dict(
         "sys.modules",
         {
-            "nyxo_cli.env_loader": MagicMock(),
-            "nyxo_cli.banner": MagicMock(),
+            "flash_cli.env_loader": MagicMock(),
+            "flash_cli.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")
         yield mod
+        # Reset module-level session state without re-importing. importlib.reload
+        # would re-register the module's atexit hooks; duplicated hooks race the
+        # stderr buffer at interpreter shutdown (Fatal Python error:
+        # _enter_buffered_busy) — same class as PR #34217.
         mod._sessions.clear()
         mod._pending.clear()
         mod._answers.clear()
-        mod._methods.clear()
-        importlib.reload(mod)
+        # NOTE: _methods is intentionally NOT cleared — it's populated at import
+        # time and would only repopulate via reload.
+        mod._db = None
 
 
 @pytest.fixture()
-def db(nyxo_home):
-    return SessionDB(db_path=nyxo_home / "state.db")
+def db(flash_home):
+    return SessionDB(db_path=flash_home / "state.db")
 
 
 @pytest.fixture()

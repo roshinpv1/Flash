@@ -7,7 +7,7 @@ path's ``git stash`` aborts with "could not write index" and the following
 first" -- surfacing to GUI/bootstrap users as ``git checkout main failed
 (exit 1)`` and failing the whole install at the repository stage.
 
-The ``nyxo update`` Python path already clears the conflict with ``git reset``
+The ``flash update`` Python path already clears the conflict with ``git reset``
 before stashing (#4735); both installer scripts must do the same.
 """
 
@@ -52,6 +52,13 @@ def _extract_autostash_block() -> str:
     return m.group(0)
 
 
+def _extract_install_sh_function(name: str) -> str:
+    text = INSTALL_SH.read_text()
+    match = re.search(rf"{name}\(\) \{{.*?\n\}}", text, re.DOTALL)
+    assert match is not None, f"{name}() not found in install.sh"
+    return match.group(0)
+
+
 def _make_unmerged_repo(repo: Path) -> None:
     """Leave ``repo`` with a conflicted (unmerged) index, as an interrupted
     update would."""
@@ -79,7 +86,7 @@ def _make_unmerged_repo(repo: Path) -> None:
 
 @pytest.mark.live_system_guard_bypass  # runs against a dedicated throwaway repo
 def test_install_sh_clears_unmerged_index_then_stashes(tmp_path: Path) -> None:
-    repo = tmp_path / "nyxo-agent"
+    repo = tmp_path / "flash-agent"
     repo.mkdir()
     _make_unmerged_repo(repo)
 
@@ -92,6 +99,8 @@ def test_install_sh_clears_unmerged_index_then_stashes(tmp_path: Path) -> None:
     script = (
         "set -e\n"
         'log_info() { echo "INFO: $*"; }\n'
+        f'INSTALL_DIR="{repo}"\n'
+        f"{_extract_install_sh_function('discard_update_lockfile_churn')}\n"
         "run() {\n"
         f"{block}"
         "}\n"
@@ -148,16 +157,16 @@ def test_install_ps1_stops_venv_resident_processes_before_removing_venv() -> Non
     old venv before deleting it.
 
     A gateway autostarted by a scheduled task runs as
-    ``venv\\Scripts\\pythonw.exe -m nyxo_cli.main gateway run`` — image name
-    ``pythonw``, not ``nyxo.exe`` — so the ``taskkill /IM nyxo.exe`` guard
+    ``venv\\Scripts\\pythonw.exe -m flash_cli.main gateway run`` — image name
+    ``pythonw``, not ``flash.exe`` — so the ``taskkill /IM flash.exe`` guard
     misses it, the loaded ``.pyd`` stays locked, and ``Remove-Item venv`` fails
     mid-recursion (issues #47036/#47557/#47910). The recreate branch must also
     sweep by venv path prefix, and that sweep must run before the delete.
     """
     text = INSTALL_PS1.read_text()
 
-    # The nyxo.exe tree-kill is preserved (kills spawned child processes too).
-    assert 'taskkill /F /T /IM nyxo.exe' in text
+    # The flash.exe tree-kill is preserved (kills spawned child processes too).
+    assert 'taskkill /F /T /IM flash.exe' in text
 
     # The venv path-prefix sweep exists. It must match by case-insensitive
     # StartsWith, NOT PowerShell -like: a venv path containing wildcard

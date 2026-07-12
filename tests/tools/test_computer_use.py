@@ -22,7 +22,7 @@ def _reset_backend():
     from tools.computer_use.tool import reset_backend_for_tests
     reset_backend_for_tests()
     # Force the noop backend.
-    with patch.dict(os.environ, {"NYXO_COMPUTER_USE_BACKEND": "noop"}, clear=False):
+    with patch.dict(os.environ, {"HERMES_COMPUTER_USE_BACKEND": "noop"}, clear=False):
         yield
     reset_backend_for_tests()
 
@@ -1132,6 +1132,36 @@ class TestElementLabelParsing:
         assert labels[14] == "One"
         assert labels[15] == "Search"
 
+    def test_parenthesised_and_value_label_formats(self):
+        """Real cua-driver System Settings format: `(label)` and `= "value"`.
+
+        Regression for the bug where AXButton (Dark), AXStaticText = "Wi-Fi",
+        and AXPopUpButton = "Automatic" all came back with EMPTY labels because
+        the regex only matched the quoted and id= forms. A pure-digit (N) is an
+        order number, not a label, and must be skipped in favour of id=.
+        """
+        from tools.computer_use.cua_backend import _parse_elements_from_tree
+        tree = (
+            '- [77] AXButton (Auto) [help="..." actions=[press]]\n'
+            '- [78] AXButton (Light) [help="..." actions=[press]]\n'
+            '- [79] AXButton (Dark) [help="Use a dark appearance..." actions=[press]]\n'
+            '          - [4] AXStaticText = "Wi\u2011Fi" [id=com.apple.wifi actions=[showmenu]]\n'
+            '- [92] AXPopUpButton = "Automatic" [id=HighlightColorPicker actions=[press]]\n'
+            '- [100] AXRadioButton (Always) [actions=[press]]\n'
+            '[200] AXButton (5) id=RealLabel\n'   # (5) is order number -> label from id=
+            '[201] AXButton (7)\n'                # order number only, no real label
+        )
+        els = _parse_elements_from_tree(tree)
+        labels = {e.index: e.label for e in els}
+        assert labels[77] == "Auto"
+        assert labels[78] == "Light"
+        assert labels[79] == "Dark"           # the exact case that broke theme-switching
+        assert labels[4] == "Wi\u2011Fi"
+        assert labels[92] == "Automatic"
+        assert labels[100] == "Always"
+        assert labels[200] == "RealLabel"     # (5) order skipped, id= used
+        assert labels[201] == ""              # pure order number, no label
+
 
 class TestUpdateCheck:
     """cua_driver_update_check() / _nudge(): native `check-update --json`.
@@ -1468,6 +1498,194 @@ class TestCuaDriverSessionReconnect:
         # Exactly one attempt, no reconnect.
         assert len(bridge.calls) == 1
 
+    def test_is_transient_daemon_error_matches_eagain(self):
+        """The EAGAIN daemon-proxy error must be classified as transient."""
+        from tools.computer_use.cua_backend import _CuaDriverSession
+
+        msg = ("daemon transport error forwarding `get_window_state`: "
+               "Resource temporarily unavailable (os error 35)")
+        assert _CuaDriverSession._is_transient_daemon_error(RuntimeError(msg)) is True
+        assert _CuaDriverSession._is_transient_daemon_error(
+            RuntimeError("daemon proxy to /tmp/sock not ready")) is True
+        # Unrelated errors must NOT be treated as transient.
+        assert _CuaDriverSession._is_transient_daemon_error(ValueError("boom")) is False
+
+    def test_call_tool_falls_back_to_cli_on_transient_error(self):
+        """When the MCP bridge throws EAGAIN, call_tool routes to the CLI transport."""
+        import threading
+        from typing import Any, cast
+        from tools.computer_use.cua_backend import _CuaDriverSession
+
+        eagain = RuntimeError(
+            "daemon transport error forwarding `get_window_state`: "
+            "Resource temporarily unavailable (os error 35)"
+        )
+
+        class FakeBridge:
+            def __init__(self):
+                self.calls = []
+
+            def run(self, value, timeout=None):
+                self.calls.append((value, timeout))
+                raise eagain
+
+        bridge = FakeBridge()
+        session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
+        session._bridge = bridge
+        session._session = object()
+        session._exit_stack = None
+        session._lock = threading.Lock()
+        session._started = True
+        session._call_tool_async = lambda name, args: ("call", name, args)
+
+        cli_calls = []
+
+        def fake_cli(name, args, timeout):
+            cli_calls.append((name, args))
+            return {"data": "42 elements\ntree", "images": ["B64PNG"],
+                    "structuredContent": {"element_count": 42}, "isError": False}
+
+        session._call_tool_via_cli = fake_cli
+
+        result = session.call_tool("get_window_state", {"pid": 1, "window_id": 2})
+        # MCP path attempted exactly once, then CLI fallback used.
+        assert len(bridge.calls) == 1
+        assert cli_calls == [("get_window_state", {"pid": 1, "window_id": 2})]
+        assert result["images"] == ["B64PNG"]
+
+    def test_cli_fallback_reads_screenshot_from_file(self, tmp_path):
+        """_call_tool_via_cli must base64-read a screenshot written to disk
+        (screenshot_out_file path) when no inline base64 is present."""
+        import base64 as _b64
+        from typing import Any, cast
+        from tools.computer_use.cua_backend import _CuaDriverSession
+
+        png_bytes = b"\x89PNG\r\n\x1a\nFAKEDATA"
+        shot = tmp_path / "shot.png"
+        shot.write_bytes(png_bytes)
+
+        session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
+
+        captured_cmd = {}
+
+        class FakeProc:
+            returncode = 0
+            stderr = ""
+            # Daemon returns a path, not inline base64.
+            stdout = ('{"element_count": 7, "tree_markdown": "- [0] AXButton",'
+                      ' "screenshot_file_path": "%s"}' % str(shot))
+
+        import subprocess as _sp
+        orig_run = _sp.run
+
+        def fake_run(cmd, **kw):
+            captured_cmd["cmd"] = cmd
+            return FakeProc()
+
+        _sp.run = fake_run
+        try:
+            out = session._call_tool_via_cli("get_window_state",
+                                             {"pid": 1, "window_id": 2}, 30.0)
+        finally:
+            _sp.run = orig_run
+
+        # Screenshot read from disk and base64-encoded.
+        assert out["images"] == [_b64.b64encode(png_bytes).decode("ascii")]
+        # tree_markdown surfaced as the data text blob with the element-count summary.
+        assert "AXButton" in out["data"]
+        assert "7 elements" in out["data"]
+
+
+class TestCaptureEmptyResultClipFallback:
+    """When the MCP bridge returns a degenerate/empty get_window_state result
+    (no screenshot, no parseable tree) WITHOUT raising, capture() must re-fetch
+    over the CLI transport rather than surfacing a silent 0x0 capture."""
+
+    def test_capture_refetches_via_cli_on_empty_gws(self):
+        from typing import Any, cast
+        from tools.computer_use.cua_backend import CuaDriverBackend
+
+        windows = [{
+            "app_name": "Finder", "pid": 1208, "window_id": 1500,
+            "is_on_screen": True, "z_index": 0, "title": "Desktop",
+        }]
+
+        # A valid 1x1 PNG, base64-encoded.
+        png = (b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+               b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00"
+               b"\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82")
+        png_b64 = base64.b64encode(png).decode("ascii")
+
+        backend = CuaDriverBackend()
+        sess = MagicMock()
+
+        # MCP path: list_windows OK, but get_window_state returns EMPTY (no
+        # images, blank data) — the silent-failure mode.
+        def mcp_call(name, args, timeout=30.0):
+            if name == "list_windows":
+                return {"data": "", "images": [], "isError": False,
+                        "structuredContent": {"windows": windows}}
+            if name == "get_window_state":
+                return {"data": "", "images": [], "isError": False,
+                        "structuredContent": None}
+            return {"data": "", "images": [], "isError": False, "structuredContent": None}
+        sess.call_tool.side_effect = mcp_call
+
+        # CLI re-fetch returns a real screenshot + tree.
+        cli_calls = []
+        def cli_call(name, args, timeout):
+            cli_calls.append(name)
+            return {"data": "5 elements\n- [0] AXButton 'OK'", "images": [png_b64],
+                    "structuredContent": {"element_count": 5}, "isError": False}
+        sess._call_tool_via_cli.side_effect = cli_call
+
+        backend._session = cast(Any, sess)
+        cap = backend.capture(mode="som", app="Finder")
+
+        # The empty MCP gws result triggered a CLI re-fetch that supplied the PNG.
+        assert "get_window_state" in cli_calls
+        assert cap.png_b64 == png_b64
+        assert cap.width == 1 and cap.height == 1
+        assert len(cap.elements) >= 1
+
+    def test_capture_refetches_windows_via_cli_when_mcp_empty(self):
+        from typing import Any, cast
+        from tools.computer_use.cua_backend import CuaDriverBackend
+
+        windows = [{
+            "app_name": "Finder", "pid": 1208, "window_id": 1500,
+            "is_on_screen": True, "z_index": 0, "title": "Desktop",
+        }]
+        backend = CuaDriverBackend()
+        sess = MagicMock()
+
+        # MCP list_windows returns NO windows (flaky session); gws would work but
+        # we never reach it unless the window list is recovered via CLI.
+        def mcp_call(name, args, timeout=30.0):
+            if name == "list_windows":
+                return {"data": "", "images": [], "isError": False,
+                        "structuredContent": {"windows": []}}
+            return {"data": "3 elements\n- [0] AXButton", "images": [], "isError": False,
+                    "structuredContent": None}
+        sess.call_tool.side_effect = mcp_call
+
+        cli_calls = []
+        def cli_call(name, args, timeout):
+            cli_calls.append(name)
+            if name == "list_windows":
+                return {"data": "", "images": [], "isError": False,
+                        "structuredContent": {"windows": windows}}
+            return {"data": "3 elements\n- [0] AXButton", "images": [], "isError": False,
+                    "structuredContent": None}
+        sess._call_tool_via_cli.side_effect = cli_call
+
+        backend._session = cast(Any, sess)
+        cap = backend.capture(mode="ax", app="Finder")
+
+        # CLI recovered the window list; capture resolved the Finder window.
+        assert "list_windows" in cli_calls
+        assert cap.app == "Finder"
+
 
 class TestCaptureAppFilterNoMatch:
     """capture(app=X) must not silently fall back to the frontmost window
@@ -1587,7 +1805,7 @@ class TestCuaEnvironmentScrubbing:
     def test_cua_session_sanitizes_provider_env_vars(self):
         """_CuaDriverSession lifecycle must sanitize sensitive env vars.
 
-        The cua-driver MCP subprocess should not inherit Nyxo-managed
+        The cua-driver MCP subprocess should not inherit Hermes-managed
         credentials or other sensitive environment variables — only
         runtime-required vars. Regression test for issue #37878.
 
@@ -1681,7 +1899,7 @@ class TestCuaEnvironmentScrubbing:
 
 
 class TestClickButtonPassthrough:
-    """Surface 5 (NousResearch/nyxo-agent#47072) — `middle_click` must
+    """Surface 5 (FlashOrg/hermes-agent#47072) — `middle_click` must
     actually reach cua-driver as a middle button, not silently degrade to
     left. Pre-fix, the backend's `click()` chose the tool by name
     (`button == "right"` → `right_click`, everything else → `click` with
@@ -1770,7 +1988,7 @@ class TestClickButtonPassthrough:
 
 
 class TestImageMimeTypePropagation:
-    """Surface 7 (NousResearch/nyxo-agent#47072): trycua/cua#1961 made
+    """Surface 7 (FlashOrg/hermes-agent#47072): trycua/cua#1961 made
     `mimeType` part of every MCP image-part response, so the wrapper no
     longer has to sniff PNG vs JPEG by inspecting the first base64 bytes
     (`/9j/` for JPEG / `iVBOR` for PNG). The sniff is preserved as a
@@ -1875,10 +2093,10 @@ class TestImageMimeTypePropagation:
 
 
 class TestMcpInvocationResolution:
-    """Surface 8 (NousResearch/nyxo-agent#47072): instead of hardcoding
+    """Surface 8 (FlashOrg/hermes-agent#47072): instead of hardcoding
     `["mcp"]` as the cua-driver subcommand, we ask the driver via its
     `manifest` JSON (trycua/cua#1961) so a future rename or relocation of
-    the MCP subcommand doesn't require a Nyxo patch.
+    the MCP subcommand doesn't require a Hermes patch.
 
     The discovery hop must NEVER prevent the wrapper from starting — every
     failure mode (no manifest verb, non-zero exit, junk JSON, missing
@@ -1913,7 +2131,7 @@ class TestMcpInvocationResolution:
 
     def test_future_renamed_subcommand_is_honored(self):
         """The whole point: a future cua-driver that exposes `mcp-stdio`
-        instead of `mcp` keeps working without a Nyxo patch."""
+        instead of `mcp` keeps working without a Hermes patch."""
         from unittest.mock import patch
         from tools.computer_use.cua_backend import _resolve_mcp_invocation
 
@@ -1927,7 +2145,7 @@ class TestMcpInvocationResolution:
 
     def test_falls_back_when_manifest_missing_command(self):
         """If the manifest knows the args but not the command, keep our
-        resolved driver path (so NYXO_CUA_DRIVER_CMD still wins)."""
+        resolved driver path (so HERMES_CUA_DRIVER_CMD still wins)."""
         from unittest.mock import patch
         from tools.computer_use.cua_backend import _resolve_mcp_invocation
 
@@ -1994,7 +2212,7 @@ class TestMcpInvocationResolution:
 
 
 class TestStructuredElementsConsumption:
-    """Surface 2 (NousResearch/nyxo-agent#47072): trycua/cua#1961 made
+    """Surface 2 (FlashOrg/hermes-agent#47072): trycua/cua#1961 made
     `structuredContent.elements` part of every `get_window_state` MCP
     response. The wrapper used to parse the markdown AX tree with a
     regex — lossy because bounds always came back (0,0,0,0). The
@@ -2258,7 +2476,7 @@ class TestStructuredElementsConsumption:
 
 
 class TestCapabilityDiscovery:
-    """Surface 4 (NousResearch/nyxo-agent#47072): the wrapper learns
+    """Surface 4 (FlashOrg/hermes-agent#47072): the wrapper learns
     what cua-driver supports from the per-tool `capabilities[]` array on
     `tools/list` (trycua/cua#1961) instead of name-checking. The infra
     here is consumed by other surfaces (e.g. Surface 6 only carries
@@ -2307,7 +2525,7 @@ class TestCapabilityDiscovery:
 
 
 class TestElementTokenAttachment:
-    """Surface 6 (NousResearch/nyxo-agent#47072): trycua/cua#1961 added
+    """Surface 6 (FlashOrg/hermes-agent#47072): trycua/cua#1961 added
     an opaque `element_token` alongside `element_index` so the wrapper
     can carry per-snapshot handles instead of relying on raw indices that
     silently re-resolve when the snapshot is superseded.
@@ -2459,7 +2677,7 @@ class TestElementTokenAttachment:
 
 
 class TestSessionLifecycle:
-    """Surface gap (audit June 2026): Nyxo never declared a cua-driver
+    """Surface gap (audit June 2026): Hermes never declared a cua-driver
     session, so the agent-cursor overlay was inert and per-run state
     (config overrides, recording ownership, cursor identity) was shared
     across concurrent runs. Wired now: backend.start() calls
@@ -2485,16 +2703,16 @@ class TestSessionLifecycle:
     def test_session_id_format(self):
         from tools.computer_use.cua_backend import CuaDriverBackend
         backend = CuaDriverBackend()
-        # nyxo-{12 hex chars} — short enough to surface in logs
+        # hermes-{12 hex chars} — short enough to surface in logs
         # without being a privacy hazard, unique enough for concurrent runs.
-        assert backend._session_id.startswith("nyxo-")
+        assert backend._session_id.startswith("hermes-")
         assert len(backend._session_id) == 7 + 12
 
     def test_session_id_unique_per_backend(self):
         from tools.computer_use.cua_backend import CuaDriverBackend
         a = CuaDriverBackend()._session_id
         b = CuaDriverBackend()._session_id
-        assert a != b, "each Nyxo run should mint its own session id"
+        assert a != b, "each Hermes run should mint its own session id"
 
     def test_start_invokes_start_session_with_run_id(self):
         from unittest.mock import MagicMock, patch
@@ -2867,3 +3085,66 @@ class TestCuaToolCoverageExpansion:
         backend.call_tool("get_cursor_position")
         name, args = backend._session.call_tool.call_args.args
         assert args == {"session": backend._session_id}
+
+
+class TestStartupTimeoutPhaseDetail:
+    """Issue #57025: the ready-timeout error must report which startup phase
+    wedged, so 'doctor passes but wrapper times out' reports are diagnosable."""
+
+    def test_timeout_error_includes_startup_phase(self):
+        import threading
+        from typing import Any, cast
+        from unittest.mock import MagicMock
+        from tools.computer_use.cua_backend import _CuaDriverSession
+
+        session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
+        session._lock = threading.Lock()
+        session._ready_event = threading.Event()  # never set → timeout path
+        session._setup_error = None
+        session._shutdown_event = None
+        session._startup_phase = "mcp-initialize"
+        session._signal_shutdown_locked = lambda: None
+
+        fake_bridge = MagicMock()
+        fake_bridge._loop = MagicMock()
+        session._bridge = fake_bridge
+
+        import asyncio
+        from unittest.mock import patch as _patch
+        with _patch.object(session._ready_event, "wait", return_value=False), \
+             _patch.object(asyncio, "run_coroutine_threadsafe", return_value=MagicMock()), \
+             _patch.object(_CuaDriverSession, "_lifecycle_coro", lambda self: None):
+            try:
+                session._start_lifecycle_locked()
+                assert False, "expected RuntimeError"
+            except RuntimeError as e:
+                msg = str(e)
+                assert "stuck in phase: mcp-initialize" in msg
+                assert "computer-use doctor" in msg
+
+    def test_timeout_error_defaults_to_unknown_phase(self):
+        import threading
+        from typing import Any, cast
+        from unittest.mock import MagicMock, patch as _patch
+        import asyncio
+        from tools.computer_use.cua_backend import _CuaDriverSession
+
+        session = cast(Any, _CuaDriverSession.__new__(_CuaDriverSession))
+        session._lock = threading.Lock()
+        session._ready_event = threading.Event()
+        session._setup_error = None
+        session._shutdown_event = None
+        # no _startup_phase attribute at all
+        session._signal_shutdown_locked = lambda: None
+        fake_bridge = MagicMock()
+        fake_bridge._loop = MagicMock()
+        session._bridge = fake_bridge
+
+        with _patch.object(session._ready_event, "wait", return_value=False), \
+             _patch.object(asyncio, "run_coroutine_threadsafe", return_value=MagicMock()), \
+             _patch.object(_CuaDriverSession, "_lifecycle_coro", lambda self: None):
+            try:
+                session._start_lifecycle_locked()
+                assert False, "expected RuntimeError"
+            except RuntimeError as e:
+                assert "stuck in phase: unknown" in str(e)

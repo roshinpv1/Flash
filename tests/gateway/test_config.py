@@ -4,7 +4,10 @@ import logging
 import os
 from unittest.mock import patch
 
+from agent.secret_scope import reset_secret_scope, set_secret_scope
+from flash_constants import reset_flash_home_override, set_flash_home_override
 from gateway.config import (
+    ChannelOverride,
     GatewayConfig,
     HomeChannel,
     Platform,
@@ -70,6 +73,88 @@ class TestPlatformConfigRoundtrip:
     def test_gateway_restart_notification_coerces_quoted_false(self):
         restored = PlatformConfig.from_dict({"gateway_restart_notification": "false"})
         assert restored.gateway_restart_notification is False
+
+    def test_typing_indicator_defaults_true(self):
+        assert PlatformConfig().typing_indicator is True
+        assert PlatformConfig.from_dict({}).typing_indicator is True
+
+    def test_typing_indicator_roundtrip_false(self):
+        pc = PlatformConfig(enabled=True, typing_indicator=False)
+        restored = PlatformConfig.from_dict(pc.to_dict())
+        assert restored.typing_indicator is False
+
+    def test_typing_indicator_coerces_quoted_false(self):
+        restored = PlatformConfig.from_dict({"typing_indicator": "false"})
+        assert restored.typing_indicator is False
+
+    def test_typing_indicator_resolved_from_extra(self):
+        # The shared-key loop in load_gateway_config bridges the flag into
+        # extra; from_dict must honor it there too (mirrors _grn fallback).
+        restored = PlatformConfig.from_dict({"extra": {"typing_indicator": False}})
+        assert restored.typing_indicator is False
+    def test_channel_overrides_roundtrip(self):
+        pc = PlatformConfig(
+            enabled=True,
+            channel_overrides={
+                "1234567890": ChannelOverride(
+                    model="openrouter/healer-alpha",
+                    provider="openrouter",
+                    system_prompt="You are a daily news summarizer.",
+                ),
+                "9876543210": ChannelOverride(
+                    model="anthropic/claude-opus-4.6",
+                    provider="anthropic",
+                    system_prompt="You are a coding assistant.",
+                ),
+            },
+        )
+        d = pc.to_dict()
+        assert "channel_overrides" in d
+        assert d["channel_overrides"]["1234567890"]["model"] == "openrouter/healer-alpha"
+        assert d["channel_overrides"]["9876543210"]["system_prompt"] == "You are a coding assistant."
+        restored = PlatformConfig.from_dict(d)
+        assert restored.channel_overrides["1234567890"].model == "openrouter/healer-alpha"
+        assert restored.channel_overrides["9876543210"].provider == "anthropic"
+
+    def test_channel_overrides_from_dict_normalizes_channel_id_to_str(self):
+        """YAML may have numeric channel IDs; we store as str."""
+        data = {
+            "enabled": True,
+            "channel_overrides": {
+                1234567890: {"model": "openrouter/healer-alpha"},
+            },
+        }
+        pc = PlatformConfig.from_dict(data)
+        assert "1234567890" in pc.channel_overrides
+        assert pc.channel_overrides["1234567890"].model == "openrouter/healer-alpha"
+
+
+class TestChannelOverride:
+    def test_from_dict_empty(self):
+        assert ChannelOverride.from_dict({}).model is None
+        assert ChannelOverride.from_dict(None).model is None
+
+    def test_to_dict_omits_none(self):
+        ov = ChannelOverride(model="gpt-4", provider=None, system_prompt="Hi")
+        d = ov.to_dict()
+        assert d["model"] == "gpt-4"
+        assert "provider" not in d
+        assert d["system_prompt"] == "Hi"
+
+
+class TestPlatformConfigMalformedSections:
+    def test_from_dict_ignores_malformed_nested_sections(self):
+        restored = PlatformConfig.from_dict(
+            {
+                "enabled": True,
+                "home_channel": "telegram:123",
+                "extra": "oops",
+            }
+        )
+
+        assert restored.enabled is True
+        assert restored.home_channel is None
+        assert restored.extra == {}
 
 
 class TestGetConnectedPlatforms:
@@ -138,30 +223,41 @@ class TestGetConnectedPlatforms:
 
 class TestSessionResetPolicy:
     def test_roundtrip(self):
-        policy = SessionResetPolicy(mode="idle", at_hour=6, idle_minutes=120)
+        policy = SessionResetPolicy(mode="idle", at_hour=6, idle_minutes=120,
+                                    bg_process_max_age_hours=48)
         d = policy.to_dict()
         restored = SessionResetPolicy.from_dict(d)
         assert restored.mode == "idle"
         assert restored.at_hour == 6
         assert restored.idle_minutes == 120
+        assert restored.bg_process_max_age_hours == 48
 
     def test_defaults(self):
         policy = SessionResetPolicy()
-        assert policy.mode == "both"
+        assert policy.mode == "none"
         assert policy.at_hour == 4
         assert policy.idle_minutes == 1440
+        assert policy.bg_process_max_age_hours == 24
 
     def test_from_dict_treats_null_values_as_defaults(self):
         restored = SessionResetPolicy.from_dict(
-            {"mode": None, "at_hour": None, "idle_minutes": None}
+            {"mode": None, "at_hour": None, "idle_minutes": None,
+             "bg_process_max_age_hours": None}
         )
-        assert restored.mode == "both"
+        assert restored.mode == "none"
         assert restored.at_hour == 4
         assert restored.idle_minutes == 1440
+        assert restored.bg_process_max_age_hours == 24
 
     def test_from_dict_coerces_quoted_false_notify(self):
         restored = SessionResetPolicy.from_dict({"notify": "false"})
         assert restored.notify is False
+
+    def test_from_dict_malformed_section_falls_back_to_defaults(self):
+        restored = SessionResetPolicy.from_dict("oops")
+        assert restored.mode == SessionResetPolicy().mode
+        assert restored.at_hour == 4
+        assert restored.idle_minutes == 1440
 
 
 class TestStreamingConfig:
@@ -187,6 +283,11 @@ class TestStreamingConfig:
         assert restored.edit_interval == 0.8
         assert restored.buffer_threshold == 24
         assert restored.fresh_final_after_seconds == 0.0
+
+    def test_from_dict_malformed_section_falls_back_to_defaults(self):
+        restored = StreamingConfig.from_dict("enabled")
+        assert restored.enabled is False
+        assert restored.transport == "auto"
 
 
 class TestGatewayConfigRoundtrip:
@@ -290,6 +391,27 @@ class TestGatewayConfigRoundtrip:
         restored = GatewayConfig.from_dict({"always_log_local": "false"})
         assert restored.always_log_local is False
 
+    def test_from_dict_ignores_malformed_nested_sections(self):
+        restored = GatewayConfig.from_dict(
+            {
+                "platforms": {
+                    "telegram": "enabled",
+                    "discord": {"enabled": True, "token": "tok"},
+                },
+                "default_reset_policy": "daily",
+                "reset_by_type": ["oops"],
+                "reset_by_platform": "oops",
+                "streaming": "enabled",
+            }
+        )
+
+        assert Platform.TELEGRAM not in restored.platforms
+        assert restored.platforms[Platform.DISCORD].enabled is True
+        assert restored.default_reset_policy.mode == SessionResetPolicy().mode
+        assert restored.reset_by_type == {}
+        assert restored.reset_by_platform == {}
+        assert restored.streaming.transport == "auto"
+
     def test_get_notice_delivery_defaults_to_public(self):
         config = GatewayConfig(
             platforms={Platform.SLACK: PlatformConfig(enabled=True, token="***")}
@@ -313,9 +435,9 @@ class TestGatewayConfigRoundtrip:
 
 class TestLoadGatewayConfig:
     def test_bridges_quick_commands_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "quick_commands:\n"
             "  limits:\n"
@@ -324,11 +446,37 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.quick_commands == {"limits": {"type": "exec", "command": "echo ok"}}
+
+    def test_multiplex_profiles_from_nested_gateway_section(self, tmp_path, monkeypatch):
+        """``gateway.multiplex_profiles: true`` (the nested form written by
+        ``flash config set gateway.multiplex_profiles true``) must enable
+        multiplexing when loaded via load_gateway_config().
+
+        Regression: load_gateway_config() only surfaced the *top-level*
+        ``multiplex_profiles`` key into gw_data, so a config.yaml that pinned
+        the flag under the nested ``gateway:`` section silently loaded with
+        multiplex_profiles=False. (from_dict honors the nested fallback, but
+        load_gateway_config builds gw_data from the top-level keys before
+        calling from_dict, so the nested value never reached it.)
+        """
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "gateway:\n  multiplex_profiles: true\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+
+        config = load_gateway_config()
+
+        assert config.multiplex_profiles is True
 
     def test_relay_platform_enabled_from_env_url(self, tmp_path, monkeypatch):
         """GATEWAY_RELAY_URL must enable Platform.RELAY in config.platforms so
@@ -336,9 +484,9 @@ class TestLoadGatewayConfig:
         the adapter in the platform_registry is NOT enough — the connect loop
         iterates config.platforms, so an un-enabled RELAY never connects (the
         'relay registered but no inbound' bug)."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.setenv("GATEWAY_RELAY_URL", "https://connector.example/relay/")
 
         config = load_gateway_config()
@@ -353,9 +501,9 @@ class TestLoadGatewayConfig:
     def test_relay_platform_absent_when_url_unset(self, tmp_path, monkeypatch):
         """No relay URL -> no RELAY platform, so direct/single-tenant gateways
         are unaffected."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("GATEWAY_RELAY_URL", raising=False)
 
         config = load_gateway_config()
@@ -364,14 +512,14 @@ class TestLoadGatewayConfig:
 
     def test_relay_platform_enabled_from_config_yaml(self, tmp_path, monkeypatch):
         """gateway.relay_url in config.yaml also enables RELAY (env-less path)."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n  platforms:\n    relay:\n      extra:\n        relay_url: https://connector.example/relay\n",
             encoding="utf-8",
         )
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("GATEWAY_RELAY_URL", raising=False)
 
         config = load_gateway_config()
@@ -380,73 +528,73 @@ class TestLoadGatewayConfig:
         assert config.platforms[Platform.RELAY].enabled is True
 
     def test_bridges_group_sessions_per_user_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("group_sessions_per_user: false\n", encoding="utf-8")
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.group_sessions_per_user is False
 
     def test_bridges_thread_sessions_per_user_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("thread_sessions_per_user: true\n", encoding="utf-8")
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.thread_sessions_per_user is True
 
     def test_thread_sessions_per_user_defaults_to_false(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("{}\n", encoding="utf-8")
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.thread_sessions_per_user is False
 
     def test_bridges_top_level_max_concurrent_sessions_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("max_concurrent_sessions: 2\n", encoding="utf-8")
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.max_concurrent_sessions == 2
 
     def test_bridges_nested_max_concurrent_sessions_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  max_concurrent_sessions: 3\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.max_concurrent_sessions == 3
 
     def test_top_level_max_concurrent_sessions_overrides_nested_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "max_concurrent_sessions: 2\n"
             "gateway:\n"
@@ -454,24 +602,36 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.max_concurrent_sessions == 2
 
+    def test_scalar_gateway_section_does_not_crash_streaming_fallback(self, tmp_path, monkeypatch):
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text("gateway: disabled\n", encoding="utf-8")
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+
+        config = load_gateway_config()
+
+        assert config.streaming.transport == "auto"
+
     def test_bridges_discord_thread_require_mention_from_config_yaml(self, tmp_path, monkeypatch):
         """discord.thread_require_mention in config.yaml should reach the runtime env var."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "discord:\n"
             "  thread_require_mention: true\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("DISCORD_THREAD_REQUIRE_MENTION", raising=False)
 
         load_gateway_config()
@@ -480,16 +640,16 @@ class TestLoadGatewayConfig:
 
     def test_thread_require_mention_yaml_does_not_overwrite_env(self, tmp_path, monkeypatch):
         """Explicit env var should win over config.yaml (env > yaml precedence)."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "discord:\n"
             "  thread_require_mention: false\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.setenv("DISCORD_THREAD_REQUIRE_MENTION", "true")  # user override
 
         load_gateway_config()
@@ -497,11 +657,47 @@ class TestLoadGatewayConfig:
         # Env value preserved, not clobbered by yaml.
         assert os.environ.get("DISCORD_THREAD_REQUIRE_MENTION") == "true"
 
+    def test_bridges_discord_bots_require_inline_mention_from_config_yaml(self, tmp_path, monkeypatch):
+        """discord.bots_require_inline_mention should reach the runtime env var."""
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "discord:\n"
+            "  bots_require_inline_mention: true\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+        monkeypatch.delenv("DISCORD_BOTS_REQUIRE_INLINE_MENTION", raising=False)
+
+        load_gateway_config()
+
+        assert os.environ.get("DISCORD_BOTS_REQUIRE_INLINE_MENTION") == "true"
+
+    def test_bots_require_inline_mention_yaml_does_not_overwrite_env(self, tmp_path, monkeypatch):
+        """Explicit env var should win over config.yaml for inline bot mention gating."""
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "discord:\n"
+            "  bots_require_inline_mention: false\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+        monkeypatch.setenv("DISCORD_BOTS_REQUIRE_INLINE_MENTION", "true")
+
+        load_gateway_config()
+
+        assert os.environ.get("DISCORD_BOTS_REQUIRE_INLINE_MENTION") == "true"
+
     def test_bridges_discord_allow_from_from_config_yaml(self, tmp_path, monkeypatch):
         """discord.allow_from should populate DISCORD_ALLOWED_USERS for auth."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "discord:\n"
             "  allow_from:\n"
@@ -510,7 +706,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("DISCORD_ALLOWED_USERS", raising=False)
 
         config = load_gateway_config()
@@ -525,9 +721,9 @@ class TestLoadGatewayConfig:
 
     def test_bridges_discord_platform_extra_allow_from_to_env(self, tmp_path, monkeypatch):
         """platforms.discord.extra.allow_from should reach DISCORD_ALLOWED_USERS too."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "platforms:\n"
             "  discord:\n"
@@ -537,7 +733,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("DISCORD_ALLOWED_USERS", raising=False)
 
         config = load_gateway_config()
@@ -548,9 +744,9 @@ class TestLoadGatewayConfig:
         assert os.environ.get("DISCORD_ALLOWED_USERS") == "123456789012345678"
 
     def test_bridges_quoted_false_platform_enabled_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "platforms:\n"
             "  api_server:\n"
@@ -558,7 +754,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -566,9 +762,9 @@ class TestLoadGatewayConfig:
         assert Platform.API_SERVER not in config.get_connected_platforms()
 
     def test_bridges_nested_gateway_platforms_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  platforms:\n"
@@ -584,7 +780,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -599,9 +795,9 @@ class TestLoadGatewayConfig:
         assert telegram.extra["reply_prefix"] == "nested"
 
     def test_top_level_platforms_override_nested_gateway_platforms(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  platforms:\n"
@@ -619,7 +815,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -638,9 +834,9 @@ class TestLoadGatewayConfig:
         and allow_from was silently ignored.  The apply_yaml_config_fn dispatch
         received the same fix in #44f3e51; the shared-key loop now mirrors it.
         """
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "platforms:\n"
             "  telegram:\n"
@@ -651,7 +847,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -667,9 +863,9 @@ class TestLoadGatewayConfig:
 
     def test_shared_key_loop_bridges_allow_from_from_nested_gateway_platforms(self, tmp_path, monkeypatch):
         """Same regression check for ``gateway.platforms:`` path."""
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  platforms:\n"
@@ -680,7 +876,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -692,40 +888,65 @@ class TestLoadGatewayConfig:
         assert telegram.extra.get("require_mention") is False
 
     def test_bridges_quoted_false_session_notify_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "session_reset:\n"
             "  notify: \"false\"\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.default_reset_policy.notify is False
 
     def test_bridges_quoted_false_always_log_local_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "always_log_local: \"false\"\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.always_log_local is False
 
+    def test_bridges_discord_channel_overrides_from_top_level_yaml(self, tmp_path, monkeypatch):
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "discord:\n"
+            "  channel_overrides:\n"
+            '    "1234567890":\n'
+            "      model: openrouter/healer-alpha\n"
+            "      provider: openrouter\n"
+            "      system_prompt: Daily news summarizer\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+
+        config = load_gateway_config()
+
+        discord = config.platforms[Platform.DISCORD]
+        assert "1234567890" in discord.channel_overrides
+        ov = discord.channel_overrides["1234567890"]
+        assert ov.model == "openrouter/healer-alpha"
+        assert ov.provider == "openrouter"
+        assert ov.system_prompt == "Daily news summarizer"
+
     def test_bridges_discord_channel_prompts_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "discord:\n"
             "  channel_prompts:\n"
@@ -734,7 +955,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -744,9 +965,9 @@ class TestLoadGatewayConfig:
         }
 
     def test_bridges_discord_history_backfill_settings_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "discord:\n"
             "  history_backfill: true\n"
@@ -754,7 +975,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("DISCORD_HISTORY_BACKFILL", raising=False)
         monkeypatch.delenv("DISCORD_HISTORY_BACKFILL_LIMIT", raising=False)
 
@@ -764,9 +985,9 @@ class TestLoadGatewayConfig:
         assert os.getenv("DISCORD_HISTORY_BACKFILL_LIMIT") == "17"
 
     def test_bridges_telegram_channel_prompts_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "telegram:\n"
             "  channel_prompts:\n"
@@ -775,7 +996,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -785,9 +1006,9 @@ class TestLoadGatewayConfig:
         }
 
     def test_bridges_slack_channel_prompts_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "slack:\n"
             "  channel_prompts:\n"
@@ -795,7 +1016,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -804,15 +1025,15 @@ class TestLoadGatewayConfig:
         }
 
     def test_bridges_feishu_allow_bots_from_config_yaml_to_env(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "feishu:\n  allow_bots: mentions\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("FEISHU_ALLOW_BOTS", raising=False)
 
         load_gateway_config()
@@ -820,37 +1041,69 @@ class TestLoadGatewayConfig:
         assert os.environ.get("FEISHU_ALLOW_BOTS") == "mentions"
 
     def test_feishu_allow_bots_env_takes_precedence_over_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "feishu:\n  allow_bots: all\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.setenv("FEISHU_ALLOW_BOTS", "none")
 
         load_gateway_config()
 
         assert os.environ.get("FEISHU_ALLOW_BOTS") == "none"
 
+    def test_bridges_telegram_allow_bots_from_config_yaml_to_env(self, tmp_path, monkeypatch):
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "telegram:\n  allow_bots: mentions\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+        monkeypatch.delenv("TELEGRAM_ALLOW_BOTS", raising=False)
+
+        load_gateway_config()
+
+        assert os.environ.get("TELEGRAM_ALLOW_BOTS") == "mentions"
+
+    def test_telegram_allow_bots_env_takes_precedence_over_config_yaml(self, tmp_path, monkeypatch):
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
+        config_path.write_text(
+            "telegram:\n  allow_bots: all\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+        monkeypatch.setenv("TELEGRAM_ALLOW_BOTS", "none")
+
+        load_gateway_config()
+
+        assert os.environ.get("TELEGRAM_ALLOW_BOTS") == "none"
+
     def test_invalid_quick_commands_in_config_yaml_are_ignored(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("quick_commands: not-a-mapping\n", encoding="utf-8")
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.quick_commands == {}
 
     def test_bridges_unauthorized_dm_behavior_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "unauthorized_dm_behavior: ignore\n"
             "whatsapp:\n"
@@ -858,7 +1111,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -866,25 +1119,25 @@ class TestLoadGatewayConfig:
         assert config.platforms[Platform.WHATSAPP].extra["unauthorized_dm_behavior"] == "pair"
 
     def test_bridges_telegram_disable_link_previews_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "telegram:\n"
             "  disable_link_previews: true\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.platforms[Platform.TELEGRAM].extra["disable_link_previews"] is True
 
     def test_loads_telegram_rich_messages_from_gateway_platform_extra(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  platforms:\n"
@@ -894,16 +1147,16 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.platforms[Platform.TELEGRAM].extra["rich_messages"] is False
 
     def test_loads_telegram_rich_drafts_from_gateway_platform_extra(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "gateway:\n"
             "  platforms:\n"
@@ -913,19 +1166,19 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.platforms[Platform.TELEGRAM].extra["rich_drafts"] is True
 
     def test_load_config_default_keeps_telegram_rich_messages_opt_in(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-        from nyxo_cli.config import load_config
+        from flash_cli.config import load_config
 
         config = load_config()
 
@@ -933,9 +1186,9 @@ class TestLoadGatewayConfig:
         assert config["telegram"]["extra"]["rich_drafts"] is False
 
     def test_bridges_telegram_extra_base_url_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "telegram:\n"
             "  extra:\n"
@@ -943,7 +1196,7 @@ class TestLoadGatewayConfig:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
@@ -953,32 +1206,32 @@ class TestLoadGatewayConfig:
         )
 
     def test_bridges_notice_delivery_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "slack:\n"
             "  notice_delivery: private\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
         config = load_gateway_config()
 
         assert config.get_notice_delivery(Platform.SLACK) == "private"
 
     def test_bridges_telegram_proxy_url_from_config_yaml(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "telegram:\n"
             "  proxy_url: socks5://127.0.0.1:1080\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.delenv("TELEGRAM_PROXY", raising=False)
 
         load_gateway_config()
@@ -987,22 +1240,59 @@ class TestLoadGatewayConfig:
         assert os.environ.get("TELEGRAM_PROXY") == "socks5://127.0.0.1:1080"
 
     def test_telegram_proxy_env_takes_precedence_over_config(self, tmp_path, monkeypatch):
-        nyxo_home = tmp_path / ".nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "telegram:\n"
             "  proxy_url: http://from-config:8080\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
         monkeypatch.setenv("TELEGRAM_PROXY", "socks5://from-env:1080")
 
         load_gateway_config()
 
         import os
         assert os.environ.get("TELEGRAM_PROXY") == "socks5://from-env:1080"
+
+    def test_profile_scoped_env_overrides_do_not_fall_back_to_default_profile_env(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        default_home = tmp_path / "default-home"
+        default_home.mkdir()
+        default_config = default_home / "config.yaml"
+        default_config.write_text(
+            "multiplex_profiles: true\n",
+            encoding="utf-8",
+        )
+
+        secondary_home = tmp_path / "secondary-home"
+        secondary_home.mkdir()
+        secondary_config = secondary_home / "config.yaml"
+        secondary_config.write_text(
+            "multiplex_profiles: true\n",
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("HERMES_HOME", str(default_home))
+        monkeypatch.setenv("API_SERVER_ENABLED", "true")
+        monkeypatch.setenv("DISCORD_BOT_TOKEN", "default-token")
+
+        home_token = set_flash_home_override(str(secondary_home))
+        secret_token = set_secret_scope({"DISCORD_BOT_TOKEN": "worker-token"})
+        try:
+            config = load_gateway_config()
+        finally:
+            reset_secret_scope(secret_token)
+            reset_flash_home_override(home_token)
+
+        assert config.multiplex_profiles is True
+        assert config.platforms[Platform.DISCORD].token == "worker-token"
+        assert Platform.API_SERVER not in config.platforms
 
 
 class TestHomeChannelEnvOverrides:
@@ -1060,7 +1350,7 @@ class TestHomeChannelEnvOverrides:
                 PlatformConfig(
                     enabled=True,
                     extra={
-                        "address": "nyxo@test.com",
+                        "address": "flash@test.com",
                         "imap_host": "imap.test.com",
                         "smtp_host": "smtp.test.com",
                     },
@@ -1084,3 +1374,96 @@ class TestHomeChannelEnvOverrides:
             home = config.platforms[platform].home_channel
             assert home is not None, f"{platform.value}: home_channel should not be None"
             assert (home.chat_id, home.name) == expected, platform.value
+
+
+class TestMultiplexProfilesEnvOverride:
+    """GATEWAY_MULTIPLEX_PROFILES env override — the 3-tier precedence chain.
+
+    env (recognized token) > config.yaml (top-level or nested gateway.*) >
+    default False. A blank / unrecognized env value is treated as UNSET and
+    falls through to config (the empty-secret trap: a provisioned-but-empty Fly
+    secret arrives as "" and must not shadow a config.yaml opt-in).
+    """
+
+    def _load(self, tmp_path, monkeypatch, config_text=None):
+        flash_home = tmp_path / ".flash"
+        flash_home.mkdir(exist_ok=True)
+        if config_text is not None:
+            (flash_home / "config.yaml").write_text(config_text, encoding="utf-8")
+        monkeypatch.setenv("HERMES_HOME", str(flash_home))
+        return load_gateway_config()
+
+    # ── Tier 1: env wins ──────────────────────────────────────────────────
+    def test_env_true_forces_on_with_no_config(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "true")
+        config = self._load(tmp_path, monkeypatch, config_text=None)
+        assert config.multiplex_profiles is True
+
+    def test_env_true_overrides_config_false(self, tmp_path, monkeypatch):
+        # THE discriminating test: env-set wins over an explicit config value.
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "1")
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: false\n"
+        )
+        assert config.multiplex_profiles is True
+
+    def test_env_false_overrides_config_true(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "off")
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: true\n"
+        )
+        assert config.multiplex_profiles is False
+
+    # ── Tier 2: config.yaml when env unset ────────────────────────────────
+    def test_config_true_when_env_unset(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("GATEWAY_MULTIPLEX_PROFILES", raising=False)
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: true\n"
+        )
+        assert config.multiplex_profiles is True
+
+    # ── The empty / unrecognized env trap: fall through, don't force off ──
+    def test_empty_env_does_not_shadow_config_true(self, tmp_path, monkeypatch):
+        # Provisioned-but-unpopulated Fly secret arrives as "". It must NOT
+        # turn OFF a config.yaml opt-in.
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "")
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: true\n"
+        )
+        assert config.multiplex_profiles is True
+
+    def test_whitespace_env_does_not_shadow_config_true(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "   ")
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: true\n"
+        )
+        assert config.multiplex_profiles is True
+
+    def test_unrecognized_env_falls_through_to_config(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", "maybe")
+        config = self._load(
+            tmp_path, monkeypatch, config_text="multiplex_profiles: true\n"
+        )
+        assert config.multiplex_profiles is True
+
+    # ── Tier 3: default False ─────────────────────────────────────────────
+    def test_default_false_when_neither_set(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("GATEWAY_MULTIPLEX_PROFILES", raising=False)
+        config = self._load(tmp_path, monkeypatch, config_text=None)
+        assert config.multiplex_profiles is False
+
+    # ── The resolver in isolation ─────────────────────────────────────────
+    def test_resolver_tristate(self, monkeypatch):
+        from gateway.config import _env_multiplex_profiles_override
+
+        monkeypatch.delenv("GATEWAY_MULTIPLEX_PROFILES", raising=False)
+        assert _env_multiplex_profiles_override() is None
+        for truthy in ("1", "true", "TRUE", "yes", "on"):
+            monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", truthy)
+            assert _env_multiplex_profiles_override() is True, truthy
+        for falsy in ("0", "false", "FALSE", "no", "off"):
+            monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", falsy)
+            assert _env_multiplex_profiles_override() is False, falsy
+        for noise in ("", "   ", "maybe", "2"):
+            monkeypatch.setenv("GATEWAY_MULTIPLEX_PROFILES", noise)
+            assert _env_multiplex_profiles_override() is None, repr(noise)

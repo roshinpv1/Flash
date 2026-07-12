@@ -6,7 +6,7 @@ or explicit sys.exit from some caller), the child subprocess must be killed
 before the exception propagates — otherwise the local backend's use of
 os.setsid leaves an orphan with PPID=1.
 
-The live repro that motivated this: nyxo chat -q ... 'sleep 300', SIGTERM
+The live repro that motivated this: hermes chat -q ... 'sleep 300', SIGTERM
 to the python process, sleep 300 survived with PPID=1 for the full 300 s
 because _wait_for_process never got to call _kill_process before python
 died.  See commit message for full context.
@@ -20,12 +20,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from tools.environments import local as local_mod
 from tools.environments.local import LocalEnvironment
 
 
 @pytest.fixture(autouse=True)
-def _isolate_nyxo_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+def _isolate_hermes_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / "logs").mkdir(exist_ok=True)
 
 
@@ -74,7 +75,7 @@ def test_kill_process_uses_cached_pgid_if_wrapper_already_exited(monkeypatch):
     env = object.__new__(LocalEnvironment)
     proc = SimpleNamespace(
         pid=12345,
-        _nyxo_pgid=67890,
+        _hermes_pgid=67890,
         poll=lambda: 0,
         kill=lambda: None,
     )
@@ -94,6 +95,32 @@ def test_kill_process_uses_cached_pgid_if_wrapper_already_exited(monkeypatch):
     env._kill_process(proc)
 
     assert killpg_calls == [(67890, signal.SIGTERM), (67890, 0)]
+
+
+def test_kill_process_uses_windows_tree_kill(monkeypatch):
+    """Windows must kill the whole Bash process tree, not just the wrapper."""
+    env = object.__new__(LocalEnvironment)
+    terminate_calls = []
+    waits = []
+    killed = []
+
+    def fake_terminate(pid, *, force=False):
+        terminate_calls.append((pid, force))
+
+    proc = SimpleNamespace(
+        pid=12345,
+        kill=lambda: killed.append(True),
+        wait=lambda timeout=None: waits.append(timeout),
+    )
+
+    monkeypatch.setattr(local_mod, "_IS_WINDOWS", True)
+    monkeypatch.setattr("gateway.status.terminate_pid", fake_terminate)
+
+    env._kill_process(proc)
+
+    assert terminate_calls == [(12345, True)]
+    assert waits == [2.0]
+    assert killed == []
 
 
 def test_wait_for_process_kills_subprocess_on_keyboardinterrupt():

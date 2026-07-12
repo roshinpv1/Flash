@@ -12,9 +12,9 @@ Configuration in config.yaml:
           app_id: "your-app-id"            # or QQ_APP_ID env var
           client_secret: "your-secret"     # or QQ_CLIENT_SECRET env var
           markdown_support: true           # enable QQ markdown (msg_type 2)
-          dm_policy: "open"                # open | allowlist | disabled
+          dm_policy: "pairing"             # open | allowlist | disabled | pairing
           allow_from: ["openid_1"]
-          group_policy: "open"             # open | allowlist | disabled
+          group_policy: "pairing"          # open | allowlist | disabled | pairing
           group_allow_from: ["group_openid_1"]
           stt:                             # Voice-to-text config (optional)
             provider: "zai"                # zai (GLM-ASR), openai (Whisper), etc.
@@ -208,11 +208,11 @@ class QQAdapter(BasePlatformAdapter):
         self._markdown_support = bool(extra.get("markdown_support", True))
 
         # Auth/ACL policies
-        self._dm_policy = str(extra.get("dm_policy", "open")).strip().lower()
+        self._dm_policy = str(extra.get("dm_policy", "pairing")).strip().lower()
         self._allow_from = _coerce_list(
             extra.get("allow_from") or extra.get("allowFrom")
         )
-        self._group_policy = str(extra.get("group_policy", "open")).strip().lower()
+        self._group_policy = str(extra.get("group_policy", "pairing")).strip().lower()
         self._group_allow_from = _coerce_list(
             extra.get("group_allow_from") or extra.get("groupAllowFrom")
         )
@@ -255,7 +255,7 @@ class QQAdapter(BasePlatformAdapter):
 
         # Default interaction dispatcher: routes approval-button clicks to
         # tools.approval.resolve_gateway_approval() and update-prompt clicks
-        # to ~/.nyxo/.update_response. Set here so the cross-adapter gateway
+        # to ~/.flash/.update_response. Set here so the cross-adapter gateway
         # contract (send_exec_approval / send_update_prompt) works out of the
         # box; callers can override with set_interaction_callback(None) or
         # register a custom handler.
@@ -278,8 +278,16 @@ class QQAdapter(BasePlatformAdapter):
     # Connection lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
-        """Authenticate, obtain gateway URL, and open the WebSocket."""
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
+        """
+        Authenticate, obtain gateway URL, and open the WebSocket.
+
+        Args:
+            is_reconnect: False on a cold first boot; True when the
+                reconnect watcher is re-establishing this platform after
+                an outage. QQBot has no server-side update queue so this
+                flag is accepted for interface conformance only.
+        """
         if not AIOHTTP_AVAILABLE:
             message = "QQ startup failed: aiohttp not installed"
             self._set_fatal_error("qq_missing_dependency", message, retryable=True)
@@ -455,7 +463,7 @@ class QQAdapter(BasePlatformAdapter):
             await self._session.close()
         self._session = None
 
-        # Honor WSL proxy env for QQ WebSocket. Nyxo upgrades overwrite this
+        # Honor WSL proxy env for QQ WebSocket. Hermes upgrades overwrite this
         # local patch, so QQ can regress to direct-connect timeouts after update.
         self._session = aiohttp.ClientSession(trust_env=True)
         ws_proxy = (
@@ -742,8 +750,8 @@ class QQAdapter(BasePlatformAdapter):
                 "shard": [0, 1],
                 "properties": {
                     "$os": "macOS",
-                    "$browser": "nyxo-agent",
-                    "$device": "nyxo-agent",
+                    "$browser": "flash-agent",
+                    "$device": "flash-agent",
                 },
             },
         }
@@ -1114,8 +1122,8 @@ class QQAdapter(BasePlatformAdapter):
           :func:`tools.approval.resolve_gateway_approval`
           (unblocks the agent thread waiting on a dangerous-command approval).
         - ``update_prompt:<answer>`` →
-          writes the answer to ``~/.nyxo/.update_response`` for the
-          detached ``nyxo update --gateway`` process to consume.
+          writes the answer to ``~/.flash/.update_response`` for the
+          detached ``flash update --gateway`` process to consume.
         - Anything else is logged at DEBUG and ignored.
 
         Installed as the adapter's default interaction callback in
@@ -1184,13 +1192,13 @@ class QQAdapter(BasePlatformAdapter):
         """Atomically write the update-prompt answer to ``.update_response``.
 
         Mirrors the Discord / Telegram / Feishu adapters: the detached
-        ``nyxo update --gateway`` watcher polls this file for a ``y``/``n``
+        ``flash update --gateway`` watcher polls this file for a ``y``/``n``
         response to its interactive prompts (stash-restore, config migration).
         Writes via ``tmp + rename`` so a partial write can't fool the reader.
         """
         try:
-            from nyxo_constants import get_nyxo_home
-            home = get_nyxo_home()
+            from flash_constants import get_flash_home
+            home = get_flash_home()
             response_path = home / ".update_response"
             tmp = response_path.with_suffix(".tmp")
             tmp.write_text(answer)
@@ -1214,7 +1222,7 @@ class QQAdapter(BasePlatformAdapter):
         user_openid = str(author.get("user_openid", ""))
         if not user_openid:
             return
-        if not self._is_dm_allowed(user_openid):
+        if not self._is_dm_intake_allowed(user_openid):
             return
 
         text = content
@@ -1454,7 +1462,7 @@ class QQAdapter(BasePlatformAdapter):
         # Without this check any member of any guild the bot is in could
         # bypass the configured allowlist via direct messages.
         author_id = str(author.get("id", ""))
-        if not self._is_dm_allowed(author_id):
+        if not self._is_dm_intake_allowed(author_id):
             logger.debug(
                 "[%s] Guild DM blocked by ACL: guild=%s user=%s",
                 self._log_tag, guild_id, author_id,
@@ -2186,7 +2194,7 @@ class QQAdapter(BasePlatformAdapter):
                                  or ("glm-asr" if provider in {"zai", "glm"} else "whisper-1"),
                     }
 
-        # 2. QQ-specific env vars (set by `nyxo setup gateway` / `nyxo gateway`)
+        # 2. QQ-specific env vars (set by `flash setup gateway` / `flash gateway`)
         qq_stt_key = os.getenv("QQ_STT_API_KEY", "")
         if qq_stt_key:
             base_url = os.getenv(
@@ -2677,7 +2685,7 @@ class QQAdapter(BasePlatformAdapter):
 
         req = ApprovalRequest(
             session_key=session_key,
-            title=f"Execute this command?",
+            title="Execute this command?",
             description=description,
             command_preview=command,
             timeout_sec=self._APPROVAL_TIMEOUT_SECONDS,
@@ -2699,11 +2707,11 @@ class QQAdapter(BasePlatformAdapter):
         """Send a Yes/No update-confirmation prompt with inline buttons.
 
         Matches the cross-adapter contract used by
-        ``gateway/run.py``'s ``nyxo update --gateway`` watcher. Button
+        ``gateway/run.py``'s ``flash update --gateway`` watcher. Button
         clicks surface as ``INTERACTION_CREATE`` with
         ``button_data = 'update_prompt:y'`` or ``'update_prompt:n'``;
         the adapter's interaction callback writes the answer to
-        ``~/.nyxo/.update_response`` so the detached update process
+        ``~/.flash/.update_response`` so the detached update process
         can read it.
         """
         del session_key, metadata  # present for contract parity only.
@@ -3142,19 +3150,44 @@ class QQAdapter(BasePlatformAdapter):
         stripped = re.sub(r"^@\S+\s*", "", content.strip())
         return stripped
 
+    def _open_dm_opted_in(self) -> bool:
+        if os.getenv("GATEWAY_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}:
+            return True
+        return os.getenv("QQ_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}
+
     def _is_dm_allowed(self, user_id: str) -> bool:
         if self._dm_policy == "disabled":
             return False
         if self._dm_policy == "allowlist":
             return self._entry_matches(self._allow_from, user_id)
-        return True
+        if self._dm_policy == "open":
+            return self._open_dm_opted_in()
+        return False
+
+    def _is_dm_intake_allowed(self, user_id: str) -> bool:
+        principal = str(user_id or "").strip()
+        if not principal:
+            return False
+        if self._dm_policy == "disabled":
+            return False
+        if self._dm_policy == "allowlist":
+            return self._entry_matches(self._allow_from, principal)
+        if self._dm_policy == "pairing":
+            return True
+        if self._dm_policy == "open":
+            return self._open_dm_opted_in()
+        return False
 
     def _is_group_allowed(self, group_id: str, user_id: str) -> bool:
         if self._group_policy == "disabled":
             return False
         if self._group_policy == "allowlist":
             return self._entry_matches(self._group_allow_from, group_id)
-        return True
+        if self._group_policy == "pairing":
+            return False
+        if self._group_policy == "open":
+            return True
+        return False
 
     @staticmethod
     def _entry_matches(entries: List[str], target: str) -> bool:

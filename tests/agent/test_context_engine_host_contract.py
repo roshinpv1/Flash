@@ -1,7 +1,7 @@
 """Regressions for the context-engine host contract.
 
 These tests pin the five generic host-side guarantees that external context
-engine plugins (e.g. nyxo-lcm) rely on:
+engine plugins (e.g. flash-lcm) rely on:
 
 1. ``_transition_context_engine_session`` drives the full lifecycle
    (on_session_end → on_session_reset → on_session_start → optional
@@ -28,7 +28,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-
+from agent.context_compressor import ContextCompressor
+from flash_state import SessionDB
 from run_agent import AIAgent
 
 
@@ -158,6 +159,43 @@ def test_reset_session_state_default_call_only_resets():
     assert not engine.on_session_start.called
 
 
+def test_reset_session_state_rebinds_builtin_compressor_after_session_switch(tmp_path, monkeypatch):
+    """Reset-only session switches must rebind durable cooldown state to the new session."""
+    db = SessionDB(db_path=tmp_path / "state.db")
+    db.create_session("old-sid", source="cli")
+    db.create_session("new-sid", source="cli")
+    db.record_compression_failure_cooldown("old-sid", 4_000_000_000.0, "old-timeout")
+
+    monkeypatch.setattr(
+        "agent.context_compressor.get_model_context_length",
+        lambda *_a, **_k: 100_000,
+    )
+    compressor = ContextCompressor(
+        model="fake-model",
+        threshold_percent=0.85,
+        protect_first_n=2,
+        protect_last_n=2,
+        quiet_mode=True,
+    )
+    compressor.bind_session_state(db, "old-sid")
+
+    agent = _bare_agent()
+    agent._session_db = db
+    agent.context_compressor = compressor
+    agent.session_id = "new-sid"
+
+    agent.reset_session_state()
+
+    assert compressor._session_id == "new-sid"
+    assert compressor.get_active_compression_failure_cooldown() is None
+    assert db.get_compression_failure_cooldown("old-sid") is not None
+
+    compressor._record_compression_failure_cooldown(30.0, "new-timeout")
+
+    assert db.get_compression_failure_cooldown("new-sid") is not None
+    assert db.get_compression_failure_cooldown("old-sid")["error"] == "old-timeout"
+
+
 def test_update_from_response_forwards_canonical_cache_buckets():
     """conversation_loop passes cache_read/write/reasoning tokens to engine."""
     # Test the contract directly: a usage_dict built from CanonicalUsage must
@@ -196,8 +234,8 @@ def test_update_from_response_forwards_canonical_cache_buckets():
 
 
 def test_discover_context_engines_includes_plugin_registered_engines(monkeypatch):
-    """Plugin-registered context engines appear in the ``nyxo plugins`` picker."""
-    from nyxo_cli import plugins_cmd
+    """Plugin-registered context engines appear in the ``flash plugins`` picker."""
+    from flash_cli import plugins_cmd
 
     fake_repo = lambda: [("compressor", "built-in", True)]
 
@@ -209,11 +247,11 @@ def test_discover_context_engines_includes_plugin_registered_engines(monkeypatch
         fake_repo,
     )
     monkeypatch.setattr(
-        "nyxo_cli.plugins.discover_plugins",
+        "flash_cli.plugins.discover_plugins",
         lambda *_a, **_kw: None,
     )
     monkeypatch.setattr(
-        "nyxo_cli.plugins.get_plugin_context_engine",
+        "flash_cli.plugins.get_plugin_context_engine",
         lambda: FakePluginEngine(),
     )
 
@@ -225,7 +263,7 @@ def test_discover_context_engines_includes_plugin_registered_engines(monkeypatch
 
 def test_discover_context_engines_dedupes_by_name(monkeypatch):
     """Repo-shipped engine wins when name collides with a plugin-registered one."""
-    from nyxo_cli import plugins_cmd
+    from flash_cli import plugins_cmd
 
     class FakePluginEngine:
         name = "compressor"  # same name as repo-shipped
@@ -235,11 +273,11 @@ def test_discover_context_engines_dedupes_by_name(monkeypatch):
         lambda: [("compressor", "built-in compressor", True)],
     )
     monkeypatch.setattr(
-        "nyxo_cli.plugins.discover_plugins",
+        "flash_cli.plugins.discover_plugins",
         lambda *_a, **_kw: None,
     )
     monkeypatch.setattr(
-        "nyxo_cli.plugins.get_plugin_context_engine",
+        "flash_cli.plugins.get_plugin_context_engine",
         lambda: FakePluginEngine(),
     )
 
@@ -251,7 +289,7 @@ def test_discover_context_engines_dedupes_by_name(monkeypatch):
 def test_engine_collector_forwards_register_command_to_plugin_manager():
     """A plugin context engine can register a slash command via ``ctx.register_command``."""
     from plugins.context_engine import _EngineCollector
-    from nyxo_cli.plugins import get_plugin_manager
+    from flash_cli.plugins import get_plugin_manager
 
     handler = lambda raw_args: f"echo: {raw_args}"
 
@@ -278,7 +316,7 @@ def test_engine_collector_forwards_register_command_to_plugin_manager():
 def test_engine_collector_rejects_builtin_command_conflicts():
     """Context engine cannot shadow built-in slash commands like /help."""
     from plugins.context_engine import _EngineCollector
-    from nyxo_cli.plugins import get_plugin_manager
+    from flash_cli.plugins import get_plugin_manager
 
     collector = _EngineCollector(engine_name="my-lcm")
     collector.register_command("help", lambda *_: "shadow")

@@ -65,7 +65,7 @@ def get_nyxo_home() -> Path:
     callers that import this at load time.  Subprocess spawners are
     expected to propagate ``NYXO_HOME`` explicitly (see the systemd
     template in ``nyxo_cli/gateway.py`` and the kanban dispatcher in
-    ``nyxo_cli/kanban_db.py``).  See https://github.com/NousResearch/nyxo-agent/issues/18594.
+    ``nyxo_cli/kanban_db.py``).  See https://github.com/Flash/nyxo-agent/issues/18594.
     """
     override = get_nyxo_home_override()
     if override:
@@ -413,7 +413,7 @@ def secure_parent_dir(path: Path) -> None:
     prevent catastrophic host bricking when ``NYXO_HOME`` or other path
     env vars resolve to an unexpected location.
 
-    See https://github.com/NousResearch/nyxo-agent/issues/25821.
+    See https://github.com/Flash/nyxo-agent/issues/25821.
     """
     parent = path.parent.resolve()
     # Refuse root and its direct children (/usr, /home, /var, /tmp, …).
@@ -618,7 +618,7 @@ def is_container() -> bool:
 
     Result is cached for the process lifetime.  Import-safe — no heavy deps.
 
-    See: NousResearch/nyxo-agent#47111
+    See: Flash/nyxo-agent#47111
     """
     global _container_detected
     if _container_detected is not None:

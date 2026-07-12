@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { NyxoGateway } from '@/nyxo'
+import type { HermesGateway } from '@/flash'
 import type { ComposerAttachment } from '@/store/composer'
 
 import type { DroppedFile } from '../hooks/use-composer-actions'
@@ -37,7 +37,7 @@ export interface ChatBarProps {
   focusKey?: string | null
   maxRecordingSeconds?: number
   state: ChatBarState
-  gateway?: NyxoGateway | null
+  gateway?: HermesGateway | null
   queueSessionKey?: string | null
   sessionId?: string | null
   cwd?: string | null
@@ -46,7 +46,7 @@ export interface ChatBarProps {
   onAddUrl?: (url: string) => void
   onAttachImageBlob?: (blob: Blob) => Promise<boolean | void> | boolean | void
   onAttachDroppedItems?: (candidates: DroppedFile[]) => Promise<boolean | void> | boolean | void
-  onPasteClipboardImage?: () => void
+  onPasteClipboardImage?: (opts?: { silent?: boolean }) => Promise<boolean> | void
   onPickFiles?: () => void
   onPickFolders?: () => void
   onPickImages?: () => void

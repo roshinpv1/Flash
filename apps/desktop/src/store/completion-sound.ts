@@ -2,7 +2,7 @@ import { atom } from 'nanostores'
 
 import { persistString, storedString } from '@/lib/storage'
 
-const STORAGE_KEY = 'nyxo.desktop.completionSoundVariantId'
+const STORAGE_KEY = 'flash.desktop.completionSoundVariantId'
 
 export const DEFAULT_COMPLETION_SOUND_VARIANT_ID = 1
 

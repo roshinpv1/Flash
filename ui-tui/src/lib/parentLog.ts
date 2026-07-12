@@ -18,11 +18,11 @@ import { join } from 'node:path'
 // is swallowed). Persisting the death-explaining events here is what makes that
 // distinction (and a memory-critical `process.exit(137)`, which closes stdin →
 // clean EOF, not SIGTERM) diagnosable after the fact.
-const logDir = join(process.env.NYXO_HOME?.trim() || join(homedir(), '.nyxo'), 'logs')
+const logDir = join(process.env.HERMES_HOME?.trim() || join(homedir(), '.hermes'), 'logs')
 const CRASH_LOG = join(logDir, 'tui_gateway_crash.log')
 
 // Skipped under vitest so unit tests exercising start()/kill() can't write into
-// a real ~/.nyxo (tests must stay hermetic — see AGENTS.md).
+// a real ~/.hermes (tests must stay hermetic — see AGENTS.md).
 const enabled = !process.env.VITEST
 // Slice a single breadcrumb's value to MAX_BREADCRUMB chars (a short
 // "[truncated …]" marker is appended, so the written line is slightly longer)
@@ -44,14 +44,16 @@ export function recordParentLifecycle(line: string): void {
     const oneLine = line.replace(/[\r\n]+/g, ' ↵ ')
 
     const capped =
-      oneLine.length > MAX_BREADCRUMB ? `${oneLine.slice(0, MAX_BREADCRUMB)}… [truncated ${oneLine.length} chars]` : oneLine
+      oneLine.length > MAX_BREADCRUMB
+        ? `${oneLine.slice(0, MAX_BREADCRUMB)}… [truncated ${oneLine.length} chars]`
+        : oneLine
 
     mkdirSync(logDir, { recursive: true })
     appendFileSync(CRASH_LOG, `[tui-parent] ${new Date().toISOString()} ${capped}\n`)
   } catch {
     if (!warned) {
       warned = true
-      process.stderr.write('nyxo-tui: parent lifecycle log unavailable\n')
+      process.stderr.write('hermes-tui: parent lifecycle log unavailable\n')
     }
   }
 }

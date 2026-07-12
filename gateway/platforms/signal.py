@@ -338,7 +338,7 @@ class SignalAdapter(BasePlatformAdapter):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to signal-cli daemon and start SSE listener."""
         if not self.http_url or not self.account:
             logger.error("Signal: SIGNAL_HTTP_URL and SIGNAL_ACCOUNT are required")
@@ -690,7 +690,7 @@ class SignalAdapter(BasePlatformAdapter):
         # Catches profile key updates, empty messages, and other metadata-only
         # envelopes that still carry a dataMessage wrapper but have nothing
         # worth processing. See issue: signal-cli logs "Profile key update" +
-        # Nyxo receives msg='' triggering a full agent turn for nothing.
+        # Hermes receives msg='' triggering a full agent turn for nothing.
         if (not text or not text.strip()) and not media_urls:
             logger.debug(
                 "Signal: skipping contentless envelope from %s (%d attachments)",

@@ -1,5 +1,5 @@
 """
-Top-level argparse construction for the hermes CLI.
+Top-level argparse construction for the flash CLI.
 
 Lives in its own module so other modules (e.g. ``relaunch.py``) can
 introspect the parser to discover which flags exist without running the
@@ -39,45 +39,45 @@ def _inherited_flag(parser, *args, **kwargs):
 
 _EPILOGUE = """
 Examples:
-    hermes                        Start interactive chat
-    hermes chat -q "Hello"        Single query mode
-    hermes --tui                  Launch the modern TUI (or set display.interface: tui)
-    hermes --cli                  Force the classic REPL (overrides display.interface: tui)
-    hermes -c                     Resume the most recent session
-    hermes -c "my project"        Resume a session by name (latest in lineage)
-    hermes --resume <session_id>  Resume a specific session by ID
-    hermes setup                  Run setup wizard
-    hermes logout                 Clear stored authentication
-    hermes auth add <provider>    Add a pooled credential
-    hermes auth list              List pooled credentials
-    hermes auth remove <p> <t>    Remove pooled credential by index, id, or label
-    hermes auth reset <provider>  Clear exhaustion status for a provider
-    hermes model                  Select default model
-    hermes fallback [list]        Show fallback provider chain
-    hermes fallback add           Add a fallback provider (same picker as `hermes model`)
-    hermes fallback remove        Remove a fallback provider from the chain
-    hermes config                 View configuration
-    hermes config edit            Edit config in $EDITOR
-    hermes config set model gpt-4 Set a config value
-    hermes gateway                Run messaging gateway
-    hermes -s nyxo-agent-dev,github-auth
-    hermes -w                     Start in isolated git worktree
-    hermes gateway install        Install gateway background service
-    hermes sessions list          List past sessions
-    hermes sessions browse        Interactive session picker
-    hermes sessions rename ID T   Rename/title a session
-    hermes logs                   View agent.log (last 50 lines)
-    hermes logs -f                Follow agent.log in real time
-    hermes logs errors            View errors.log
-    hermes logs --since 1h        Lines from the last hour
-    hermes debug share             Upload debug report for support
-    hermes update                 Update to latest version
-    hermes dashboard              Start web UI dashboard (port 9119)
-    hermes dashboard --stop       Stop running dashboard processes
-    hermes dashboard --status     List running dashboard processes
+    flash                        Start interactive chat
+    flash chat -q "Hello"        Single query mode
+    flash --tui                  Launch the modern TUI (or set display.interface: tui)
+    flash --cli                  Force the classic REPL (overrides display.interface: tui)
+    flash -c                     Resume the most recent session
+    flash -c "my project"        Resume a session by name (latest in lineage)
+    flash --resume <session_id>  Resume a specific session by ID
+    flash setup                  Run setup wizard
+    flash logout                 Clear stored authentication
+    flash auth add <provider>    Add a pooled credential
+    flash auth list              List pooled credentials
+    flash auth remove <p> <t>    Remove pooled credential by index, id, or label
+    flash auth reset <provider>  Clear exhaustion status for a provider
+    flash model                  Select default model
+    flash fallback [list]        Show fallback provider chain
+    flash fallback add           Add a fallback provider (same picker as `flash model`)
+    flash fallback remove        Remove a fallback provider from the chain
+    flash config                 View configuration
+    flash config edit            Edit config in $EDITOR
+    flash config set model gpt-4 Set a config value
+    flash gateway                Run messaging gateway
+    flash -s nyxo-agent-dev,github-auth
+    flash -w                     Start in isolated git worktree
+    flash gateway install        Install gateway background service
+    flash sessions list          List past sessions
+    flash sessions browse        Interactive session picker
+    flash sessions rename ID T   Rename/title a session
+    flash logs                   View agent.log (last 50 lines)
+    flash logs -f                Follow agent.log in real time
+    flash logs errors            View errors.log
+    flash logs --since 1h        Lines from the last hour
+    flash debug share             Upload debug report for support
+    flash update                 Update to latest version
+    flash dashboard              Start web UI dashboard (port 9119)
+    flash dashboard --stop       Stop running dashboard processes
+    flash dashboard --status     List running dashboard processes
 
 For more help on a command:
-    hermes <command> --help
+    flash <command> --help
 """
 
 
@@ -89,7 +89,7 @@ def build_top_level_parser():
     other subparsers via ``subparsers.add_parser(...)``.
     """
     parser = argparse.ArgumentParser(
-        prog="hermes",
+        prog="flash",
         description="Nyxo Agent - AI assistant with tool-calling capabilities",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
@@ -114,7 +114,7 @@ def build_top_level_parser():
     # --model / --provider are accepted at the top level so they can pair
     # with -z without needing the `chat` subcommand.  If neither -z nor a
     # subcommand consumes them, they fall through harmlessly as None.
-    # Mirrors `hermes chat --model ... --provider ...` semantics.
+    # Mirrors `flash chat --model ... --provider ...` semantics.
     _inherited_flag(
         parser,
         "-m",
@@ -132,7 +132,7 @@ def build_top_level_parser():
         help=(
             "Provider override for this invocation (e.g. openrouter, anthropic). "
             "Applies to -z/--oneshot and --tui. The persistent provider lives in config.yaml "
-            "under model.provider — use `hermes setup` or edit the file to change it."
+            "under model.provider — use `flash setup` or edit the file to change it."
         ),
     )
     parser.add_argument(
@@ -204,7 +204,7 @@ def build_top_level_parser():
         "--ignore-user-config",
         action="store_true",
         default=False,
-        help="Ignore ~/.hermes/config.yaml and fall back to built-in defaults (credentials in .env are still loaded)",
+        help="Ignore ~/.flash/config.yaml and fall back to built-in defaults (credentials in .env are still loaded)",
     )
     _inherited_flag(
         parser,
@@ -364,7 +364,7 @@ def build_top_level_parser():
         "--ignore-user-config",
         action="store_true",
         default=argparse.SUPPRESS,
-        help="Ignore ~/.hermes/config.yaml and fall back to built-in defaults (credentials in .env are still loaded). Useful for isolated CI runs, reproduction, and third-party integrations.",
+        help="Ignore ~/.flash/config.yaml and fall back to built-in defaults (credentials in .env are still loaded). Useful for isolated CI runs, reproduction, and third-party integrations.",
     )
     _inherited_flag(
         chat_parser,

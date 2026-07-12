@@ -9,8 +9,8 @@ Defense against context-window overflow operates at three levels:
 2. **Per-result persistence** (maybe_persist_tool_result): After a tool
    returns, if its output exceeds the tool's registered threshold
    (registry.get_max_result_size), the full output is written INTO THE
-   SANDBOX temp dir (for example /tmp/nyxo-results/{tool_use_id}.txt on
-   standard Linux, or $TMPDIR/nyxo-results/{tool_use_id}.txt on Termux)
+   SANDBOX temp dir (for example /tmp/hermes-results/{tool_use_id}.txt on
+   standard Linux, or $TMPDIR/hermes-results/{tool_use_id}.txt on Termux)
    via env.execute(). The in-context content is replaced with a preview +
    file path reference. The model can read_file to access the full output
    on any backend.
@@ -22,8 +22,10 @@ Defense against context-window overflow operates at three levels:
    where many medium-sized results combine to overflow context.
 """
 
+import hashlib
 import logging
 import os
+import re
 import shlex
 import uuid
 
@@ -36,9 +38,11 @@ from tools.budget_config import (
 logger = logging.getLogger(__name__)
 PERSISTED_OUTPUT_TAG = "<persisted-output>"
 PERSISTED_OUTPUT_CLOSING_TAG = "</persisted-output>"
-STORAGE_DIR = "/tmp/nyxo-results"
-HEREDOC_MARKER = "NYXO_PERSIST_EOF"
+STORAGE_DIR = "/tmp/hermes-results"
+HEREDOC_MARKER = "HERMES_PERSIST_EOF"
 _BUDGET_TOOL_NAME = "__budget_enforcement__"
+_UNSAFE_RESULT_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
+_MAX_RESULT_FILENAME_STEM = 120
 
 
 def _resolve_storage_dir(env) -> str:
@@ -53,8 +57,26 @@ def _resolve_storage_dir(env) -> str:
             else:
                 if temp_dir:
                     temp_dir = temp_dir.rstrip("/") or "/"
-                    return f"{temp_dir}/nyxo-results"
+                    return f"{temp_dir}/hermes-results"
     return STORAGE_DIR
+
+
+def _safe_result_filename(tool_use_id: str) -> str:
+    """Return a single safe filename for a tool result id."""
+    raw_id = str(tool_use_id or "tool_result")
+    safe_stem = _UNSAFE_RESULT_FILENAME_CHARS.sub("_", raw_id).strip("._-")
+    changed = safe_stem != raw_id
+
+    if not safe_stem:
+        safe_stem = "tool_result"
+        changed = True
+
+    if changed or len(safe_stem) > _MAX_RESULT_FILENAME_STEM:
+        digest = hashlib.sha256(raw_id.encode("utf-8")).hexdigest()[:12]
+        safe_stem = safe_stem[:_MAX_RESULT_FILENAME_STEM].rstrip("._-") or "tool_result"
+        safe_stem = f"{safe_stem}_{digest}"
+
+    return f"{safe_stem}.txt"
 
 
 def generate_preview(content: str, max_chars: int = DEFAULT_PREVIEW_SIZE_CHARS) -> tuple[str, bool]:
@@ -72,7 +94,7 @@ def _heredoc_marker(content: str) -> str:
     """Return a heredoc delimiter that doesn't collide with content."""
     if HEREDOC_MARKER not in content:
         return HEREDOC_MARKER
-    return f"NYXO_PERSIST_{uuid.uuid4().hex[:8]}"
+    return f"HERMES_PERSIST_{uuid.uuid4().hex[:8]}"
 
 
 def _write_to_sandbox(content: str, remote_path: str, env) -> bool:
@@ -153,7 +175,7 @@ def maybe_persist_tool_result(
         return content
 
     storage_dir = _resolve_storage_dir(env)
-    remote_path = f"{storage_dir}/{tool_use_id}.txt"
+    remote_path = f"{storage_dir}/{_safe_result_filename(tool_use_id)}"
     preview, has_more = generate_preview(content, max_chars=config.preview_size)
 
     if env is not None:

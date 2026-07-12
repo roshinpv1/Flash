@@ -17,17 +17,20 @@ from tools.tirith_security import check_command_security, ensure_installed
 @pytest.fixture(autouse=True)
 def _reset_resolved_path():
     """Pre-set cached path to skip auto-install in scan tests.
-
     Tests that specifically test ensure_installed / resolve behavior
     reset this to None themselves.
     """
     _tirith_mod._resolved_path = "tirith"
     _tirith_mod._install_thread = None
     _tirith_mod._install_failure_reason = ""
+    _tirith_mod._crash_count = 0
+    _tirith_mod._circuit_open = False
     yield
     _tirith_mod._resolved_path = None
     _tirith_mod._install_thread = None
     _tirith_mod._install_failure_reason = ""
+    _tirith_mod._crash_count = 0
+    _tirith_mod._circuit_open = False
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +309,7 @@ class TestEnsureInstalled:
                                  "tirith_timeout": 5, "tirith_fail_open": True}
         _tirith_mod._resolved_path = None
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -323,7 +326,7 @@ class TestEnsureInstalled:
                                  "tirith_timeout": 5, "tirith_fail_open": True}
         _tirith_mod._resolved_path = None
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -763,14 +766,14 @@ class TestInstallArchiveMemberValidation:
         member.size = len(payload)
         archive, checksums = self._write_archive(tmp_path, member, payload)
 
-        nyxo_home = tmp_path / "nyxo-home"
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        hermes_home = tmp_path / "hermes-home"
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         with patch("tools.tirith_security._download_file",
                    side_effect=self._download_side_effect(archive, checksums)):
             path, reason = _install_tirith(log_failures=False)
 
         assert reason == ""
-        assert path == str(nyxo_home / "bin" / "tirith")
+        assert path == str(hermes_home / "bin" / "tirith")
         assert os.path.isfile(path)
         assert not os.path.islink(path)
         with open(path, "rb") as f:
@@ -790,15 +793,15 @@ class TestInstallArchiveMemberValidation:
         member.linkname = "/bin/sh"
         archive, checksums = self._write_archive(tmp_path, member)
 
-        nyxo_home = tmp_path / "nyxo-home"
-        monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+        hermes_home = tmp_path / "hermes-home"
+        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
         with patch("tools.tirith_security._download_file",
                    side_effect=self._download_side_effect(archive, checksums)):
             path, reason = _install_tirith(log_failures=False)
 
         assert path is None
         assert reason == "binary_not_regular_file"
-        assert not os.path.lexists(nyxo_home / "bin" / "tirith")
+        assert not os.path.lexists(hermes_home / "bin" / "tirith")
 
 
 # ---------------------------------------------------------------------------
@@ -814,7 +817,7 @@ class TestBackgroundInstall:
                    return_value={"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}), \
              patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -836,7 +839,7 @@ class TestBackgroundInstall:
                    return_value={"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}), \
              patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="download_failed"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True):
 
@@ -856,7 +859,7 @@ class TestBackgroundInstall:
         _tirith_mod._install_thread = mock_thread
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"):
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"):
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # returns configured default, doesn't block
 
@@ -984,7 +987,7 @@ class TestDiskFailureMarker:
         _tirith_mod._resolved_path = None
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="download_failed"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True), \
              patch("tools.tirith_security._install_tirith") as mock_install:
@@ -1009,25 +1012,25 @@ class TestDiskFailureMarker:
 
         _tirith_mod._resolved_path = None
 
-    def test_install_failed_recovers_from_nyxo_bin(self):
-        """After _INSTALL_FAILED, manual install in NYXO_HOME/bin is picked up."""
+    def test_install_failed_recovers_from_hermes_bin(self):
+        """After _INSTALL_FAILED, manual install in HERMES_HOME/bin is picked up."""
         from tools.tirith_security import _resolve_tirith_path, _INSTALL_FAILED
         import tempfile
         tmpdir = tempfile.mkdtemp()
-        nyxo_bin = os.path.join(tmpdir, "tirith")
+        hermes_bin = os.path.join(tmpdir, "tirith")
         # Create a fake executable
-        with open(nyxo_bin, "w") as f:
+        with open(hermes_bin, "w") as f:
             f.write("#!/bin/sh\n")
-        os.chmod(nyxo_bin, 0o755)
+        os.chmod(hermes_bin, 0o755)
 
         _tirith_mod._resolved_path = _INSTALL_FAILED
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value=tmpdir), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value=tmpdir), \
              patch("tools.tirith_security._clear_install_failed") as mock_clear:
             result = _resolve_tirith_path("tirith")
-            assert result == nyxo_bin
-            assert _tirith_mod._resolved_path == nyxo_bin
+            assert result == hermes_bin
+            assert _tirith_mod._resolved_path == hermes_bin
             mock_clear.assert_called_once()
 
         _tirith_mod._resolved_path = None
@@ -1038,7 +1041,7 @@ class TestDiskFailureMarker:
         _tirith_mod._resolved_path = _INSTALL_FAILED
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback to configured path
@@ -1053,7 +1056,7 @@ class TestDiskFailureMarker:
 
         # _is_install_failed_on_disk sees "cosign_missing" + cosign on PATH → returns False
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1077,7 +1080,7 @@ class TestDiskFailureMarker:
             return None
 
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1094,7 +1097,7 @@ class TestDiskFailureMarker:
         _tirith_mod._install_failure_reason = "cosign_exec_failed"
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback
@@ -1109,7 +1112,7 @@ class TestDiskFailureMarker:
         _tirith_mod._install_failure_reason = "cosign_missing"
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback
@@ -1124,7 +1127,7 @@ class TestDiskFailureMarker:
 
         # First call: disk marker with cosign_missing is active, cosign still absent
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="cosign_missing"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True):
             _resolve_tirith_path("tirith")
@@ -1140,7 +1143,7 @@ class TestDiskFailureMarker:
             return None
 
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
-             patch("tools.tirith_security._nyxo_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._hermes_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1152,43 +1155,43 @@ class TestDiskFailureMarker:
 
 
 # ---------------------------------------------------------------------------
-# NYXO_HOME isolation
+# HERMES_HOME isolation
 # ---------------------------------------------------------------------------
 
-class TestNyxoHomeIsolation:
-    def test_nyxo_bin_dir_respects_nyxo_home(self):
-        """_nyxo_bin_dir must use NYXO_HOME, not hardcoded ~/.nyxo."""
-        from tools.tirith_security import _nyxo_bin_dir
+class TestHermesHomeIsolation:
+    def test_hermes_bin_dir_respects_hermes_home(self):
+        """_hermes_bin_dir must use HERMES_HOME, not hardcoded ~/.hermes."""
+        from tools.tirith_security import _hermes_bin_dir
         import tempfile
         tmpdir = tempfile.mkdtemp()
-        with patch.dict(os.environ, {"NYXO_HOME": tmpdir}):
-            result = _nyxo_bin_dir()
+        with patch.dict(os.environ, {"HERMES_HOME": tmpdir}):
+            result = _hermes_bin_dir()
         assert result == os.path.join(tmpdir, "bin")
         assert os.path.isdir(result)
 
-    def test_failure_marker_respects_nyxo_home(self):
-        """_failure_marker_path must use NYXO_HOME, not hardcoded ~/.nyxo."""
+    def test_failure_marker_respects_hermes_home(self):
+        """_failure_marker_path must use HERMES_HOME, not hardcoded ~/.hermes."""
         from tools.tirith_security import _failure_marker_path
-        with patch.dict(os.environ, {"NYXO_HOME": "/custom/nyxo"}):
+        with patch.dict(os.environ, {"HERMES_HOME": "/custom/hermes"}):
             result = _failure_marker_path()
-        assert result == "/custom/nyxo/.tirith-install-failed"
+        assert result == "/custom/hermes/.tirith-install-failed"
 
     def test_conftest_isolation_prevents_real_home_writes(self):
-        """The conftest autouse fixture sets NYXO_HOME; verify it's active."""
-        nyxo_home = os.getenv("NYXO_HOME")
-        assert nyxo_home is not None, "NYXO_HOME should be set by conftest"
-        assert "nyxo_test" in nyxo_home, "Should point to test temp dir"
+        """The conftest autouse fixture sets HERMES_HOME; verify it's active."""
+        hermes_home = os.getenv("HERMES_HOME")
+        assert hermes_home is not None, "HERMES_HOME should be set by conftest"
+        assert "hermes_test" in hermes_home, "Should point to test temp dir"
 
-    def test_get_nyxo_home_fallback(self):
-        """Without NYXO_HOME set, falls back to the active OS home."""
-        from tools.tirith_security import _get_nyxo_home
+    def test_get_hermes_home_fallback(self):
+        """Without HERMES_HOME set, falls back to the active OS home."""
+        from tools.tirith_security import _get_hermes_home
         with patch.dict(os.environ, {}, clear=True):
-            # Remove NYXO_HOME entirely. With HOME also absent, expanduser
+            # Remove HERMES_HOME entirely. With HOME also absent, expanduser
             # falls back to the account database; compute expected under the
             # same environment instead of after patch.dict restores HOME.
-            os.environ.pop("NYXO_HOME", None)
-            expected = os.path.join(os.path.expanduser("~"), ".nyxo")
-            result = _get_nyxo_home()
+            os.environ.pop("HERMES_HOME", None)
+            expected = os.path.join(os.path.expanduser("~"), ".hermes")
+            result = _get_hermes_home()
         assert result == expected
 
 
@@ -1216,12 +1219,17 @@ class TestSpawnWarningDedup:
         _tirith_mod._reset_spawn_warning_state()
 
         with caplog.at_level("WARNING", logger="tools.tirith_security"):
-            for _ in range(15):
+            for i in range(15):
                 result = check_command_security("echo hi")
                 # Behavior must remain the same on every call —
                 # fail-open allow, with the exception captured in summary.
                 assert result["action"] == "allow"
-                assert "unavailable" in result["summary"]
+                if i < _tirith_mod._CRASH_LIMIT:
+                    # Before circuit breaker opens, summary has the exception
+                    assert "unavailable" in result["summary"]
+                else:
+                    # After circuit breaker opens, summary is generic
+                    assert "circuit breaker" in result["summary"]
 
         spawn_warnings = [
             rec for rec in caplog.records
@@ -1237,7 +1245,11 @@ class TestSpawnWarningDedup:
     def test_distinct_exception_types_each_log_once(self, mock_cfg, mock_run, caplog):
         """``FileNotFoundError`` and ``PermissionError`` are distinct
         failure modes and each deserves its own first-occurrence log
-        line; the dedupe key includes the exception class."""
+        line; the dedupe key includes the exception class.
+        
+        After _CRASH_LIMIT consecutive failures the circuit breaker opens
+        and subsequent calls short-circuit without spawning, so we only
+        see the warnings from the first batch."""
         mock_cfg.return_value = {
             "tirith_enabled": True, "tirith_path": "tirith",
             "tirith_timeout": 5, "tirith_fail_open": True,
@@ -1248,6 +1260,9 @@ class TestSpawnWarningDedup:
             mock_run.side_effect = FileNotFoundError("[WinError 2]")
             for _ in range(3):
                 check_command_security("a")
+            # Circuit breaker is now open — switching to PermissionError
+            # won't generate a new warning because the function returns
+            # before reaching subprocess.run.
             mock_run.side_effect = PermissionError("denied")
             for _ in range(3):
                 check_command_security("b")
@@ -1256,8 +1271,8 @@ class TestSpawnWarningDedup:
             rec for rec in caplog.records
             if "tirith spawn failed" in rec.message
         ]
-        assert len(spawn_warnings) == 2, (
-            f"expected 2 distinct first-occurrence warnings, "
+        assert len(spawn_warnings) == 1, (
+            f"expected 1 warning before circuit breaker opens, "
             f"got {len(spawn_warnings)}"
         )
 
@@ -1469,7 +1484,7 @@ class TestMkdtempOSErrorNoSpace:
                    side_effect=OSError(28, "No space left on device")), \
              patch("tools.tirith_security.shutil.which",
                    return_value=None), \
-             patch("tools.tirith_security._nyxo_bin_dir",
+             patch("tools.tirith_security._hermes_bin_dir",
                    return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk",
                    return_value=False), \

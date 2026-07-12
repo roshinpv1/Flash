@@ -1,29 +1,29 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { HermesReadDirResult } from '@/global'
 import { $connection } from '@/store/session'
-import type { NyxoReadDirResult } from '@/global'
 
 import { clearProjectDirCache, readProjectDir } from './ipc'
 import { resetProjectTreeState, useProjectTree } from './use-project-tree'
 
-const readDir = vi.fn<(path: string) => Promise<NyxoReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<HermesReadDirResult>>()
 
 beforeEach(() => {
   $connection.set(null)
   resetProjectTreeState()
   readDir.mockReset()
-  ;(window as unknown as { nyxoDesktop: { readDir: typeof readDir } }).nyxoDesktop = { readDir }
+    ; (window as unknown as { flashDesktop: { readDir: typeof readDir } }).flashDesktop = { readDir }
 })
 
 afterEach(() => {
   cleanup()
   $connection.set(null)
   resetProjectTreeState()
-  delete (window as unknown as { nyxoDesktop?: unknown }).nyxoDesktop
+  delete (window as unknown as { flashDesktop?: unknown }).flashDesktop
 })
 
-function ok(entries: { name: string; path: string; isDirectory: boolean }[]): NyxoReadDirResult {
+function ok(entries: { name: string; path: string; isDirectory: boolean }[]): HermesReadDirResult {
   return { entries }
 }
 
@@ -115,16 +115,20 @@ describe('useProjectTree', () => {
     const readFileDataUrl = vi.fn(async () => `data:text/plain;base64,${btoa('ignored.log\n')}`)
     const gitRoot = vi.fn(async () => '/repo')
     readDir.mockImplementation(async path => {
-      if (path === '/repo') return ok([{ name: '.gitignore', path: '/repo/.gitignore', isDirectory: false }])
+      if (path === '/repo') {
+        return ok([{ name: '.gitignore', path: '/repo/.gitignore', isDirectory: false }])
+      }
+
       if (path === '/repo/src') {
         return ok([
           { name: 'app.ts', path: '/repo/src/app.ts', isDirectory: false },
           { name: 'ignored.log', path: '/repo/src/ignored.log', isDirectory: false }
         ])
       }
+
       throw new Error(`unexpected path ${path}`)
     })
-    ;(window as unknown as { nyxoDesktop: unknown }).nyxoDesktop = { gitRoot, readDir, readFileDataUrl }
+      ; (window as unknown as { flashDesktop: unknown }).flashDesktop = { gitRoot, readDir, readFileDataUrl }
 
     $connection.set({ baseUrl: 'local-a', mode: 'local' } as never)
     await expect(readProjectDir('/repo/src', '/repo')).resolves.toMatchObject({
@@ -167,10 +171,10 @@ describe('useProjectTree', () => {
   it('dedupes concurrent loadChildren calls for the same id', async () => {
     readDir.mockResolvedValueOnce(ok([{ name: 'src', path: '/p/src', isDirectory: true }]))
 
-    let resolveChildren: ((value: NyxoReadDirResult) => void) | undefined
+    let resolveChildren: ((value: HermesReadDirResult) => void) | undefined
     readDir.mockImplementationOnce(
       () =>
-        new Promise<NyxoReadDirResult>(resolve => {
+        new Promise<HermesReadDirResult>(resolve => {
           resolveChildren = resolve
         })
     )
@@ -224,11 +228,17 @@ describe('useProjectTree', () => {
   it('falls back to the sanitized workspace dir when the session cwd is gone', async () => {
     const sanitizeWorkspaceCwd = vi.fn(async () => ({ cwd: '/home/me/projects', sanitized: true }))
     readDir.mockImplementation(async path => {
-      if (path === '/deleted/worktree') return { entries: [], error: 'ENOENT' }
-      if (path === '/home/me/projects') return ok([{ name: 'repo', path: '/home/me/projects/repo', isDirectory: true }])
+      if (path === '/deleted/worktree') {
+        return { entries: [], error: 'ENOENT' }
+      }
+
+      if (path === '/home/me/projects') {
+        return ok([{ name: 'repo', path: '/home/me/projects/repo', isDirectory: true }])
+      }
+
       throw new Error(`unexpected path ${path}`)
     })
-    ;(window as unknown as { nyxoDesktop: unknown }).nyxoDesktop = { readDir, sanitizeWorkspaceCwd }
+      ; (window as unknown as { flashDesktop: unknown }).flashDesktop = { readDir, sanitizeWorkspaceCwd }
 
     const { result } = renderHook(() => useProjectTree('/deleted/worktree'))
 
@@ -243,7 +253,7 @@ describe('useProjectTree', () => {
   it('keeps the root error when sanitize offers no usable fallback', async () => {
     const sanitizeWorkspaceCwd = vi.fn(async () => ({ cwd: '/deleted/worktree', sanitized: false }))
     readDir.mockResolvedValue({ entries: [], error: 'ENOENT' })
-    ;(window as unknown as { nyxoDesktop: unknown }).nyxoDesktop = { readDir, sanitizeWorkspaceCwd }
+      ; (window as unknown as { flashDesktop: unknown }).flashDesktop = { readDir, sanitizeWorkspaceCwd }
 
     const { result } = renderHook(() => useProjectTree('/deleted/worktree'))
 
@@ -251,8 +261,8 @@ describe('useProjectTree', () => {
     expect(result.current.effectiveCwd).toBe('/deleted/worktree')
   })
 
-  it('returns no-bridge gracefully when window.nyxoDesktop is missing', async () => {
-    delete (window as unknown as { nyxoDesktop?: unknown }).nyxoDesktop
+  it('returns no-bridge gracefully when window.flashDesktop is missing', async () => {
+    delete (window as unknown as { flashDesktop?: unknown }).flashDesktop
 
     const { result } = renderHook(() => useProjectTree('/p'))
 

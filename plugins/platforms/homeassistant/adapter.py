@@ -98,7 +98,7 @@ class HomeAssistantAdapter(BasePlatformAdapter):
     # Connection lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to HA WebSocket API and subscribe to events."""
         if not AIOHTTP_AVAILABLE:
             logger.warning("[%s] aiohttp not installed. Run: pip install aiohttp", self.name)
@@ -401,7 +401,7 @@ class HomeAssistantAdapter(BasePlatformAdapter):
             "Content-Type": "application/json",
         }
         payload = {
-            "title": "Nyxo Agent",
+            "title": "Hermes Agent",
             "message": content[:self.MAX_MESSAGE_LENGTH],
         }
 
@@ -533,13 +533,13 @@ async def _standalone_send(
 def _is_connected(config) -> bool:
     """Home Assistant is considered connected when ``HASS_TOKEN`` is set.
 
-    Looks up via ``nyxo_cli.gateway.get_env_value`` at call time (not via
+    Looks up via ``hermes_cli.gateway.get_env_value`` at call time (not via
     the plugin's own bound import) so tests that patch
     ``gateway_mod.get_env_value`` can suppress ambient ``HASS_TOKEN`` env
     vars.  Matches what the legacy connected-platforms check did before
     this migration.
     """
-    import nyxo_cli.gateway as gateway_mod
+    import hermes_cli.gateway as gateway_mod
     return bool((gateway_mod.get_env_value("HASS_TOKEN") or "").strip())
 
 
@@ -554,7 +554,7 @@ def _build_adapter(config):
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the Nyxo plugin system."""
+    """Plugin entry point — called by the Hermes plugin system."""
     ctx.register_platform(
         name="homeassistant",
         label="Home Assistant",

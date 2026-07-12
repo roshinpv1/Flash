@@ -31,8 +31,8 @@ def _make_agent(tmp_path: Path, **overrides):
 
 
 @pytest.fixture(autouse=True)
-def _isolate_nyxo_home(monkeypatch, tmp_path):
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+def _isolate_flash_home(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
 
 

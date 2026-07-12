@@ -68,7 +68,7 @@ function RootErrorFallback({ error, reset }: ErrorBoundaryFallbackProps) {
         <Button onClick={() => window.location.reload()} variant="text">
           {t.errors.reloadWindow}
         </Button>
-        <Button onClick={() => void window.nyxoDesktop?.revealLogs()?.catch(() => undefined)} variant="text">
+        <Button onClick={() => void window.flashDesktop?.revealLogs()?.catch(() => undefined)} variant="text">
           {t.errors.openLogs}
         </Button>
       </ErrorState>

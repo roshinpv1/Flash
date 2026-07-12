@@ -81,7 +81,7 @@ _NYXO_MODEL_WARNING = (
 # happen to carry "nyxo" in their tag but are fully tool-capable.
 #
 # Positive examples the regex must match:
-#   NousResearch/Nyxo-3-Llama-3.1-70B, nyxo-4-405b, openrouter/nyxo3:70b
+#   Flash/Nyxo-3-Llama-3.1-70B, nyxo-4-405b, openrouter/nyxo3:70b
 # Negative examples it must NOT match:
 #   nyxo-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
 _NOUS_NYXO_NON_AGENTIC_RE = re.compile(
@@ -1519,7 +1519,7 @@ def list_authenticated_providers(
     curated: dict[str, list[str]] = dict(_PROVIDER_MODELS)
     curated["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
     # "nous" pulls from the remote model-catalog manifest published at
-    # https://nyxo-agent.nousresearch.com/docs/api/model-catalog.json so
+    # https://nyxo-agent.flash.com/docs/api/model-catalog.json so
     # newly added Portal models surface in the /model picker without
     # requiring a Nyxo release. Falls back to the in-repo
     # _PROVIDER_MODELS["nous"] snapshot when the manifest is unreachable.

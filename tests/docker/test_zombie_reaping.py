@@ -6,28 +6,22 @@ required for long-running containers spawning subprocesses (subagents,
 dashboard, dynamic gateways) — otherwise the process table fills with
 defunct entries and eventually exhausts the kernel PID space.
 
-Every ``docker exec`` here runs as the unprivileged ``nyxo`` user
+Every ``docker exec`` here runs as the unprivileged ``hermes`` user
 (via :func:`docker_exec_sh` in conftest); see the conftest module
 docstring.
 """
 from __future__ import annotations
 
-import subprocess
 import time
 
-from tests.docker.conftest import docker_exec, docker_exec_sh
+from tests.docker.conftest import docker_exec, docker_exec_sh, start_container, start_container
 
 
 def test_orphan_zombies_reaped(
     built_image: str, container_name: str,
 ) -> None:
     """Spawn an orphan child that exits immediately. PID 1 must reap it."""
-    subprocess.run(
-        ["docker", "run", "-d", "--name", container_name, built_image,
-         "sleep", "60"],
-        check=True, capture_output=True, timeout=30,
-    )
-    time.sleep(2)
+    start_container(built_image, container_name, cmd="sleep 60")
 
     # `( ( sleep 0.1 & ) & ); sleep 1` creates a grandchild detached from
     # the original docker exec session — it becomes an orphan reparented

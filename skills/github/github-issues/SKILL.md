@@ -2,11 +2,11 @@
 name: github-issues
 description: "Create, triage, label, assign GitHub issues via gh or REST."
 version: 1.1.0
-author: Nyxo Agent
+author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  nyxo:
+  flash:
     tags: [GitHub, Issues, Project-Management, Bug-Tracking, Triage]
     related_skills: [github-auth, github-pr-workflow]
 ---
@@ -28,8 +28,8 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
 else
   AUTH="git"
   if [ -z "$GITHUB_TOKEN" ]; then
-    if _nyxo_env="${NYXO_HOME:-$HOME/.nyxo}/.env"; [ -f "$_nyxo_env" ] && grep -q "^GITHUB_TOKEN=" "$_nyxo_env"; then
-      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_nyxo_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
+    if _flash_env="${HERMES_HOME:-$HOME/.flash}/.env"; [ -f "$_flash_env" ] && grep -q "^GITHUB_TOKEN=" "$_flash_env"; then
+      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_flash_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
     elif grep -q "github.com" ~/.git-credentials 2>/dev/null; then
       GITHUB_TOKEN=$(grep "github.com" ~/.git-credentials 2>/dev/null | head -1 | sed 's|https://[^:]*:\([^@]*\)@.*|\1|')
     fi

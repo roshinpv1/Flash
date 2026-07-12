@@ -6,7 +6,7 @@ description: "How the ACP adapter works: lifecycle, sessions, event bridge, appr
 
 # ACP Internals
 
-The ACP adapter wraps Nyxo' synchronous `AIAgent` in an async JSON-RPC stdio server.
+The ACP adapter wraps Hermes' synchronous `AIAgent` in an async JSON-RPC stdio server.
 
 Key implementation files:
 
@@ -22,22 +22,22 @@ Key implementation files:
 ## Boot flow
 
 ```text
-nyxo acp / nyxo-acp / python -m acp_adapter
+hermes acp / hermes-acp / python -m acp_adapter
   -> acp_adapter.entry.main()
   -> parse --version / --check / --setup before server startup
-  -> load ~/.nyxo/.env
+  -> load ~/.hermes/.env
   -> configure stderr logging
-  -> construct NyxoACPAgent
+  -> construct HermesACPAgent
   -> acp.run_agent(agent, use_unstable_protocol=True)
 ```
 
-The Zed ACP Registry path launches the same adapter through `uvx --from 'nyxo-agent[acp]==<version>' nyxo-acp`, pointed at the `nyxo-agent` PyPI release.
+The Zed ACP Registry path launches the same adapter through `uvx --from 'hermes-agent[acp]==<version>' hermes-acp`, pointed at the `hermes-agent` PyPI release.
 
 Stdout is reserved for ACP JSON-RPC transport. Human-readable logs go to stderr.
 
 ## Major components
 
-### `NyxoACPAgent`
+### `HermesACPAgent`
 
 `acp_adapter/server.py` implements the ACP agent protocol.
 
@@ -94,15 +94,15 @@ asyncio.run_coroutine_threadsafe(...)
 
 Mapping:
 
-- `allow_once` -> Nyxo `once`
-- `allow_always` -> Nyxo `always`
-- reject options -> Nyxo `deny`
+- `allow_once` -> Hermes `once`
+- `allow_always` -> Hermes `always`
+- reject options -> Hermes `deny`
 
 Timeouts and bridge failures deny by default.
 
 ### Tool rendering helpers
 
-`acp_adapter/tools.py` maps Nyxo tools to ACP tool kinds and builds editor-facing content.
+`acp_adapter/tools.py` maps Hermes tools to ACP tool kinds and builds editor-facing content.
 
 Examples:
 
@@ -116,7 +116,7 @@ Examples:
 ```text
 new_session(cwd)
   -> create SessionState
-  -> create AIAgent(platform="acp", enabled_toolsets=["nyxo-acp"])
+  -> create AIAgent(platform="acp", enabled_toolsets=["hermes-acp"])
   -> bind task_id/session_id to cwd override
 
 prompt(..., session_id)
@@ -144,12 +144,12 @@ prompt(..., session_id)
 
 ACP does not implement its own auth store.
 
-Instead it reuses Nyxo' runtime resolver:
+Instead it reuses Hermes' runtime resolver:
 
 - `acp_adapter/auth.py`
-- `nyxo_cli/runtime_provider.py`
+- `hermes_cli/runtime_provider.py`
 
-So ACP advertises and uses the currently configured Nyxo provider/credentials. It also always advertises a terminal setup auth method (`nyxo-setup`, args `--setup`) so first-run registry clients can open Nyxo' interactive model/provider configuration before starting a normal ACP session.
+So ACP advertises and uses the currently configured Hermes provider/credentials. It also always advertises a terminal setup auth method (`hermes-setup`, args `--setup`) so first-run registry clients can open Hermes' interactive model/provider configuration before starting a normal ACP session.
 
 ## Working directory binding
 
@@ -172,13 +172,13 @@ ACP temporarily installs an approval callback on the terminal tool during prompt
 
 ## Current limitations
 
-- ACP sessions are persisted to the shared `~/.nyxo/state.db` (SessionDB) and transparently restored across process restarts; they appear in `session_search`
+- ACP sessions are persisted to the shared `~/.hermes/state.db` (SessionDB) and transparently restored across process restarts; they appear in `session_search`
 - non-text prompt blocks are currently ignored for request text extraction
 - editor-specific UX varies by ACP client implementation
 
 ## Related files
 
 - `tests/acp/` — ACP test suite
-- `toolsets.py` — `nyxo-acp` toolset definition
-- `nyxo_cli/main.py` — `nyxo acp` CLI subcommand
-- `pyproject.toml` — `[acp]` optional dependency + `nyxo-acp` script
+- `toolsets.py` — `hermes-acp` toolset definition
+- `hermes_cli/main.py` — `hermes acp` CLI subcommand
+- `pyproject.toml` — `[acp]` optional dependency + `hermes-acp` script

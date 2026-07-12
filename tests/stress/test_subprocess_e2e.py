@@ -2,11 +2,11 @@
 
 This validates the IPC + lifecycle story that mocks can't:
   - spawn_fn returns a real PID
-  - the child process resolves nyxo_cli.kanban_db on its own
+  - the child process resolves flash_cli.kanban_db on its own
   - the child writes heartbeats via the CLI (real argparse, real init_db)
   - the child completes via the CLI with --summary + --metadata
   - the dispatcher observes all of this through the DB only
-  - worker logs are captured to NYXO_HOME/kanban/logs/<task>.log
+  - worker logs are captured to HERMES_HOME/kanban/logs/<task>.log
   - crash detection works against a real dead PID
 """
 
@@ -30,11 +30,11 @@ def make_spawn_fn(home: str):
         log_path = os.path.join(home, f"worker_{task.id}.log")
         env = {
             **os.environ,
-            "NYXO_HOME": home,
+            "HERMES_HOME": home,
             "HOME": home,
             "PYTHONPATH": WT,
-            "NYXO_KANBAN_TASK": task.id,
-            "NYXO_KANBAN_WORKSPACE": workspace,
+            "HERMES_KANBAN_TASK": task.id,
+            "HERMES_KANBAN_WORKSPACE": workspace,
             "PATH": f"{os.path.dirname(PY)}:{os.environ.get('PATH','')}",
         }
         log_f = open(log_path, "ab")
@@ -52,20 +52,20 @@ def make_spawn_fn(home: str):
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="nyxo_e2e_")
-    os.environ["NYXO_HOME"] = home
+    home = tempfile.mkdtemp(prefix="flash_e2e_")
+    os.environ["HERMES_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from nyxo_cli import kanban_db as kb
+    from flash_cli import kanban_db as kb
 
-    # Point the `nyxo` CLI child processes will run at the worktree
-    # nyxo_cli.main. We do this by putting a shim on PATH.
+    # Point the `flash` CLI child processes will run at the worktree
+    # flash_cli.main. We do this by putting a shim on PATH.
     shim_dir = os.path.join(home, "bin")
     os.makedirs(shim_dir, exist_ok=True)
-    shim_path = os.path.join(shim_dir, "nyxo")
+    shim_path = os.path.join(shim_dir, "flash")
     with open(shim_path, "w") as f:
         f.write(f"""#!/bin/sh
-exec {PY} -m nyxo_cli.main "$@"
+exec {PY} -m flash_cli.main "$@"
 """)
     os.chmod(shim_path, 0o755)
     os.environ["PATH"] = f"{shim_dir}:{os.environ.get('PATH','')}"
@@ -211,7 +211,7 @@ exec {PY} -m nyxo_cli.main "$@"
     print("=" * 60)
     print("C. Worker log captured to disk")
     print("=" * 60)
-    # Scenario A workers wrote to /tmp/nyxo_e2e_*/worker_*.log
+    # Scenario A workers wrote to /tmp/flash_e2e_*/worker_*.log
     import glob
     logs = glob.glob(os.path.join(home, "worker_*.log"))
     print(f"  {len(logs)} worker log files")

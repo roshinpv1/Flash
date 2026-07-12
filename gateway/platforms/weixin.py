@@ -1,7 +1,7 @@
 """
 Weixin platform adapter.
 
-Connects Nyxo Agent to WeChat personal accounts via Tencent's iLink Bot API.
+Connects Hermes Agent to WeChat personal accounts via Tencent's iLink Bot API.
 
 Design notes:
 - Long-poll ``getupdates`` drives inbound delivery.
@@ -66,7 +66,7 @@ from gateway.platforms.base import (
     cache_document_from_bytes,
     cache_image_from_bytes,
 )
-from nyxo_constants import get_nyxo_home
+from flash_constants import get_flash_home
 from utils import atomic_json_write
 
 ILINK_BASE_URL = "https://ilinkai.weixin.qq.com"
@@ -221,18 +221,18 @@ def _headers(token: Optional[str], body: str) -> Dict[str, str]:
     return headers
 
 
-def _account_dir(nyxo_home: str) -> Path:
-    path = Path(nyxo_home) / "weixin" / "accounts"
+def _account_dir(flash_home: str) -> Path:
+    path = Path(flash_home) / "weixin" / "accounts"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def _account_file(nyxo_home: str, account_id: str) -> Path:
-    return _account_dir(nyxo_home) / f"{account_id}.json"
+def _account_file(flash_home: str, account_id: str) -> Path:
+    return _account_dir(flash_home) / f"{account_id}.json"
 
 
 def save_weixin_account(
-    nyxo_home: str,
+    flash_home: str,
     *,
     account_id: str,
     token: str,
@@ -246,7 +246,7 @@ def save_weixin_account(
         "user_id": user_id,
         "saved_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    path = _account_file(nyxo_home, account_id)
+    path = _account_file(flash_home, account_id)
     atomic_json_write(path, payload)
     try:
         path.chmod(0o600)
@@ -254,9 +254,9 @@ def save_weixin_account(
         pass
 
 
-def load_weixin_account(nyxo_home: str, account_id: str) -> Optional[Dict[str, Any]]:
+def load_weixin_account(flash_home: str, account_id: str) -> Optional[Dict[str, Any]]:
     """Load persisted account credentials."""
-    path = _account_file(nyxo_home, account_id)
+    path = _account_file(flash_home, account_id)
     if not path.exists():
         return None
     try:
@@ -268,8 +268,8 @@ def load_weixin_account(nyxo_home: str, account_id: str) -> Optional[Dict[str, A
 class ContextTokenStore:
     """Disk-backed ``context_token`` cache keyed by account + peer."""
 
-    def __init__(self, nyxo_home: str):
-        self._root = _account_dir(nyxo_home)
+    def __init__(self, flash_home: str):
+        self._root = _account_dir(flash_home)
         self._cache: Dict[str, str] = {}
 
     def _path(self, account_id: str) -> Path:
@@ -981,12 +981,12 @@ def _message_type_from_media(media_types: List[str], text: str) -> MessageType:
     return MessageType.TEXT
 
 
-def _sync_buf_path(nyxo_home: str, account_id: str) -> Path:
-    return _account_dir(nyxo_home) / f"{account_id}.sync.json"
+def _sync_buf_path(flash_home: str, account_id: str) -> Path:
+    return _account_dir(flash_home) / f"{account_id}.sync.json"
 
 
-def _load_sync_buf(nyxo_home: str, account_id: str) -> str:
-    path = _sync_buf_path(nyxo_home, account_id)
+def _load_sync_buf(flash_home: str, account_id: str) -> str:
+    path = _sync_buf_path(flash_home, account_id)
     if not path.exists():
         return ""
     try:
@@ -995,13 +995,13 @@ def _load_sync_buf(nyxo_home: str, account_id: str) -> str:
         return ""
 
 
-def _save_sync_buf(nyxo_home: str, account_id: str, sync_buf: str) -> None:
-    path = _sync_buf_path(nyxo_home, account_id)
+def _save_sync_buf(flash_home: str, account_id: str, sync_buf: str) -> None:
+    path = _sync_buf_path(flash_home, account_id)
     atomic_json_write(path, {"get_updates_buf": sync_buf})
 
 
 async def qr_login(
-    nyxo_home: str,
+    flash_home: str,
     *,
     bot_type: str = "3",
     timeout_seconds: int = 480,
@@ -1116,7 +1116,7 @@ async def qr_login(
                     logger.error("weixin: QR confirmed but credential payload was incomplete")
                     return None
                 save_weixin_account(
-                    nyxo_home,
+                    flash_home,
                     account_id=account_id,
                     token=token,
                     base_url=base_url,
@@ -1136,7 +1136,7 @@ async def qr_login(
 
 
 class WeixinAdapter(BasePlatformAdapter):
-    """Native Nyxo adapter for Weixin personal accounts."""
+    """Native Hermes adapter for Weixin personal accounts."""
 
     supports_code_blocks = True  # Weixin renders fenced code blocks
     splits_long_messages = True  # send() chunks via _split_text()
@@ -1150,9 +1150,9 @@ class WeixinAdapter(BasePlatformAdapter):
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.WEIXIN)
         extra = config.extra or {}
-        nyxo_home = str(get_nyxo_home())
-        self._nyxo_home = nyxo_home
-        self._token_store = ContextTokenStore(nyxo_home)
+        flash_home = str(get_flash_home())
+        self._flash_home = flash_home
+        self._token_store = ContextTokenStore(flash_home)
         self._typing_cache = TypingTicketCache()
         self._poll_session: Optional[aiohttp.ClientSession] = None
         self._send_session: Optional[aiohttp.ClientSession] = None
@@ -1193,7 +1193,7 @@ class WeixinAdapter(BasePlatformAdapter):
         )
         self._rate_limit_circuit_until = 0.0
         self._rate_limit_events: List[float] = []
-        self._dm_policy = str(extra.get("dm_policy") or os.getenv("WEIXIN_DM_POLICY", "open")).strip().lower()
+        self._dm_policy = str(extra.get("dm_policy") or os.getenv("WEIXIN_DM_POLICY", "pairing")).strip().lower()
         self._group_policy = str(extra.get("group_policy") or os.getenv("WEIXIN_GROUP_POLICY", "disabled")).strip().lower()
         allow_from = extra.get("allow_from")
         if allow_from is None:
@@ -1227,7 +1227,7 @@ class WeixinAdapter(BasePlatformAdapter):
         self._pending_text_batch_tasks: Dict[str, asyncio.Task] = {}
 
         if self._account_id and not self._token:
-            persisted = load_weixin_account(nyxo_home, self._account_id)
+            persisted = load_weixin_account(flash_home, self._account_id)
             if persisted:
                 self._token = str(persisted.get("token") or "").strip()
                 self._base_url = str(persisted.get("base_url") or self._base_url).strip().rstrip("/")
@@ -1261,7 +1261,7 @@ class WeixinAdapter(BasePlatformAdapter):
             return [str(item).strip() for item in value if str(item).strip()]
         return [str(value).strip()] if str(value).strip() else []
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         if not check_weixin_requirements():
             message = "Weixin startup failed: aiohttp and cryptography are required"
             self._set_fatal_error("weixin_missing_dependency", message, retryable=False)
@@ -1301,9 +1301,9 @@ class WeixinAdapter(BasePlatformAdapter):
                 "[%s] WEIXIN_GROUP_POLICY=%s is set, but QR-login connects an iLink bot "
                 "identity (e.g. ...@im.bot) which typically cannot be invited into ordinary "
                 "WeChat groups. iLink usually does not deliver ordinary-group events for "
-                "these accounts, so group messages may never reach Nyxo regardless of this "
+                "these accounts, so group messages may never reach Hermes regardless of this "
                 "policy. If group delivery doesn't work, the limitation is on the iLink side, "
-                "not in Nyxo.",
+                "not in Hermes.",
                 self.name,
                 self._group_policy,
             )
@@ -1336,7 +1336,7 @@ class WeixinAdapter(BasePlatformAdapter):
 
     async def _poll_loop(self) -> None:
         assert self._poll_session is not None
-        sync_buf = _load_sync_buf(self._nyxo_home, self._account_id)
+        sync_buf = _load_sync_buf(self._flash_home, self._account_id)
         timeout_ms = LONG_POLL_TIMEOUT_MS
         consecutive_failures = 0
 
@@ -1381,7 +1381,7 @@ class WeixinAdapter(BasePlatformAdapter):
                 new_sync_buf = str(response.get("get_updates_buf") or "")
                 if new_sync_buf:
                     sync_buf = new_sync_buf
-                    _save_sync_buf(self._nyxo_home, self._account_id, sync_buf)
+                    _save_sync_buf(self._flash_home, self._account_id, sync_buf)
 
                 for message in response.get("msgs") or []:
                     asyncio.create_task(self._process_message_safe(message))
@@ -1427,7 +1427,9 @@ class WeixinAdapter(BasePlatformAdapter):
                 return
             if self._group_policy == "allowlist" and effective_chat_id not in self._group_allow_from:
                 return
-        elif not self._is_dm_allowed(sender_id):
+            if self._group_policy == "pairing":
+                return
+        elif not self._is_dm_intake_allowed(sender_id):
             return
 
         context_token = str(message.get("context_token") or "").strip()
@@ -1470,12 +1472,30 @@ class WeixinAdapter(BasePlatformAdapter):
         else:
             await self.handle_message(event)
 
+    def _open_dm_opted_in(self) -> bool:
+        if os.getenv("GATEWAY_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}:
+            return True
+        return os.getenv("WEIXIN_ALLOW_ALL_USERS", "").lower() in {"true", "1", "yes"}
+
     def _is_dm_allowed(self, sender_id: str) -> bool:
         if self._dm_policy == "disabled":
             return False
         if self._dm_policy == "allowlist":
             return sender_id in self._allow_from
-        return True
+        if self._dm_policy == "open":
+            return self._open_dm_opted_in()
+        return False
+
+    def _is_dm_intake_allowed(self, sender_id: str) -> bool:
+        if self._dm_policy == "disabled":
+            return False
+        if self._dm_policy == "allowlist":
+            return sender_id in self._allow_from
+        if self._dm_policy == "pairing":
+            return True
+        if self._dm_policy == "open":
+            return self._open_dm_opted_in()
+        return False
 
     @property
     def enforces_own_access_policy(self) -> bool:
@@ -1868,7 +1888,7 @@ class WeixinAdapter(BasePlatformAdapter):
             # Deliver text content.
             chunks = [c for c in self._split_text(self.format_message(final_content)) if c and c.strip()]
             for idx, chunk in enumerate(chunks):
-                client_id = f"nyxo-weixin-{uuid.uuid4().hex}"
+                client_id = f"flash-weixin-{uuid.uuid4().hex}"
                 await self._send_text_chunk(
                     chat_id=chat_id,
                     chunk=chunk,
@@ -2147,7 +2167,7 @@ class WeixinAdapter(BasePlatformAdapter):
 
         last_message_id = None
         if caption:
-            last_message_id = f"nyxo-weixin-{uuid.uuid4().hex}"
+            last_message_id = f"flash-weixin-{uuid.uuid4().hex}"
             await _send_message(
                 self._send_session,
                 base_url=self._base_url,
@@ -2158,7 +2178,7 @@ class WeixinAdapter(BasePlatformAdapter):
                 client_id=last_message_id,
             )
 
-        last_message_id = f"nyxo-weixin-{uuid.uuid4().hex}"
+        last_message_id = f"flash-weixin-{uuid.uuid4().hex}"
         await _api_post(
             self._send_session,
             base_url=self._base_url,
@@ -2280,7 +2300,7 @@ async def send_weixin_direct(
     if not account_id:
         return {"error": "Weixin account ID missing. Configure WEIXIN_ACCOUNT_ID or platforms.weixin.extra.account_id."}
 
-    token_store = ContextTokenStore(str(get_nyxo_home()))
+    token_store = ContextTokenStore(str(get_flash_home()))
     token_store.restore(account_id)
     context_token = token_store.get(account_id, chat_id)
 

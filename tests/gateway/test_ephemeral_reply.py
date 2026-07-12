@@ -39,7 +39,7 @@ from gateway.session import SessionSource
 class _NoDeleteAdapter(BasePlatformAdapter):
     """Adapter that does NOT override delete_message (silent degrade)."""
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         pass
 
     async def disconnect(self):
@@ -59,7 +59,7 @@ class _DeleteCapableAdapter(BasePlatformAdapter):
         super().__init__(*a, **kw)
         self.deleted: list[tuple[str, str]] = []
 
-    async def connect(self):
+    async def connect(self, *, is_reconnect: bool = False):
         pass
 
     async def disconnect(self):
@@ -280,7 +280,7 @@ async def test_process_message_ephemeral_reply_does_not_auto_upload_bare_paths(t
     )
     config_path = tmp_path / "config.yaml"
     config_path.write_text("model:\n  provider: test\n", encoding="utf-8")
-    reply_text = f"Tip: nyxo chat --ignore-user-config skips {config_path}"
+    reply_text = f"Tip: flash chat --ignore-user-config skips {config_path}"
 
     async def _handler(evt):
         return EphemeralReply(reply_text, ttl_seconds=0)

@@ -22,16 +22,16 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_env(tmp_path, monkeypatch):
-    """Isolate NYXO_HOME for each test.
+    """Isolate HERMES_HOME for each test.
 
-    The global hermetic fixture already redirects NYXO_HOME to a tempdir,
+    The global hermetic fixture already redirects HERMES_HOME to a tempdir,
     but we want the plugin to work with a predictable subpath. We reset
-    NYXO_HOME here for clarity.
+    HERMES_HOME here for clarity.
     """
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
-    yield nyxo_home
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
+    yield flash_home
 
 
 def _load_lib():
@@ -52,20 +52,20 @@ def _load_plugin_init():
     plugin_dir = repo_root / "plugins" / "disk-cleanup"
     # Use the PluginManager's module naming convention so relative imports work.
     spec = importlib.util.spec_from_file_location(
-        "nyxo_plugins.disk_cleanup",
+        "flash_plugins.disk_cleanup",
         plugin_dir / "__init__.py",
         submodule_search_locations=[str(plugin_dir)],
     )
     # Ensure parent namespace package exists for the relative `. import disk_cleanup`
     import types
-    if "nyxo_plugins" not in sys.modules:
-        ns = types.ModuleType("nyxo_plugins")
+    if "flash_plugins" not in sys.modules:
+        ns = types.ModuleType("flash_plugins")
         ns.__path__ = []
-        sys.modules["nyxo_plugins"] = ns
+        sys.modules["flash_plugins"] = ns
     mod = importlib.util.module_from_spec(spec)
-    mod.__package__ = "nyxo_plugins.disk_cleanup"
+    mod.__package__ = "flash_plugins.disk_cleanup"
     mod.__path__ = [str(plugin_dir)]
-    sys.modules["nyxo_plugins.disk_cleanup"] = mod
+    sys.modules["flash_plugins.disk_cleanup"] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -75,20 +75,20 @@ def _load_plugin_init():
 # ---------------------------------------------------------------------------
 
 class TestIsSafePath:
-    def test_accepts_path_under_nyxo_home(self, _isolate_env):
+    def test_accepts_path_under_flash_home(self, _isolate_env):
         dg = _load_lib()
         p = _isolate_env / "subdir" / "file.txt"
         p.parent.mkdir()
         p.write_text("x")
         assert dg.is_safe_path(p) is True
 
-    def test_rejects_outside_nyxo_home(self, _isolate_env):
+    def test_rejects_outside_flash_home(self, _isolate_env):
         dg = _load_lib()
         assert dg.is_safe_path(Path("/etc/passwd")) is False
 
-    def test_accepts_tmp_nyxo_prefix(self, _isolate_env, tmp_path):
+    def test_accepts_tmp_flash_prefix(self, _isolate_env, tmp_path):
         dg = _load_lib()
-        assert dg.is_safe_path(Path("/tmp/nyxo-abc/x.log")) is True
+        assert dg.is_safe_path(Path("/tmp/flash-abc/x.log")) is True
 
     def test_rejects_plain_tmp(self, _isolate_env):
         dg = _load_lib()
@@ -135,6 +135,13 @@ class TestGuessCategory:
         p = output_dir / "run.md"
         p.write_text("x")
         assert dg.guess_category(p) == "cron-output"
+
+    def test_cron_output_root_not_tracked(self, _isolate_env):
+        """The cron/output root is durable container state, not an artifact."""
+        dg = _load_lib()
+        output_root = _isolate_env / "cron" / "output"
+        output_root.mkdir(parents=True)
+        assert dg.guess_category(output_root) is None
 
     def test_cron_jobs_json_not_tracked(self, _isolate_env):
         """Regression for #32164: the cron registry must never be tracked."""
@@ -227,6 +234,29 @@ class TestStaleCronEntryMigration:
         summary = dg.quick()
         assert summary["deleted"] == 0, "cron/ dir must not be deleted"
         assert cron_dir.exists()
+
+    def test_quick_skips_stale_cron_output_for_output_root(self, _isolate_env):
+        """Stale entry for cron/output itself must not delete all job output."""
+        dg = _load_lib()
+        output_root = _isolate_env / "cron" / "output"
+        job_dir = output_root / "job_1"
+        job_dir.mkdir(parents=True)
+        run_md = job_dir / "run.md"
+        run_md.write_text("x")
+
+        tracked_file = _isolate_env / "disk-cleanup" / "tracked.json"
+        tracked_file.parent.mkdir(parents=True, exist_ok=True)
+        tracked_file.write_text(json.dumps([{
+            "path": str(output_root),
+            "category": "cron-output",
+            "timestamp": "2025-01-01T00:00:00+00:00",
+            "size": 0,
+        }]))
+
+        summary = dg.quick()
+        assert summary["deleted"] == 0, "cron/output root must not be deleted"
+        assert output_root.exists()
+        assert run_md.exists()
 
     def test_quick_skips_protected_cron_paths_defense_in_depth(self, _isolate_env):
         """Defense-in-depth: even if guess_category returned cron-output
@@ -357,15 +387,15 @@ class TestTrackForgetQuick:
     ):
         dg = _load_lib()
         protected_empty = (
-            _isolate_env / "nyxo-agent" / "node_modules" / "pkg" / "empty"
+            _isolate_env / "flash-agent" / "node_modules" / "pkg" / "empty"
         )
         protected_empty.mkdir(parents=True)
 
         original_iterdir = Path.iterdir
 
         def guarded_iterdir(path):
-            if path == _isolate_env / "nyxo-agent":
-                raise AssertionError("quick() descended into protected nyxo-agent/")
+            if path == _isolate_env / "flash-agent":
+                raise AssertionError("quick() descended into protected flash-agent/")
             return original_iterdir(path)
 
         monkeypatch.setattr(Path, "iterdir", guarded_iterdir)
@@ -554,15 +584,15 @@ class TestSlashCommand:
 # ---------------------------------------------------------------------------
 
 class TestBundledDiscovery:
-    def _write_enabled_config(self, nyxo_home, names):
+    def _write_enabled_config(self, flash_home, names):
         """Write plugins.enabled allow-list to config.yaml."""
         import yaml
-        cfg_path = nyxo_home / "config.yaml"
+        cfg_path = flash_home / "config.yaml"
         cfg_path.write_text(yaml.safe_dump({"plugins": {"enabled": list(names)}}))
 
     def test_disk_cleanup_discovered_but_not_loaded_by_default(self, _isolate_env):
         """Bundled plugins are discovered but NOT loaded without opt-in."""
-        from nyxo_cli import plugins as pmod
+        from flash_cli import plugins as pmod
         mgr = pmod.PluginManager()
         mgr.discover_and_load()
         # Discovered — appears in the registry
@@ -576,7 +606,7 @@ class TestBundledDiscovery:
     def test_disk_cleanup_loads_when_enabled(self, _isolate_env):
         """Adding to plugins.enabled activates the bundled plugin."""
         self._write_enabled_config(_isolate_env, ["disk-cleanup"])
-        from nyxo_cli import plugins as pmod
+        from flash_cli import plugins as pmod
         mgr = pmod.PluginManager()
         mgr.discover_and_load()
         loaded = mgr._plugins["disk-cleanup"]
@@ -595,7 +625,7 @@ class TestBundledDiscovery:
                 "disabled": ["disk-cleanup"],
             }
         }))
-        from nyxo_cli import plugins as pmod
+        from flash_cli import plugins as pmod
         mgr = pmod.PluginManager()
         mgr.discover_and_load()
         loaded = mgr._plugins["disk-cleanup"]
@@ -608,7 +638,7 @@ class TestBundledDiscovery:
         self._write_enabled_config(
             _isolate_env, ["memory", "context_engine", "disk-cleanup"]
         )
-        from nyxo_cli import plugins as pmod
+        from flash_cli import plugins as pmod
         mgr = pmod.PluginManager()
         mgr.discover_and_load()
         assert "memory" not in mgr._plugins

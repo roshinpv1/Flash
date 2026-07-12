@@ -30,9 +30,9 @@ node_modules
 
 # Built artifacts that are regenerated inside the image.  Excluded so local
 # rebuilds on the developer's machine don't invalidate the npm-install layer
-# that now depends on the full ui-tui/packages/nyxo-ink/ tree being present.
+# that now depends on the full ui-tui/packages/flash-ink/ tree being present.
 ui-tui/dist/
-ui-tui/packages/nyxo-ink/dist/
+ui-tui/packages/flash-ink/dist/
 
 # CI/CD
 .github
@@ -57,17 +57,21 @@ htmlcov/
 
 # Runtime data (bind-mounted at /opt/data; must not leak into build context)
 data/
-.nyxo-docker/
+.flash-docker/
 .notebooklm-home/
 
 # Compose/profile runtime state (bind-mounted; avoid ownership/secret issues)
-nyxo-config/
+flash-config/
 runtime/
 
 # ---------- Not needed inside the Docker image ----------
 
-# Desktop app source (Tauri/Electron); never installed in the container
+# Desktop app source (Tauri/Electron); never installed in the container.
+# apps/shared is the dashboard↔desktop websocket helper and is linked from
+# web/package.json as a file: workspace dep — keep it in the build context.
 apps/
+!apps/shared/
+!apps/shared/**
 
 # Test suite — not shipped in production images
 tests/
@@ -80,8 +84,8 @@ docs/
 assets/
 infographic/
 
-# Plugin-level docs (nyxo-achievements ships docs/ but the runtime doesn't read them)
-plugins/nyxo-achievements/docs/
+# Plugin-level docs (flash-achievements ships docs/ but the runtime doesn't read them)
+plugins/flash-achievements/docs/
 
 # Nix / Homebrew / AUR packaging metadata — irrelevant to Docker
 nix/

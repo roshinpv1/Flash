@@ -13,11 +13,11 @@ through a thin wrapper that mirrors the real dispatch shape.
 
 from unittest.mock import patch
 
-from cli import NyxoCLI
+from cli import HermesCLI
 
 
 def _make_cli():
-    cli = NyxoCLI.__new__(NyxoCLI)
+    cli = HermesCLI.__new__(HermesCLI)
     cli._should_exit = False
     cli.conversation_history = []
     cli.agent = None

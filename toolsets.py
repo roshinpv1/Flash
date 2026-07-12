@@ -28,14 +28,15 @@ from typing import List, Dict, Any, Set, Optional
 
 # Shared tool list for CLI and all messaging platform toolsets.
 # Edit this once to update all platforms simultaneously.
-_NYXO_CORE_TOOLS = [
+_HERMES_CORE_TOOLS = [
     # Web
     "web_search", "web_extract",
     # Terminal + process management
     "terminal", "process",
-    # Read the desktop GUI's embedded terminal pane (gated on NYXO_DESKTOP
-    # via check_fn in tools/read_terminal_tool.py — hidden outside the GUI).
-    "read_terminal",
+    # Read the desktop GUI's embedded terminal pane, and close an agent's
+    # read-only terminal tab (both gated on HERMES_DESKTOP via check_fn —
+    # hidden outside the GUI).
+    "read_terminal", "close_terminal",
     # File manipulation
     "read_file", "write_file", "patch", "search_files",
     # Vision + image generation
@@ -51,6 +52,11 @@ _NYXO_CORE_TOOLS = [
     "text_to_speech",
     # Planning & memory
     "todo", "memory",
+    # NOTE: the desktop Project tools (project_list/create/switch) are
+    # deliberately NOT here. They only make sense where a GUI can follow the
+    # move, so they live in the `project` toolset and are enabled solely by the
+    # GUI gateway (tui_gateway/server.py::_load_enabled_toolsets) — keeping them
+    # off every CLI/messaging/cron schema (narrow waist).
     # Session history search
     "session_search",
     # Clarifying questions
@@ -62,7 +68,7 @@ _NYXO_CORE_TOOLS = [
     # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
     "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
     # Kanban multi-agent coordination — only in schema when the agent is
-    # spawned as a kanban worker (NYXO_KANBAN_TASK env set) or the current
+    # spawned as a kanban worker (HERMES_KANBAN_TASK env set) or the current
     # profile explicitly enables the kanban toolset. Gated via check_fn in
     # tools/kanban_tools.py.
     "kanban_show", "kanban_list",
@@ -76,7 +82,7 @@ _NYXO_CORE_TOOLS = [
 # Webhook events may originate from untrusted third-party content (for example,
 # public PR titles/comments). Keep the default webhook toolset intentionally
 # constrained to avoid local file/system execution by prompt injection.
-_NYXO_WEBHOOK_SAFE_TOOLS = [
+_HERMES_WEBHOOK_SAFE_TOOLS = [
     "web_search",
     "web_extract",
     "vision_analyze",
@@ -105,7 +111,7 @@ TOOLSETS = {
             "Search X (Twitter) posts and threads via xAI's built-in "
             "x_search Responses tool. Available when xAI credentials are "
             "configured (SuperGrok OAuth or XAI_API_KEY). Off by default; "
-            "enable in `nyxo tools` → X (Twitter) Search."
+            "enable in `flash tools` → X (Twitter) Search."
         ),
         "tools": ["x_search"],
         "includes": []
@@ -133,10 +139,11 @@ TOOLSETS = {
         "description": (
             "Video generation tools. Single ``video_generate`` tool covers "
             "text-to-video (prompt only) and image-to-video (prompt + "
-            "image_url) — the active backend auto-routes. Configure via "
-            "``nyxo tools`` → Video Generation."
+            "image_url), plus reference-to-video. Provider-specific edit/"
+            "extend workflows may appear as separate tools. Configure via "
+            "``flash tools`` → Video Generation."
         ),
-        "tools": ["video_generate"],
+        "tools": ["video_generate", "xai_video_edit", "xai_video_extend"],
         "includes": []
     },
 
@@ -153,12 +160,6 @@ TOOLSETS = {
     "terminal": {
         "description": "Terminal/command execution and process management tools",
         "tools": ["terminal", "process"],
-        "includes": []
-    },
-    
-    "moa": {
-        "description": "Advanced reasoning and problem-solving tools",
-        "tools": ["mixture_of_agents"],
         "includes": []
     },
     
@@ -222,6 +223,12 @@ TOOLSETS = {
         "tools": ["session_search"],
         "includes": []
     },
+
+    "project": {
+        "description": "Desktop Projects — create/switch named workspaces (GUI sessions only)",
+        "tools": ["project_list", "project_create", "project_switch"],
+        "includes": []
+    },
     
     "clarify": {
         "description": "Ask the user clarifying questions (multiple-choice or open-ended)",
@@ -253,7 +260,7 @@ TOOLSETS = {
     "kanban": {
         "description": (
             "Kanban multi-agent coordination — only active when the agent "
-            "is spawned by the kanban dispatcher (NYXO_KANBAN_TASK env "
+            "is spawned by the kanban dispatcher (HERMES_KANBAN_TASK env "
             "set). The dispatcher runs inside the gateway by default; see "
             "`kanban.dispatch_in_gateway` in config.yaml. Lets workers mark "
             "tasks done with structured handoffs, block for human input, "
@@ -332,7 +339,7 @@ TOOLSETS = {
         "includes": ["web", "vision", "image_gen"]
     },
 
-    # Coding posture (base Nyxo — CLI/TUI/desktop/ACP). Auto-selected in a
+    # Coding posture (base Hermes — CLI/TUI/desktop/ACP). Auto-selected in a
     # code workspace; see agent/coding_context.py. Keeps everything you reach
     # for while pairing on code and drops the rest (messaging, tts, image_gen,
     # spotify, home-assistant, cron, computer-use).
@@ -340,7 +347,7 @@ TOOLSETS = {
         "description": "Coding-focused toolset: files, terminal, search, web docs, skills, todo, delegate, vision, browser",
         "tools": [
             "web_search", "web_extract",
-            "terminal", "process", "read_terminal",
+            "terminal", "process", "read_terminal", "close_terminal",
             "read_file", "write_file", "patch", "search_files",
             "vision_analyze",
             "skills_list", "skill_view", "skill_manage",
@@ -355,20 +362,20 @@ TOOLSETS = {
         "includes": [],
         # Posture toolset: selected per-session by agent/coding_context.py,
         # never auto-recovered into per-platform tool config (see the
-        # non-configurable-toolset recovery loop in nyxo_cli/tools_config.py).
+        # non-configurable-toolset recovery loop in flash_cli/tools_config.py).
         "posture": True,
     },
     
     # ==========================================================================
-    # Full Nyxo toolsets (CLI + messaging platforms)
+    # Full Hermes toolsets (CLI + messaging platforms)
     #
     # All platforms share the same core tools. Note: agents do NOT get an
     # agent-callable send_message tool — outbound platform messaging is handled
     # outside the agent loop (cron delivery, the gateway kanban notifier, and
-    # the `nyxo send` CLI), not by the model deciding to send on its own.
+    # the `flash send` CLI), not by the model deciding to send on its own.
     # ==========================================================================
 
-    "nyxo-acp": {
+    "flash-acp": {
         "description": "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without messaging, audio, or clarify UI",
         "tools": [
             "web_search", "web_extract",
@@ -387,7 +394,7 @@ TOOLSETS = {
         "includes": []
     },
 
-    "nyxo-api-server": {
+    "flash-api-server": {
         "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
         "tools": [
             # Web
@@ -420,95 +427,95 @@ TOOLSETS = {
         "includes": []
     },
     
-    "nyxo-cli": {
+    "flash-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-cron": {
-        # Mirrors nyxo-cli so cron's "default" toolset is the same set of
-        # core tools users see interactively — then `nyxo tools` filters
+    "flash-cron": {
+        # Mirrors flash-cli so cron's "default" toolset is the same set of
+        # core tools users see interactively — then `flash tools` filters
         # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
         # homeassistant) are excluded by _get_platform_tools() unless
         # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as nyxo-cli; gated by `nyxo tools`",
-        "tools": _NYXO_CORE_TOOLS,
+        "description": "Default cron toolset - same core tools as flash-cli; gated by `flash tools`",
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-telegram": {
+    "flash-telegram": {
         "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
     
-    "nyxo-discord": {
+    "flash-discord": {
         "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
-        "tools": _NYXO_CORE_TOOLS + [
+        "tools": _HERMES_CORE_TOOLS + [
             "discord",
             "discord_admin",
         ],
         "includes": []
     },
     
-    "nyxo-whatsapp": {
+    "flash-whatsapp": {
         "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
     
-    "nyxo-slack": {
+    "flash-slack": {
         "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
     
-    "nyxo-signal": {
+    "flash-signal": {
         "description": "Signal bot toolset - encrypted messaging platform (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-bluebubbles": {
+    "flash-bluebubbles": {
         "description": "BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-homeassistant": {
+    "flash-homeassistant": {
         "description": "Home Assistant bot toolset - smart home event monitoring and control",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-email": {
-        "description": "Email bot toolset - interact with Nyxo via email (IMAP/SMTP)",
-        "tools": _NYXO_CORE_TOOLS,
+    "flash-email": {
+        "description": "Email bot toolset - interact with Hermes via email (IMAP/SMTP)",
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-mattermost": {
+    "flash-mattermost": {
         "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-matrix": {
+    "flash-matrix": {
         "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-dingtalk": {
+    "flash-dingtalk": {
         "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-feishu": {
+    "flash-feishu": {
         "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
-        "tools": _NYXO_CORE_TOOLS + [
+        "tools": _HERMES_CORE_TOOLS + [
             "feishu_doc_read",
             "feishu_drive_list_comments",
             "feishu_drive_list_comment_replies",
@@ -518,33 +525,33 @@ TOOLSETS = {
         "includes": []
     },
 
-    "nyxo-weixin": {
+    "flash-weixin": {
         "description": "Weixin bot toolset - personal WeChat messaging via iLink (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-qqbot": {
+    "flash-qqbot": {
         "description": "QQBot toolset - QQ messaging via Official Bot API v2 (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-wecom": {
+    "flash-wecom": {
         "description": "WeCom bot toolset - enterprise WeChat messaging (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-wecom-callback": {
+    "flash-wecom-callback": {
         "description": "WeCom callback toolset - enterprise self-built app messaging (full access)",
-        "tools": _NYXO_CORE_TOOLS,
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-yuanbao": {
+    "flash-yuanbao": {
         "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
-        "tools": _NYXO_CORE_TOOLS + [
+        "tools": _HERMES_CORE_TOOLS + [
             "yb_query_group_info",
             "yb_query_group_members",
             "yb_send_dm",
@@ -555,39 +562,61 @@ TOOLSETS = {
         "includes": []
     },
 
-    "nyxo-sms": {
-        "description": "SMS bot toolset - interact with Nyxo via SMS (Twilio)",
-        "tools": _NYXO_CORE_TOOLS,
+    "flash-sms": {
+        "description": "SMS bot toolset - interact with Hermes via SMS (Twilio)",
+        "tools": _HERMES_CORE_TOOLS,
         "includes": []
     },
 
-    "nyxo-webhook": {
+    "flash-webhook": {
         "description": "Webhook toolset - receive and process external webhook events",
-        "tools": _NYXO_WEBHOOK_SAFE_TOOLS,
+        "tools": _HERMES_WEBHOOK_SAFE_TOOLS,
         "includes": []
     },
 
-    "nyxo-gateway": {
+    "flash-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["nyxo-telegram", "nyxo-discord", "nyxo-whatsapp", "nyxo-slack", "nyxo-signal", "nyxo-bluebubbles", "nyxo-homeassistant", "nyxo-email", "nyxo-sms", "nyxo-mattermost", "nyxo-matrix", "nyxo-dingtalk", "nyxo-feishu", "nyxo-wecom", "nyxo-wecom-callback", "nyxo-weixin", "nyxo-qqbot", "nyxo-webhook", "nyxo-yuanbao"]
+        "includes": ["flash-telegram", "flash-discord", "flash-whatsapp", "flash-slack", "flash-signal", "flash-bluebubbles", "flash-homeassistant", "flash-email", "flash-sms", "flash-mattermost", "flash-matrix", "flash-dingtalk", "flash-feishu", "flash-wecom", "flash-wecom-callback", "flash-weixin", "flash-qqbot", "flash-webhook", "flash-yuanbao"]
     }
 }
 
 
 
-def get_toolset(name: str) -> Optional[Dict[str, Any]]:
+def get_toolset(name: str, *, include_registry: bool = True) -> Optional[Dict[str, Any]]:
     """
     Get a toolset definition by name.
-    
+
     Args:
         name (str): Name of the toolset
-        
+        include_registry (bool): When True (default), merge in tools that
+            plugins/overlays registered into this toolset via the registry.
+            When False, return only the static ``TOOLSETS`` definition (the
+            composite-authored view). Platform reverse-mapping in
+            ``_get_platform_tools`` uses False so that a tool registered into a
+            toolset but absent from a platform's static composite does not drop
+            the whole toolset from inference. See issue #49622.
+
     Returns:
         Dict: Toolset definition with description, tools, and includes
-        None: If toolset not found
+        None: If toolset not found. With include_registry=False the static
+            view only recognizes names literally present in ``TOOLSETS``, so
+            registry/MCP-only toolsets AND registry-derived aliases return None
+            (they have no static counterpart).
     """
     toolset = TOOLSETS.get(name)
+
+    if not include_registry:
+        # Static view only: return the built-in definition (copying the nested
+        # tools/includes lists so callers can't mutate TOOLSETS), or None for
+        # registry/MCP-only toolsets that have no static counterpart.
+        if not toolset:
+            return None
+        return {
+            **toolset,
+            "tools": list(toolset.get("tools", [])),
+            "includes": list(toolset.get("includes", [])),
+        }
 
     try:
         from tools.registry import registry
@@ -628,9 +657,9 @@ def get_toolset(name: str) -> Optional[Dict[str, Any]]:
 
 
 def bundle_non_core_tools(toolset_name: str) -> Set[str]:
-    """Return a ``nyxo-*`` bundle's platform-specific tools, excluding core.
+    """Return a ``flash-*`` bundle's platform-specific tools, excluding core.
 
-    Platform bundles are defined as ``_NYXO_CORE_TOOLS + [platform extras]``.
+    Platform bundles are defined as ``_HERMES_CORE_TOOLS + [platform extras]``.
     When a bundle name appears in ``disabled_toolsets``, subtracting the whole
     bundle would strip core tools (terminal, read_file, …) shared by every
     other enabled toolset, emptying the model's tool list (#33924). This
@@ -638,12 +667,12 @@ def bundle_non_core_tools(toolset_name: str) -> Set[str]:
     one-level ``includes``), so disabling a bundle removes its platform tools
     while leaving core intact.
 
-    Bundle nesting is one level deep in practice (only ``nyxo-gateway``
+    Bundle nesting is one level deep in practice (only ``flash-gateway``
     includes other bundles, and those leaves don't nest further), so a single
     ``includes`` pass is sufficient. Unknown/garbage names fall back to the
     full resolution minus core — never re-introducing the core wipe.
     """
-    core = set(_NYXO_CORE_TOOLS)
+    core = set(_HERMES_CORE_TOOLS)
     ts_def = get_toolset(toolset_name)
     if not (ts_def and "tools" in ts_def):
         return set(resolve_toolset(toolset_name)) - core
@@ -655,30 +684,36 @@ def bundle_non_core_tools(toolset_name: str) -> Set[str]:
     return to_remove
 
 
-def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
+def resolve_toolset(name: str, visited: Set[str] = None, *, include_registry: bool = True) -> List[str]:
     """
     Recursively resolve a toolset to get all tool names.
-    
+
     This function handles toolset composition by recursively resolving
     included toolsets and combining all tools.
-    
+
     Args:
         name (str): Name of the toolset to resolve
         visited (Set[str]): Set of already visited toolsets (for cycle detection)
-        
+        include_registry (bool): When True (default), include tools that
+            plugins/overlays registered into a toolset. When False, resolve only
+            the static ``TOOLSETS`` definition (includes are still resolved, but
+            statically). Platform reverse-mapping uses False so a registry-added
+            tool cannot drop the whole toolset from inference (see #49622 and
+            ``_get_platform_tools``).
+
     Returns:
         List[str]: List of all tool names in the toolset
     """
     if visited is None:
         visited = set()
-    
+
     # Special aliases that represent all tools across every toolset
     # This ensures future toolsets are automatically included without changes.
     if name in {"all", "*"}:
         all_tools: Set[str] = set()
         for toolset_name in get_toolset_names():
             # Use a fresh visited set per branch to avoid cross-branch contamination
-            resolved = resolve_toolset(toolset_name, visited.copy())
+            resolved = resolve_toolset(toolset_name, visited.copy(), include_registry=include_registry)
             all_tools.update(resolved)
         return sorted(all_tools)
 
@@ -691,17 +726,19 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
     visited.add(name)
 
     # Get toolset definition
-    toolset = get_toolset(name)
+    toolset = get_toolset(name, include_registry=include_registry)
     if not toolset:
-        # Auto-generate a toolset for plugin platforms (nyxo-<name>).
-        # Gives them _NYXO_CORE_TOOLS plus any tools the plugin registered
-        # into a toolset matching the platform name.
-        if name.startswith("nyxo-"):
-            platform_name = name[len("nyxo-"):]
+        # Auto-generate a toolset for plugin platforms (flash-<name>).
+        # Gives them _HERMES_CORE_TOOLS plus any tools the plugin registered
+        # into a toolset matching the platform name. This is a registry-derived
+        # view, so it only applies when registry tools are requested; the static
+        # view (include_registry=False) has no plugin-platform definition.
+        if include_registry and name.startswith("flash-"):
+            platform_name = name[len("flash-"):]
             try:
                 from gateway.platform_registry import platform_registry
                 if platform_registry.is_registered(platform_name):
-                    plugin_tools = set(_NYXO_CORE_TOOLS)
+                    plugin_tools = set(_HERMES_CORE_TOOLS)
                     try:
                         from tools.registry import registry
                         plugin_tools.update(
@@ -723,9 +760,9 @@ def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
     # sibling includes so diamond dependencies are only resolved once and
     # cycle warnings don't fire multiple times for the same cycle.
     for included_name in toolset.get("includes", []):
-        included_tools = resolve_toolset(included_name, visited)
+        included_tools = resolve_toolset(included_name, visited, include_registry=include_registry)
         tools.update(included_tools)
-    
+
     return sorted(tools)
 
 

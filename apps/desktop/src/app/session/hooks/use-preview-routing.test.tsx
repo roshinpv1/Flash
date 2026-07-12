@@ -10,7 +10,7 @@ import {
   registerSessionPreview
 } from '@/store/preview'
 import { $currentCwd, $messages } from '@/store/session'
-import type { RpcEvent } from '@/types/nyxo'
+import type { RpcEvent } from '@/types/flash'
 
 import { usePreviewRouting } from './use-preview-routing'
 
@@ -66,7 +66,7 @@ describe('usePreviewRouting', () => {
     clearSessionPreviewRegistry()
     handleEvent = () => undefined
 
-    Object.defineProperty(window, 'nyxoDesktop', {
+    Object.defineProperty(window, 'flashDesktop', {
       configurable: true,
       value: {
         normalizePreviewTarget: vi.fn(async (target: string) => previewTarget(target))
@@ -117,7 +117,7 @@ describe('usePreviewRouting', () => {
     })
 
     expect($previewTarget.get()).toBeNull()
-    expect(window.nyxoDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
+    expect(window.flashDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
   })
 
   it('does not auto-open a preview from tool results', async () => {
@@ -139,6 +139,6 @@ describe('usePreviewRouting', () => {
     act(() => handleEvent({ payload: { path: './dist/index.html' }, session_id: 'session-1', type: 'tool.complete' }))
 
     expect($previewTarget.get()).toBeNull()
-    expect(window.localStorage.getItem('nyxo.desktop.sessionPreviews.v1')).toBeNull()
+    expect(window.localStorage.getItem('flash.desktop.sessionPreviews.v1')).toBeNull()
   })
 })

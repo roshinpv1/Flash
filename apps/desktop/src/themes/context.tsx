@@ -24,15 +24,15 @@ import { $userThemes, resolveTheme } from './user-themes'
 // Legacy global skin (pre per-profile themes). Still the inheritance fallback
 // for any profile without its own assignment, so single-profile users and old
 // installs are unaffected.
-const SKIN_KEY = 'nyxo-desktop-theme-v2'
-const MODE_KEY = 'nyxo-desktop-mode-v1'
+const SKIN_KEY = 'flash-desktop-theme-v2'
+const MODE_KEY = 'flash-desktop-mode-v1'
 // Per-profile skin + light/dark mode assignments: { [profileKey]: value }. A
 // profile inherits the global default until it's given its own appearance.
-const PROFILE_SKINS_KEY = 'nyxo-desktop-profile-themes-v1'
-const PROFILE_MODES_KEY = 'nyxo-desktop-profile-modes-v1'
+const PROFILE_SKINS_KEY = 'flash-desktop-profile-themes-v1'
+const PROFILE_MODES_KEY = 'flash-desktop-profile-modes-v1'
 // Last active profile, recorded so the boot-time paint can pick that profile's
 // theme before the gateway reports which profile actually launched.
-const LAST_PROFILE_KEY = 'nyxo-desktop-active-profile-v1'
+const LAST_PROFILE_KEY = 'flash-desktop-active-profile-v1'
 const RETIRED_SKINS = new Set(['nous-light', 'default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
@@ -157,6 +157,12 @@ function renderedModeFor(colors: DesktopThemeColors, mode: 'light' | 'dark'): 'l
 // Per-mode mix knobs. Light/dark fallbacks live in styles.css `:root` /
 // `:root.dark`; setting them inline keeps active-skin overrides surviving
 // the boot-time paint.
+// styles.css --theme-neutral-chrome — keep in sync.
+const NEUTRAL_CHROME = { light: '#f3f3f3', dark: '#0d0d0e' } as const
+
+const chromeBackground = (background: string, isDark: boolean) =>
+  mix(background, NEUTRAL_CHROME[isDark ? 'dark' : 'light'], isDark ? 0.26 : 0.08)
+
 const mixesFor = (isDark: boolean): Record<string, string> => ({
   '--theme-mix-chrome': isDark ? '74%' : '92%',
   '--theme-mix-sidebar': '100%',
@@ -179,8 +185,8 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
   const skinName = theme.name.endsWith(`-${mode}`) ? theme.name.slice(0, -mode.length - 1) : theme.name
 
   root.style.setProperty('color-scheme', rendered)
-  root.dataset.nyxoTheme = skinName
-  root.dataset.nyxoMode = rendered
+  root.dataset.flashTheme = skinName
+  root.dataset.flashMode = rendered
   root.classList.toggle('dark', isDark)
 
   // Brand seeds feed every glass + shadcn token via `color-mix()` in styles.css.
@@ -222,8 +228,10 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     root.style.setProperty(k, v)
   }
 
-  window.nyxoDesktop?.setTitleBarTheme?.({
-    background: c.background,
+  const chromeBg = chromeBackground(c.background, isDark)
+
+  window.flashDesktop?.setTitleBarTheme?.({
+    background: chromeBg,
     foreground: c.foreground
   })
 
@@ -231,8 +239,8 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
   // they let a brand-new window paint the themed background on its very first
   // frame, before this module has even loaded.
   try {
-    window.localStorage.setItem('nyxo-boot-background', c.background)
-    window.localStorage.setItem('nyxo-boot-color-scheme', rendered)
+    window.localStorage.setItem('flash-boot-background', chromeBg)
+    window.localStorage.setItem('flash-boot-color-scheme', rendered)
   } catch {
     // Storage may be unavailable (private mode / quota); the inline script
     // falls back to prefers-color-scheme.
@@ -242,7 +250,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.href = typo.fontUrl
-    link.dataset.nyxoThemeFont = 'true'
+    link.dataset.flashThemeFont = 'true'
     document.head.appendChild(link)
     INJECTED_FONT_URLS.add(typo.fontUrl)
   }
@@ -253,7 +261,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
 // theme instead of the OS appearance. An explicit light/dark pick is forced;
 // 'system' stays 'system' so prefers-color-scheme keeps tracking the OS.
 const syncNativeTheme = (pref: ThemeMode, rendered: 'light' | 'dark') =>
-  window.nyxoDesktop?.setNativeTheme?.(pref === 'system' ? 'system' : rendered)
+  window.flashDesktop?.setNativeTheme?.(pref === 'system' ? 'system' : rendered)
 
 // Boot-time paint to avoid a flash before <ThemeProvider> mounts. Use the last
 // active profile's appearance so a non-default profile relaunch paints its own
@@ -296,8 +304,8 @@ const ThemeContext = createContext<ThemeContextValue>({
   resolvedMode: 'light',
   renderedMode: 'light',
   availableThemes: SKIN_LIST,
-  setTheme: () => {},
-  setMode: () => {}
+  setTheme: () => { },
+  setMode: () => { }
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -377,7 +385,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export const useTheme = (): ThemeContextValue => useContext(ThemeContext)
 
-/** Sync the desktop skin with the active Nyxo backend theme on connect. */
+/** Sync the desktop skin with the active Hermes backend theme on connect. */
 export function useSyncThemeFromBackend(backendThemeName: string | undefined, setTheme: (name: string) => void) {
   useEffect(() => {
     if (backendThemeName && BUILTIN_THEMES[backendThemeName]) {

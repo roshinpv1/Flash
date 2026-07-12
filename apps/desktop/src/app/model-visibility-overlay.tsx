@@ -1,12 +1,12 @@
 import { useStore } from '@nanostores/react'
 
 import { ModelVisibilityDialog } from '@/components/model-visibility-dialog'
-import type { NyxoGateway } from '@/nyxo'
+import type { HermesGateway } from '@/flash'
 import { $modelVisibilityOpen, setModelVisibilityOpen } from '@/store/model-visibility'
 import { $activeSessionId, $gatewayState } from '@/store/session'
 
 interface ModelVisibilityOverlayProps {
-  gateway?: NyxoGateway
+  gateway?: HermesGateway
   onOpenProviders: () => void
 }
 

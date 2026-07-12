@@ -268,7 +268,7 @@ class TestGptQualityPinnedToMedium:
     def test_config_quality_setting_is_ignored(self, image_tool):
         """Even if a user manually edits config.yaml and adds quality_setting,
         the payload must still use medium. No code path reads that field."""
-        with patch("nyxo_cli.config.load_config",
+        with patch("hermes_cli.config.load_config",
                    return_value={"image_gen": {"quality_setting": "high"}}):
             p = image_tool._build_fal_payload("fal-ai/gpt-image-1.5", "hi", "square")
         assert p["quality"] == "medium"
@@ -307,32 +307,32 @@ class TestGptQualityPinnedToMedium:
 class TestModelResolution:
 
     def test_no_config_falls_back_to_default(self, image_tool):
-        with patch("nyxo_cli.config.load_config", return_value={}):
+        with patch("hermes_cli.config.load_config", return_value={}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_valid_config_model_is_used(self, image_tool):
-        with patch("nyxo_cli.config.load_config",
+        with patch("hermes_cli.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/flux-2-pro"}}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2-pro"
         assert meta["upscale"] is True  # flux-2-pro keeps backward-compat upscaling
 
     def test_unknown_model_falls_back_to_default_with_warning(self, image_tool, caplog):
-        with patch("nyxo_cli.config.load_config",
+        with patch("hermes_cli.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nonexistent-9000"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_env_var_fallback_when_no_config(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("nyxo_cli.config.load_config", return_value={}):
+        with patch("hermes_cli.config.load_config", return_value={}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/z-image/turbo"
 
     def test_config_wins_over_env_var(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("nyxo_cli.config.load_config",
+        with patch("hermes_cli.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nano-banana-pro"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/nano-banana-pro"
@@ -423,7 +423,7 @@ class TestManagedGatewayErrorTranslation:
     """4xx from the Nous managed gateway should be translated to a user-actionable message."""
 
     def test_4xx_translates_to_value_error_with_remediation(self, image_tool, monkeypatch):
-        """403 from managed gateway → ValueError mentioning FAL_KEY + nyxo tools."""
+        """403 from managed gateway → ValueError mentioning FAL_KEY + hermes tools."""
         from unittest.mock import MagicMock
 
         # Simulate: managed mode active, managed submit raises 4xx.
@@ -446,7 +446,7 @@ class TestManagedGatewayErrorTranslation:
         assert "fal-ai/nano-banana-pro" in msg
         assert "403" in msg
         assert "FAL_KEY" in msg
-        assert "nyxo tools" in msg
+        assert "hermes tools" in msg
         # Original exception chained for debugging
         assert exc_info.value.__cause__ is bad_request
 
@@ -501,3 +501,134 @@ class TestManagedGatewayErrorTranslation:
 
         with pytest.raises(ConnectionError):
             image_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "x"})
+
+
+class TestKreaModelNormalization:
+    """Native ``krea-2-*`` detection for managed Krea routing."""
+
+    def test_native_models_detected(self, image_tool):
+        for mid in ("krea-2-medium", "krea-2-large", "krea-2-medium-turbo"):
+            assert image_tool.is_krea_model(mid) is True
+            assert image_tool._normalize_krea_model(mid) == mid
+
+    def test_fal_krea_models_are_not_native_krea(self, image_tool):
+        # fal-ai/krea/v2/* stays on the FAL path — not the Krea plugin.
+        for mid in (
+            "fal-ai/krea/v2/medium/text-to-image",
+            "fal-ai/krea/v2/large/text-to-image",
+            "fal-ai/krea/v2/medium",
+            "fal-ai/krea/v2/large/edit",
+        ):
+            assert image_tool.is_krea_model(mid) is False
+            assert image_tool._normalize_krea_model(mid) is None
+
+    def test_non_krea_models_are_not_krea(self, image_tool):
+        for mid in ("fal-ai/flux-2/klein/9b", "fal-ai/nano-banana-pro", None, "", 123):
+            assert image_tool.is_krea_model(mid) is False
+            assert image_tool._normalize_krea_model(mid) is None
+
+
+class TestManagedKreaRouting:
+    """`_maybe_route_managed_krea` only fires for Krea models in managed mode."""
+
+    def test_no_route_when_model_not_krea(self, image_tool, monkeypatch):
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(
+            image_tool, "_read_configured_image_model", lambda: "fal-ai/flux-2/klein/9b"
+        )
+        assert image_tool._maybe_route_managed_krea("p", "square") is None
+
+    def test_no_route_when_provider_is_krea_plugin(self, image_tool, monkeypatch):
+        # provider == "krea" is handled by the normal plugin dispatch instead.
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: "krea")
+        monkeypatch.setattr(
+            image_tool, "_read_configured_image_model", lambda: "krea-2-medium"
+        )
+        assert image_tool._maybe_route_managed_krea("p", "square") is None
+
+    def test_no_route_for_fal_krea_model_in_managed_mode(self, image_tool, monkeypatch):
+        # fal-ai/krea/v2/* stays on FAL even when the Krea gateway is available.
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(
+            image_tool,
+            "_read_configured_image_model",
+            lambda: "fal-ai/krea/v2/medium/text-to-image",
+        )
+        import plugins.image_gen.krea as krea_mod
+        from types import SimpleNamespace
+
+        monkeypatch.setattr(
+            krea_mod,
+            "_resolve_managed_krea_gateway",
+            lambda: SimpleNamespace(
+                vendor="krea",
+                gateway_origin="https://krea-gateway.example.com",
+                nous_user_token="tok",
+                managed_mode=True,
+            ),
+        )
+        assert image_tool._maybe_route_managed_krea("p", "square") is None
+
+    def test_no_route_for_krea_model_in_direct_mode(self, image_tool, monkeypatch):
+        # Native krea-2-* selected, but no managed gateway (BYO/direct) → fall through.
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(
+            image_tool,
+            "_read_configured_image_model",
+            lambda: "krea-2-medium",
+        )
+        import plugins.image_gen.krea as krea_mod
+
+        monkeypatch.setattr(krea_mod, "_resolve_managed_krea_gateway", lambda: None)
+        assert image_tool._maybe_route_managed_krea("p", "square") is None
+
+    def test_routes_native_krea_model_to_krea_plugin_in_managed_mode(
+        self, image_tool, monkeypatch
+    ):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        import json as _json
+
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(
+            image_tool,
+            "_read_configured_image_model",
+            lambda: "krea-2-large",
+        )
+        import plugins.image_gen.krea as krea_mod
+
+        monkeypatch.setattr(
+            krea_mod,
+            "_resolve_managed_krea_gateway",
+            lambda: SimpleNamespace(
+                vendor="krea",
+                gateway_origin="https://krea-gateway.example.com",
+                nous_user_token="tok",
+                managed_mode=True,
+            ),
+        )
+
+        fake_provider = MagicMock()
+        fake_provider.generate.return_value = {"success": True, "image": "/tmp/x.png"}
+        monkeypatch.setattr(
+            "agent.image_gen_registry.get_provider", lambda name: fake_provider
+        )
+        monkeypatch.setattr(
+            "hermes_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+        )
+
+        out = image_tool._maybe_route_managed_krea("a cat", "portrait")
+        assert out is not None
+        assert _json.loads(out)["success"] is True
+        kwargs = fake_provider.generate.call_args.kwargs
+        assert kwargs["model"] == "krea-2-large"
+        assert kwargs["prompt"] == "a cat"
+        assert kwargs["aspect_ratio"] == "portrait"
+
+
+class TestFalKreaCatalog:
+    """Krea 2 on FAL remains in the FAL picker for FAL-billed users."""
+
+    def test_fal_krea_models_in_fal_catalog(self, image_tool):
+        assert "fal-ai/krea/v2/medium/text-to-image" in image_tool.FAL_MODELS
+        assert "fal-ai/krea/v2/large/text-to-image" in image_tool.FAL_MODELS

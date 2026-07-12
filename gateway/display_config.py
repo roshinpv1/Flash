@@ -47,6 +47,11 @@ _GLOBAL_DEFAULTS: dict[str, Any] = {
     "interim_assistant_messages": True,
     "long_running_notifications": True,
     "busy_ack_detail": True,
+    # Whether busy_input_mode=steer sends a visible "Steered into current run"
+    # acknowledgment after successfully injecting the user's mid-turn message.
+    # Disable when the platform should steer silently (the text still lands in
+    # the active run; only the confirmation echo is suppressed).
+    "busy_steer_ack_enabled": True,
     # When true, delete tool-progress / "⏳ Working — N min" / status bubbles
     # after the final response lands on platforms that support message
     # deletion (e.g. Telegram). Off by default — progress is still shown
@@ -124,7 +129,7 @@ _PLATFORM_DEFAULTS: dict[str, dict[str, Any]] = {
 
     # Tier 2 — edit support, often customer/workspace channels
     # Slack: tool_progress off by default — Bolt posts cannot be edited like CLI;
-    # "new"/"all" spam permanent lines in channels (nyxo-agent#14663).
+    # "new"/"all" spam permanent lines in channels (flash-agent#14663).
     "slack":           {**_TIER_MEDIUM, "tool_progress": "off"},
     "mattermost":      _TIER_MEDIUM,
     "matrix":          _TIER_MEDIUM,
@@ -134,7 +139,7 @@ _PLATFORM_DEFAULTS: dict[str, dict[str, Any]] = {
     "signal":          _TIER_LOW,
     "whatsapp":        _TIER_MEDIUM,  # Baileys bridge supports /edit
     # WhatsApp Cloud API: Meta added message editing in 2023 but the
-    # Nyxo Cloud adapter doesn't implement edit_message yet, so we
+    # Hermes Cloud adapter doesn't implement edit_message yet, so we
     # stay on TIER_LOW (tool_progress off) to avoid spamming each
     # status update as a separate message. Promote to TIER_MEDIUM once
     # Cloud's edit_message lands.
@@ -233,16 +238,26 @@ def _normalise(setting: str, value: Any) -> Any:
             return "off"
         if value is True:
             return "all"
-        return str(value).lower()
+        val = str(value).strip().lower()
+        if val in {"false", "0", "no"}:
+            return "off"
+        if val in {"true", "1", "yes", "on"}:
+            return "all"
+        return val if val in {"off", "new", "all", "verbose", "log"} else "all"
     if setting in {
         "show_reasoning",
         "streaming",
         "interim_assistant_messages",
         "long_running_notifications",
         "busy_ack_detail",
+        "busy_steer_ack_enabled",
+        "thinking_progress",
     }:
         if isinstance(value, str):
-            return value.lower() in {"true", "1", "yes", "on"}
+            val = value.strip().lower()
+            if val == "generic" and setting == "long_running_notifications":
+                return "generic"
+            return val in {"true", "1", "yes", "on", "raw", "verbose"}
         return bool(value)
     if setting == "cleanup_progress":
         if isinstance(value, str):

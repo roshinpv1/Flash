@@ -16,8 +16,8 @@ from pathlib import Path
 
 
 def _write_config(tmp_path: Path, body: str) -> None:
-    nyxo_home = tmp_path
-    (nyxo_home / "config.yaml").write_text(body or "{}\n", encoding="utf-8")
+    flash_home = tmp_path
+    (flash_home / "config.yaml").write_text(body or "{}\n", encoding="utf-8")
 
 
 def _make_agent(tmp_path: Path, **overrides):
@@ -102,9 +102,9 @@ def test_estimator_unknown_dict_fallback():
 
 def test_default_base_is_90s(monkeypatch, tmp_path):
     """Default base stale timeout dropped from 300s to 90s (May 2026)."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
     _write_config(tmp_path, "")
 
     agent = _make_agent(tmp_path)
@@ -115,9 +115,9 @@ def test_default_base_is_90s(monkeypatch, tmp_path):
 
 def test_short_codex_request_uses_base_only(monkeypatch, tmp_path):
     """Codex payload below 50k tokens -> default 90s base."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
     _write_config(tmp_path, "")
 
     agent = _make_agent(tmp_path)
@@ -127,9 +127,9 @@ def test_short_codex_request_uses_base_only(monkeypatch, tmp_path):
 
 def test_long_codex_request_bumps_to_50k_tier(monkeypatch, tmp_path):
     """Codex payload > 50k tokens -> at least 150s."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
     _write_config(tmp_path, "")
 
     agent = _make_agent(tmp_path)
@@ -141,9 +141,9 @@ def test_long_codex_request_bumps_to_50k_tier(monkeypatch, tmp_path):
 
 def test_very_long_codex_request_bumps_to_100k_tier(monkeypatch, tmp_path):
     """Codex payload > 100k tokens -> at least 240s."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
     _write_config(tmp_path, "")
 
     agent = _make_agent(tmp_path)
@@ -153,9 +153,9 @@ def test_very_long_codex_request_bumps_to_100k_tier(monkeypatch, tmp_path):
 
 def test_chat_completions_long_messages_bumps_tier(monkeypatch, tmp_path):
     """Chat Completions estimator still works for the legacy messages path."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
     _write_config(tmp_path, "")
 
     agent = _make_agent(
@@ -173,18 +173,37 @@ def test_chat_completions_long_messages_bumps_tier(monkeypatch, tmp_path):
 
 def test_explicit_user_config_overrides_default(monkeypatch, tmp_path):
     """If the user explicitly sets a stale_timeout, the new defaults don't apply."""
-    monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     (tmp_path / ".env").write_text("", encoding="utf-8")
     _write_config(tmp_path, """\
 providers:
   openai-codex:
     stale_timeout_seconds: 1800
 """)
-    monkeypatch.delenv("NYXO_API_CALL_STALE_TIMEOUT", raising=False)
+    monkeypatch.delenv("HERMES_API_CALL_STALE_TIMEOUT", raising=False)
 
     import importlib
-    from nyxo_cli import timeouts as to_mod
+    from flash_cli import timeouts as to_mod
     importlib.reload(to_mod)
 
     agent = _make_agent(tmp_path)
     assert agent._compute_non_stream_stale_timeout({"input": "hi"}) == 1800.0
+
+
+# ── openai-codex gateway-scale stale floor ────────────────────────────────
+
+
+def test_openai_codex_stale_floor_covers_gateway_tool_payload():
+    """Gateway/Telegram tool payloads (~20k tokens) need the 600s Codex floor."""
+    from agent.chat_completion_helpers import openai_codex_stale_timeout_floor
+
+    assert openai_codex_stale_timeout_floor(22_095) == 600.0
+    assert openai_codex_stale_timeout_floor(10_001) == 600.0
+    assert openai_codex_stale_timeout_floor(10_000) == 0.0
+
+
+def test_openai_codex_stale_floor_tiers():
+    from agent.chat_completion_helpers import openai_codex_stale_timeout_floor
+
+    assert openai_codex_stale_timeout_floor(55_000) == 900.0
+    assert openai_codex_stale_timeout_floor(120_000) == 1200.0

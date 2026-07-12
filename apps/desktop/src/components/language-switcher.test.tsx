@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { NyxoConfigRecord } from '@/nyxo'
+import type { HermesConfigRecord } from '@/flash'
 import { type I18nConfigClient, I18nProvider } from '@/i18n'
 
 import { LanguageSwitcher } from './language-switcher'
@@ -10,14 +10,14 @@ import { LanguageSwitcher } from './language-switcher'
 // item into view — neither exists in jsdom. Stub them, matching the polyfill
 // idiom in tool-approval-group.test.tsx.
 class TestResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe() { }
+  unobserve() { }
+  disconnect() { }
 }
 
 vi.stubGlobal('ResizeObserver', TestResizeObserver)
 
-Element.prototype.scrollIntoView = function scrollIntoView() {}
+Element.prototype.scrollIntoView = function scrollIntoView() { }
 
 describe('LanguageSwitcher', () => {
   afterEach(() => {
@@ -27,7 +27,7 @@ describe('LanguageSwitcher', () => {
 
   it('persists language changes through display.language config', async () => {
     const saveConfig = vi.fn().mockResolvedValue({ ok: true })
-    const latestConfig: NyxoConfigRecord = { display: { language: 'en', skin: 'slate' } }
+    const latestConfig: HermesConfigRecord = { display: { language: 'en', skin: 'slate' } }
 
     const configClient: I18nConfigClient = {
       getConfig: vi.fn().mockResolvedValue(latestConfig),

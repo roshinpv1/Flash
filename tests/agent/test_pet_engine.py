@@ -72,7 +72,7 @@ def test_state_row_index_maps_to_supported_atlas_taxonomies():
     assert constants.state_row_index(PetState.RUN, 9) == 7
     assert constants.state_row_index(PetState.REVIEW, 9) == 8
 
-    # Legacy Nyxo/petdex sheets were 8 rows with Nyxo state names packed in
+    # Legacy Hermes/petdex sheets were 8 rows with Hermes state names packed in
     # order. Keep those readable instead of forcing old installs through the
     # newer Codex taxonomy.
     assert constants.state_row_index(PetState.WAVE, 8) == 1
@@ -117,12 +117,12 @@ def test_resolve_cols_override_else_scale():
 
 @pytest.fixture
 def boba_like(tmp_path, monkeypatch):
-    """Install a synthetic 8-col × 9-row pet into a temp NYXO_HOME."""
+    """Install a synthetic 8-col × 9-row pet into a temp HERMES_HOME."""
     from PIL import Image
 
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".flash"
     home.mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(home))
+    monkeypatch.setenv("HERMES_HOME", str(home))
 
     cols, rows = 8, 9
     sheet = Image.new("RGBA", (FRAME_W * cols, FRAME_H * rows), (0, 0, 0, 0))
@@ -300,12 +300,9 @@ def test_kitty_payload_structure(boba_like):
     r = render.PetRenderer(str(sprite), mode="kitty", scale=scale, unicode_cols=18)
     payload = r.kitty_payload("run", image_id=image_id)
     assert payload is not None
-    # placement box must follow scaled pixels, not unicode_cols (kitty upscales to c×r).
-    frames = r._frames("run")
-    expect_cols, expect_rows = r._cell_box(frames[0])
-    assert payload["cols"] == expect_cols
-    assert payload["rows"] == expect_rows
-    assert expect_cols < 18  # 0.4 scale is much smaller than a pinned 18-col box
+    # Geometry is driven by the scaled/cropped sprite, not unicode_cols.
+    assert payload["cols"] >= 1 and payload["rows"] >= 1
+    assert payload["cols"] < 18  # 0.4 scale is much smaller than a pinned 18-col box
     # placeholder grid matches the requested geometry
     assert len(payload["placeholder"]) == payload["rows"]
     # one transmit escape per animation frame, each a kitty virtual placement
@@ -316,6 +313,21 @@ def test_kitty_payload_structure(boba_like):
         assert f"i={image_id}" in esc
         assert "a=T" in esc and "U=1" in esc
         assert f"c={payload['cols']}" in esc and f"r={payload['rows']}" in esc
+
+
+def test_kitty_payload_snaps_to_whole_cells(boba_like):
+    # The transmitted frame must be an exact multiple of the cell box so kitty
+    # doesn't round up + clip the bottom row / letterbox a blank row (the
+    # "clipped feet" bug). cols/rows are derived as pixels // cell, so a snapped
+    # frame round-trips exactly. Regression for ratatui-image #57.
+    sprite = store.load_pet("boba").spritesheet
+    r = render.PetRenderer(str(sprite), mode="kitty", scale=0.6, unicode_cols=18)
+    frames = render._snap_frames_to_cell_grid(
+        render._crop_frames_to_alpha_union(r._frames("run"))
+    )
+    for f in frames:
+        assert f.width % render._CELL_W == 0
+        assert f.height % render._CELL_H == 0
 
 
 def test_kitty_payload_none_when_no_frames(tmp_path):

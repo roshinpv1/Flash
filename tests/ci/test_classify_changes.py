@@ -69,7 +69,7 @@ CASES = {
         _lanes(python=True, mcp_catalog=True),
     ),
     "mcp_catalog.py → mcp_catalog": (
-        ["nyxo_cli/mcp_catalog.py"],
+        ["flash_cli/mcp_catalog.py"],
         _lanes(python=True, scan=True, mcp_catalog=True),
     ),
     # Fail open: CI-config / empty / blank diffs run everything.

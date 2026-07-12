@@ -24,9 +24,9 @@ API_PATH = (
 
 @pytest.fixture
 def bridge_module(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     spec = importlib.util.spec_from_file_location("gws_bridge_test", BRIDGE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -37,9 +37,9 @@ def bridge_module(monkeypatch, tmp_path):
 
 @pytest.fixture
 def api_module(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     spec = importlib.util.spec_from_file_location("gws_api_test", API_PATH)
     module = importlib.util.module_from_spec(spec)

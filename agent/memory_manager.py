@@ -404,9 +404,9 @@ class MemoryManager:
         # (#40466). Reject it here, at the door, so it never enters the routing
         # table at all — matching the built-ins-always-win invariant used by
         # the TTS/browser/search provider registries.
-        from toolsets import _NYXO_CORE_TOOLS
+        from toolsets import _HERMES_CORE_TOOLS
 
-        _core_tool_names = set(_NYXO_CORE_TOOLS)
+        _core_tool_names = set(_HERMES_CORE_TOOLS)
 
         # Index tool names → provider for routing
         for raw_schema in provider.get_tool_schemas():
@@ -478,7 +478,7 @@ class MemoryManager:
     def _strip_skill_scaffolding(text: str) -> Optional[str]:
         """Return memory-worthy user text, or None to skip the turn.
 
-        When a user invokes a /skill or /bundle, Nyxo expands the turn into
+        When a user invokes a /skill or /bundle, Hermes expands the turn into
         a model-facing message that embeds the entire skill body. Feeding that
         verbatim to memory providers pollutes their stores/embeddings with
         prompt scaffolding instead of what the user actually asked. We recover
@@ -651,7 +651,12 @@ class MemoryManager:
         with self._sync_executor_lock:
             if self._sync_executor is None:
                 try:
-                    self._sync_executor = ThreadPoolExecutor(
+                    # Daemon workers (see tools.daemon_pool): a provider wedged
+                    # on a network call must never block interpreter exit —
+                    # stdlib ThreadPoolExecutor's atexit hook would join it
+                    # unconditionally even after shutdown(wait=False).
+                    from tools.daemon_pool import DaemonThreadPoolExecutor
+                    self._sync_executor = DaemonThreadPoolExecutor(
                         max_workers=1,
                         thread_name_prefix="mem-sync",
                     )
@@ -693,9 +698,9 @@ class MemoryManager:
         :meth:`add_provider`, so the manager must not advertise a schema it
         will never route. Built-ins always win (#40466).
         """
-        from toolsets import _NYXO_CORE_TOOLS
+        from toolsets import _HERMES_CORE_TOOLS
 
-        _core_tool_names = set(_NYXO_CORE_TOOLS)
+        _core_tool_names = set(_HERMES_CORE_TOOLS)
         schemas = []
         seen = set()
         for provider in self._providers:
@@ -777,6 +782,55 @@ class MemoryManager:
                     provider.name, e,
                     exc_info=True,
                 )
+
+    def commit_session_boundary_async(
+        self,
+        messages: List[Dict[str, Any]],
+        *,
+        new_session_id: str,
+        parent_session_id: str = "",
+        reason: str = "new_session",
+    ) -> None:
+        """Queue old-session extraction + provider rebinding as ONE serialized task.
+
+        Session rotation (/new) must deliver ``on_session_end`` (end-of-session
+        extraction — an LLM-bound call that can take seconds) strictly BEFORE
+        ``on_session_switch`` (which rebinds provider-internal ``_session_id`` /
+        turn buffers to the new session). Running extraction inline blocked the
+        /new command for the whole LLM round-trip (#16454); running it on an
+        ad-hoc thread raced the inline switch — providers key off internal
+        state, so a late ``on_session_end`` ran against post-switch bindings
+        (transcript misattributed to the new session id, double-ingest of the
+        old turn buffer, new-session buffers cleared).
+
+        Submitting BOTH hooks as one task on the manager's single background
+        worker gives both properties at a single chokepoint: the caller returns
+        immediately, and the worker's FIFO order serializes end→switch against
+        every other provider write (per-turn ``sync_all``, prefetches), which
+        already share the same worker. If the executor is unavailable,
+        ``_submit_background`` degrades to inline execution — the pre-#16454
+        synchronous behavior, slow but correct.
+        """
+        if not self._providers:
+            return
+        snapshot = list(messages or [])
+
+        def _run() -> None:
+            try:
+                self.on_session_end(snapshot)
+            except Exception as e:  # pragma: no cover - on_session_end guards per-provider
+                logger.warning("Session-boundary extraction failed: %s", e)
+            try:
+                self.on_session_switch(
+                    new_session_id,
+                    parent_session_id=parent_session_id,
+                    reset=True,
+                    reason=reason,
+                )
+            except Exception as e:  # pragma: no cover - on_session_switch guards per-provider
+                logger.warning("Session-boundary switch failed: %s", e)
+
+        self._submit_background(_run)
 
     def on_session_switch(
         self,
@@ -1064,13 +1118,13 @@ class MemoryManager:
     def initialize_all(self, session_id: str, **kwargs) -> None:
         """Initialize all providers.
 
-        Automatically injects ``nyxo_home`` into *kwargs* so that every
+        Automatically injects ``flash_home`` into *kwargs* so that every
         provider can resolve profile-scoped storage paths without importing
-        ``get_nyxo_home()`` themselves.
+        ``get_flash_home()`` themselves.
         """
-        if "nyxo_home" not in kwargs:
-            from nyxo_constants import get_nyxo_home
-            kwargs["nyxo_home"] = str(get_nyxo_home())
+        if "flash_home" not in kwargs:
+            from flash_constants import get_flash_home
+            kwargs["flash_home"] = str(get_flash_home())
         for provider in self._providers:
             try:
                 provider.initialize(session_id=session_id, **kwargs)

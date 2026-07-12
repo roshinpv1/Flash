@@ -1,7 +1,7 @@
 import { notifyError } from './notifications'
 
 // Window flag set by the Electron main process when it opens a standalone
-// session window (see electron/main.cjs buildSessionWindowUrl). It rides in the
+// session window (see electron/main.ts buildSessionWindowUrl). It rides in the
 // query string BEFORE the HashRouter '#', so we read it from location.search,
 // never from the router. A "secondary" window renders a single chat without the
 // global session sidebar or the install / onboarding overlays.
@@ -75,7 +75,7 @@ export function isWatchWindow(): boolean {
 // True when running inside the Electron desktop shell (the preload bridge is
 // present). The "open in new window" affordance is desktop-only.
 export function canOpenSessionWindow(): boolean {
-  return typeof window !== 'undefined' && typeof window.nyxoDesktop?.openSessionWindow === 'function'
+  return typeof window !== 'undefined' && typeof window.flashDesktop?.openSessionWindow === 'function'
 }
 
 type WindowOpenResult = { ok: boolean; error?: string } | undefined
@@ -102,14 +102,14 @@ export async function openSessionInNewWindow(sessionId: string, opts?: { watch?:
     return
   }
 
-  await openWindow(() => window.nyxoDesktop.openSessionWindow(sessionId, opts), 'Could not open chat in a new window')
+  await openWindow(() => window.flashDesktop.openSessionWindow(sessionId, opts), 'Could not open chat in a new window')
 }
 
 // Open a fresh compact window on the new-session draft.
 export async function openNewSessionInNewWindow(): Promise<void> {
-  if (!canOpenSessionWindow() || typeof window.nyxoDesktop.openNewSessionWindow !== 'function') {
+  if (!canOpenSessionWindow() || typeof window.flashDesktop.openNewSessionWindow !== 'function') {
     return
   }
 
-  await openWindow(() => window.nyxoDesktop.openNewSessionWindow(), 'Could not open new session window')
+  await openWindow(() => window.flashDesktop.openNewSessionWindow(), 'Could not open new session window')
 }

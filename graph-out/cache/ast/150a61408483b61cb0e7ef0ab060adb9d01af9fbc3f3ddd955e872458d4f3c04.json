@@ -1,0 +1,1583 @@
+{
+    "nodes": [
+        {
+            "id": "users_roshinpv_documents_my_projects_flash_website_docs_user_guide_features_skills_md",
+            "label": "skills.md",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L1"
+        },
+        {
+            "id": "features_skills_skills_system",
+            "label": "Skills System",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L7"
+        },
+        {
+            "id": "features_skills_starting_with_a_blank_slate",
+            "label": "Starting with a blank slate",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L20"
+        },
+        {
+            "id": "features_skills_codeblock_1",
+            "label": "code:bash (curl -fsSL https://hermes-agent.flashorg.com/install.sh )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L26"
+        },
+        {
+            "id": "features_skills_codeblock_2",
+            "label": "code:bash (hermes profile create research --no-skills)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L32"
+        },
+        {
+            "id": "features_skills_codeblock_3",
+            "label": "code:bash (hermes skills opt-out            # stop future seeding \u2014 not)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L38"
+        },
+        {
+            "id": "features_skills_using_skills",
+            "label": "Using Skills",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L50"
+        },
+        {
+            "id": "features_skills_codeblock_4",
+            "label": "code:bash (# In the CLI or any messaging platform:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L54"
+        },
+        {
+            "id": "features_skills_stacking_multiple_skills_in_one_command",
+            "label": "Stacking multiple skills in one command",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L65"
+        },
+        {
+            "id": "features_skills_codeblock_5",
+            "label": "code:bash (/github-pr-workflow /test-driven-development fix issue #123 )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L71"
+        },
+        {
+            "id": "features_skills_codeblock_6",
+            "label": "code:bash (/ocr-and-documents /tmp/scan.pdf extract the tables   # load)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L78"
+        },
+        {
+            "id": "features_skills_codeblock_7",
+            "label": "code:bash (hermes chat --toolsets skills -q \"What skills do you have?\")",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L89"
+        },
+        {
+            "id": "features_skills_learning_a_skill_from_sources_learn",
+            "label": "Learning a skill from sources (`/learn`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L94"
+        },
+        {
+            "id": "features_skills_codeblock_8",
+            "label": "code:bash (# A local SDK or doc directory \u2014 read with read_file / searc)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L104"
+        },
+        {
+            "id": "features_skills_progressive_disclosure",
+            "label": "Progressive Disclosure",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L130"
+        },
+        {
+            "id": "features_skills_codeblock_9",
+            "label": "code:block9 (Level 0: skills_list()           \u2192 [{name, description, cate)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L134"
+        },
+        {
+            "id": "features_skills_skill_md_format",
+            "label": "SKILL.md Format",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L142"
+        },
+        {
+            "id": "features_skills_codeblock_10",
+            "label": "code:markdown (---)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L144"
+        },
+        {
+            "id": "features_skills_platform_specific_skills",
+            "label": "Platform-Specific Skills",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L179"
+        },
+        {
+            "id": "features_skills_codeblock_11",
+            "label": "code:yaml (platforms: [macos]            # macOS only (e.g., iMessage, )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L189"
+        },
+        {
+            "id": "features_skills_skill_output_and_media_delivery",
+            "label": "Skill output and media delivery",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L196"
+        },
+        {
+            "id": "features_skills_forcing_document_style_delivery_as_document",
+            "label": "Forcing document-style delivery: `[[as_document]]`",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L202"
+        },
+        {
+            "id": "features_skills_codeblock_12",
+            "label": "code:block12 (Here is your rendered chart:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L208"
+        },
+        {
+            "id": "features_skills_conditional_activation_fallback_skills",
+            "label": "Conditional Activation (Fallback Skills)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L225"
+        },
+        {
+            "id": "features_skills_codeblock_13",
+            "label": "code:yaml (metadata:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L229"
+        },
+        {
+            "id": "features_skills_secure_setup_on_load",
+            "label": "Secure Setup on Load",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L249"
+        },
+        {
+            "id": "features_skills_codeblock_14",
+            "label": "code:yaml (required_environment_variables:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L253"
+        },
+        {
+            "id": "features_skills_skill_config_settings",
+            "label": "Skill Config Settings",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L265"
+        },
+        {
+            "id": "features_skills_codeblock_15",
+            "label": "code:yaml (metadata:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L269"
+        },
+        {
+            "id": "features_skills_skill_directory_structure",
+            "label": "Skill Directory Structure",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L283"
+        },
+        {
+            "id": "features_skills_codeblock_16",
+            "label": "code:text (~/.hermes/skills/                  # Single source of truth)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L285"
+        },
+        {
+            "id": "features_skills_external_skill_directories",
+            "label": "External Skill Directories",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L315"
+        },
+        {
+            "id": "features_skills_codeblock_17",
+            "label": "code:yaml (skills:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L321"
+        },
+        {
+            "id": "features_skills_how_it_works",
+            "label": "How it works",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L331"
+        },
+        {
+            "id": "features_skills_example",
+            "label": "Example",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L339"
+        },
+        {
+            "id": "features_skills_codeblock_18",
+            "label": "code:text (~/.hermes/skills/               # Local (primary, read-write)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L341"
+        },
+        {
+            "id": "features_skills_skill_bundles",
+            "label": "Skill Bundles",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L357"
+        },
+        {
+            "id": "features_skills_quick_example",
+            "label": "Quick example",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L361"
+        },
+        {
+            "id": "features_skills_codeblock_19",
+            "label": "code:bash (# Create a bundle for backend feature work)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L363"
+        },
+        {
+            "id": "features_skills_codeblock_20",
+            "label": "code:block20 (/backend-dev refactor the auth middleware)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L374"
+        },
+        {
+            "id": "features_skills_yaml_schema",
+            "label": "YAML schema",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L380"
+        },
+        {
+            "id": "features_skills_codeblock_21",
+            "label": "code:yaml (name: backend-dev)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L384"
+        },
+        {
+            "id": "features_skills_managing_bundles",
+            "label": "Managing bundles",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L402"
+        },
+        {
+            "id": "features_skills_codeblock_22",
+            "label": "code:bash (# List all installed bundles)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L404"
+        },
+        {
+            "id": "features_skills_behavior",
+            "label": "Behavior",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L426"
+        },
+        {
+            "id": "features_skills_when_bundles_beat_installing_each_skill_manually",
+            "label": "When bundles beat installing each skill manually",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L433"
+        },
+        {
+            "id": "features_skills_agent_managed_skills_skill_manage_tool",
+            "label": "Agent-Managed Skills (skill_manage tool)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L442"
+        },
+        {
+            "id": "features_skills_when_the_agent_creates_skills",
+            "label": "When the Agent Creates Skills",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L452"
+        },
+        {
+            "id": "features_skills_actions",
+            "label": "Actions",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L459"
+        },
+        {
+            "id": "features_skills_gating_agent_skill_writes_skills_write_approval",
+            "label": "Gating agent skill writes (`skills.write_approval`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L474"
+        },
+        {
+            "id": "features_skills_codeblock_23",
+            "label": "code:yaml (skills:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L482"
+        },
+        {
+            "id": "features_skills_codeblock_24",
+            "label": "code:block24 (/skills pending             # list staged skill writes + a o)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L494"
+        },
+        {
+            "id": "features_skills_skills_hub",
+            "label": "Skills Hub",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L511"
+        },
+        {
+            "id": "features_skills_common_commands",
+            "label": "Common commands",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L515"
+        },
+        {
+            "id": "features_skills_codeblock_25",
+            "label": "code:bash (hermes skills browse                              # Browse a)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L517"
+        },
+        {
+            "id": "features_skills_supported_hub_sources",
+            "label": "Supported hub sources",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L542"
+        },
+        {
+            "id": "features_skills_integrated_hubs_and_registries",
+            "label": "Integrated hubs and registries",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L553"
+        },
+        {
+            "id": "features_skills_1_official_optional_skills_official",
+            "label": "1. Official optional skills (`official`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L557"
+        },
+        {
+            "id": "features_skills_codeblock_26",
+            "label": "code:bash (hermes skills browse --source official)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L565"
+        },
+        {
+            "id": "features_skills_2_skills_sh_skills_sh",
+            "label": "2. skills.sh (`skills-sh`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L570"
+        },
+        {
+            "id": "features_skills_codeblock_27",
+            "label": "code:bash (hermes skills search react --source skills-sh)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L579"
+        },
+        {
+            "id": "features_skills_3_well_known_skill_endpoints_well_known",
+            "label": "3. Well-known skill endpoints (`well-known`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L585"
+        },
+        {
+            "id": "features_skills_codeblock_28",
+            "label": "code:bash (hermes skills search https://mintlify.com/docs --source well)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L593"
+        },
+        {
+            "id": "features_skills_4_direct_github_skills_github",
+            "label": "4. Direct GitHub skills (`github`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L599"
+        },
+        {
+            "id": "features_skills_codeblock_29",
+            "label": "code:bash (hermes skills install openai/skills/k8s)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L612"
+        },
+        {
+            "id": "features_skills_codeblock_30",
+            "label": "code:json ({)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L626"
+        },
+        {
+            "id": "features_skills_5_clawhub_clawhub",
+            "label": "5. ClawHub (`clawhub`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L636"
+        },
+        {
+            "id": "features_skills_6_claude_marketplace_style_repos_claude_marketplace",
+            "label": "6. Claude marketplace-style repos (`claude-marketplace`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L643"
+        },
+        {
+            "id": "features_skills_7_lobehub_lobehub",
+            "label": "7. LobeHub (`lobehub`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L653"
+        },
+        {
+            "id": "features_skills_8_browse_sh_browse_sh",
+            "label": "8. browse.sh (`browse-sh`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L662"
+        },
+        {
+            "id": "features_skills_codeblock_31",
+            "label": "code:bash (hermes skills search airbnb --source browse-sh)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L671"
+        },
+        {
+            "id": "features_skills_9_direct_url_url",
+            "label": "9. Direct URL (`url`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L679"
+        },
+        {
+            "id": "features_skills_codeblock_32",
+            "label": "code:bash (hermes skills install https://sharethis.chat/SKILL.md)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L687"
+        },
+        {
+            "id": "features_skills_codeblock_33",
+            "label": "code:bash (# Frontmatter has no name and the URL slug is unhelpful \u2014 su)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L698"
+        },
+        {
+            "id": "features_skills_security_scanning_and_force",
+            "label": "Security scanning and `--force`",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L708"
+        },
+        {
+            "id": "features_skills_codeblock_34",
+            "label": "code:bash (hermes skills install skills-sh/anthropics/skills/pdf --forc)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L722"
+        },
+        {
+            "id": "features_skills_trust_levels",
+            "label": "Trust levels",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L731"
+        },
+        {
+            "id": "features_skills_update_lifecycle",
+            "label": "Update lifecycle",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L740"
+        },
+        {
+            "id": "features_skills_codeblock_35",
+            "label": "code:bash (hermes skills check          # Report which installed hub sk)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L744"
+        },
+        {
+            "id": "features_skills_publishing_a_custom_skill_tap",
+            "label": "Publishing a custom skill tap",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L756"
+        },
+        {
+            "id": "features_skills_repo_layout",
+            "label": "Repo layout",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L760"
+        },
+        {
+            "id": "features_skills_codeblock_36",
+            "label": "code:block36 (owner/repo)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L764"
+        },
+        {
+            "id": "features_skills_minimal_tap_example",
+            "label": "Minimal tap example",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L788"
+        },
+        {
+            "id": "features_skills_codeblock_37",
+            "label": "code:block37 (my-org/hermes-skills)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L790"
+        },
+        {
+            "id": "features_skills_codeblock_38",
+            "label": "code:markdown (---)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L799"
+        },
+        {
+            "id": "features_skills_codeblock_39",
+            "label": "code:bash (hermes skills tap add my-org/hermes-skills)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L817"
+        },
+        {
+            "id": "features_skills_non_default_paths",
+            "label": "Non-default paths",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L823"
+        },
+        {
+            "id": "features_skills_codeblock_40",
+            "label": "code:json ({)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L827"
+        },
+        {
+            "id": "features_skills_installing_individual_skills_directly_without_adding_a_tap",
+            "label": "Installing individual skills directly (without adding a tap)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L837"
+        },
+        {
+            "id": "features_skills_codeblock_41",
+            "label": "code:bash (hermes skills install owner/repo/skills/my-workflow)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L841"
+        },
+        {
+            "id": "features_skills_trust_levels_for_taps",
+            "label": "Trust levels for taps",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L847"
+        },
+        {
+            "id": "features_skills_tap_management",
+            "label": "Tap management",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L851"
+        },
+        {
+            "id": "features_skills_codeblock_42",
+            "label": "code:bash (hermes skills tap list                                # show)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L853"
+        },
+        {
+            "id": "features_skills_codeblock_43",
+            "label": "code:block43 (/skills tap list)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L861"
+        },
+        {
+            "id": "features_skills_bundled_skill_updates_hermes_skills_reset",
+            "label": "Bundled skill updates (`hermes skills reset`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L869"
+        },
+        {
+            "id": "features_skills_codeblock_44",
+            "label": "code:bash (# Safe: clears the manifest entry for this skill. Your curre)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L882"
+        },
+        {
+            "id": "features_skills_codeblock_45",
+            "label": "code:text (/skills reset google-workspace)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L897"
+        },
+        {
+            "id": "features_skills_slash_commands_inside_chat",
+            "label": "Slash commands (inside chat)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L906"
+        },
+        {
+            "id": "features_skills_codeblock_46",
+            "label": "code:text (/skills browse)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L910"
+        }
+    ],
+    "edges": [
+        {
+            "source": "users_roshinpv_documents_my_projects_flash_website_docs_user_guide_features_skills_md",
+            "target": "features_skills_skills_system",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L7",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_starting_with_a_blank_slate",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L20",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_starting_with_a_blank_slate",
+            "target": "features_skills_codeblock_1",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L26",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_starting_with_a_blank_slate",
+            "target": "features_skills_codeblock_2",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L32",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_starting_with_a_blank_slate",
+            "target": "features_skills_codeblock_3",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L38",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_using_skills",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L50",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_using_skills",
+            "target": "features_skills_codeblock_4",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L54",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_using_skills",
+            "target": "features_skills_stacking_multiple_skills_in_one_command",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L65",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_stacking_multiple_skills_in_one_command",
+            "target": "features_skills_codeblock_5",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L71",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_stacking_multiple_skills_in_one_command",
+            "target": "features_skills_codeblock_6",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L78",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_stacking_multiple_skills_in_one_command",
+            "target": "features_skills_codeblock_7",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L89",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_learning_a_skill_from_sources_learn",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L94",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_learning_a_skill_from_sources_learn",
+            "target": "features_skills_codeblock_8",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L104",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_progressive_disclosure",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L130",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_progressive_disclosure",
+            "target": "features_skills_codeblock_9",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L134",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_skill_md_format",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L142",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_md_format",
+            "target": "features_skills_codeblock_10",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L144",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_md_format",
+            "target": "features_skills_platform_specific_skills",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L179",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_platform_specific_skills",
+            "target": "features_skills_codeblock_11",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L189",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_skill_output_and_media_delivery",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L196",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_output_and_media_delivery",
+            "target": "features_skills_forcing_document_style_delivery_as_document",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L202",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_forcing_document_style_delivery_as_document",
+            "target": "features_skills_codeblock_12",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L208",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_output_and_media_delivery",
+            "target": "features_skills_conditional_activation_fallback_skills",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L225",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_conditional_activation_fallback_skills",
+            "target": "features_skills_codeblock_13",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L229",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_secure_setup_on_load",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L249",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_secure_setup_on_load",
+            "target": "features_skills_codeblock_14",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L253",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_secure_setup_on_load",
+            "target": "features_skills_skill_config_settings",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L265",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_config_settings",
+            "target": "features_skills_codeblock_15",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L269",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_skill_directory_structure",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L283",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_directory_structure",
+            "target": "features_skills_codeblock_16",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L285",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_external_skill_directories",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L315",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_external_skill_directories",
+            "target": "features_skills_codeblock_17",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L321",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_external_skill_directories",
+            "target": "features_skills_how_it_works",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L331",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_external_skill_directories",
+            "target": "features_skills_example",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L339",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_example",
+            "target": "features_skills_codeblock_18",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L341",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_skill_bundles",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L357",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_bundles",
+            "target": "features_skills_quick_example",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L361",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_quick_example",
+            "target": "features_skills_codeblock_19",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L363",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_quick_example",
+            "target": "features_skills_codeblock_20",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L374",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_bundles",
+            "target": "features_skills_yaml_schema",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L380",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_yaml_schema",
+            "target": "features_skills_codeblock_21",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L384",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_bundles",
+            "target": "features_skills_managing_bundles",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L402",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_managing_bundles",
+            "target": "features_skills_codeblock_22",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L404",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_bundles",
+            "target": "features_skills_behavior",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L426",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skill_bundles",
+            "target": "features_skills_when_bundles_beat_installing_each_skill_manually",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L433",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_agent_managed_skills_skill_manage_tool",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L442",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_agent_managed_skills_skill_manage_tool",
+            "target": "features_skills_when_the_agent_creates_skills",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L452",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_agent_managed_skills_skill_manage_tool",
+            "target": "features_skills_actions",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L459",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_agent_managed_skills_skill_manage_tool",
+            "target": "features_skills_gating_agent_skill_writes_skills_write_approval",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L474",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_gating_agent_skill_writes_skills_write_approval",
+            "target": "features_skills_codeblock_23",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L482",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_gating_agent_skill_writes_skills_write_approval",
+            "target": "features_skills_codeblock_24",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L494",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_skills_hub",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L511",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_common_commands",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L515",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_common_commands",
+            "target": "features_skills_codeblock_25",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L517",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_supported_hub_sources",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L542",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_integrated_hubs_and_registries",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L553",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_1_official_optional_skills_official",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L557",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_1_official_optional_skills_official",
+            "target": "features_skills_codeblock_26",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L565",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_2_skills_sh_skills_sh",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L570",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_2_skills_sh_skills_sh",
+            "target": "features_skills_codeblock_27",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L579",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_3_well_known_skill_endpoints_well_known",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L585",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_3_well_known_skill_endpoints_well_known",
+            "target": "features_skills_codeblock_28",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L593",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_4_direct_github_skills_github",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L599",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_4_direct_github_skills_github",
+            "target": "features_skills_codeblock_29",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L612",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_4_direct_github_skills_github",
+            "target": "features_skills_codeblock_30",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L626",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_5_clawhub_clawhub",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L636",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_6_claude_marketplace_style_repos_claude_marketplace",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L643",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_7_lobehub_lobehub",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L653",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_8_browse_sh_browse_sh",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L662",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_8_browse_sh_browse_sh",
+            "target": "features_skills_codeblock_31",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L671",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_integrated_hubs_and_registries",
+            "target": "features_skills_9_direct_url_url",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L679",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_9_direct_url_url",
+            "target": "features_skills_codeblock_32",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L687",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_9_direct_url_url",
+            "target": "features_skills_codeblock_33",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L698",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_security_scanning_and_force",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L708",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_security_scanning_and_force",
+            "target": "features_skills_codeblock_34",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L722",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_trust_levels",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L731",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_update_lifecycle",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L740",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_update_lifecycle",
+            "target": "features_skills_codeblock_35",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L744",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_hub",
+            "target": "features_skills_publishing_a_custom_skill_tap",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L756",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_repo_layout",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L760",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_repo_layout",
+            "target": "features_skills_codeblock_36",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L764",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_minimal_tap_example",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L788",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_minimal_tap_example",
+            "target": "features_skills_codeblock_37",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L790",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_minimal_tap_example",
+            "target": "features_skills_codeblock_38",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L799",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_minimal_tap_example",
+            "target": "features_skills_codeblock_39",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L817",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_non_default_paths",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L823",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_non_default_paths",
+            "target": "features_skills_codeblock_40",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L827",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_installing_individual_skills_directly_without_adding_a_tap",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L837",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_installing_individual_skills_directly_without_adding_a_tap",
+            "target": "features_skills_codeblock_41",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L841",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_trust_levels_for_taps",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L847",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_publishing_a_custom_skill_tap",
+            "target": "features_skills_tap_management",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L851",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_tap_management",
+            "target": "features_skills_codeblock_42",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L853",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_tap_management",
+            "target": "features_skills_codeblock_43",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L861",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_skills_system",
+            "target": "features_skills_bundled_skill_updates_hermes_skills_reset",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L869",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_bundled_skill_updates_hermes_skills_reset",
+            "target": "features_skills_codeblock_44",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L882",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_bundled_skill_updates_hermes_skills_reset",
+            "target": "features_skills_codeblock_45",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L897",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_bundled_skill_updates_hermes_skills_reset",
+            "target": "features_skills_slash_commands_inside_chat",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L906",
+            "weight": 1.0
+        },
+        {
+            "source": "features_skills_slash_commands_inside_chat",
+            "target": "features_skills_codeblock_46",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/user-guide/features/skills.md",
+            "source_location": "L910",
+            "weight": 1.0
+        }
+    ],
+    "input_tokens": 0,
+    "output_tokens": 0
+}

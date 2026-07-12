@@ -57,7 +57,7 @@ import mimetypes
 import os
 import re
 import time
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 from dataclasses import dataclass, field
 
 from html import escape as _html_escape
@@ -128,6 +128,7 @@ from gateway.platforms.base import (
     SendResult,
     resolve_proxy_url,
     proxy_kwargs_for_aiohttp,
+    _ssrf_redirect_guard,
 )
 from gateway.platforms.helpers import ThreadParticipationTracker
 
@@ -140,10 +141,10 @@ _MATRIX_BANG_COMMAND_RE = re.compile(
 
 
 def _resolve_matrix_bang_command(name: str) -> str | None:
-    """Resolve a ``!command`` token to a dispatchable Nyxo command token.
+    """Resolve a ``!command`` token to a dispatchable Hermes command token.
 
     Matrix clients often reserve leading ``/`` for local client commands.
-    Nyxo accepts ``!command`` as a Matrix-friendly alias, but only for
+    Hermes accepts ``!command`` as a Matrix-friendly alias, but only for
     commands that the gateway can actually dispatch so ordinary exclamations
     remain normal chat text.
 
@@ -165,7 +166,7 @@ def _resolve_matrix_bang_command(name: str) -> str | None:
         candidates.append(hyphenated)
 
     try:
-        from nyxo_cli.commands import is_gateway_known_command
+        from hermes_cli.commands import is_gateway_known_command
 
         for candidate in candidates:
             if is_gateway_known_command(candidate):
@@ -191,7 +192,7 @@ def _resolve_matrix_bang_command(name: str) -> str | None:
 
 
 def _normalize_matrix_bang_command(text: str) -> str:
-    """Convert Matrix ``!command`` aliases to normal Nyxo ``/command`` text."""
+    """Convert Matrix ``!command`` aliases to normal Hermes ``/command`` text."""
     if not text or not text.startswith("!"):
         return text
     match = _MATRIX_BANG_COMMAND_RE.match(text)
@@ -341,10 +342,10 @@ class _MatrixModelPickerPrompt:
 MAX_MESSAGE_LENGTH = 4000
 
 # Store directory for E2EE keys and sync state.
-# Uses get_nyxo_home() so each profile gets its own Matrix store.
-from nyxo_constants import get_nyxo_dir as _get_nyxo_dir
+# Uses get_hermes_home() so each profile gets its own Matrix store.
+from hermes_constants import get_hermes_dir as _get_hermes_dir
 
-_STORE_DIR = _get_nyxo_dir("platforms/matrix/store", "matrix/store")
+_STORE_DIR = _get_hermes_dir("platforms/matrix/store", "matrix/store")
 _CRYPTO_DB_PATH = _STORE_DIR / "crypto.db"
 
 # Grace period: ignore messages older than this many seconds before startup.
@@ -778,7 +779,7 @@ class MatrixAdapter(BasePlatformAdapter):
     splits_long_messages = True  # send() chunks via truncate_message(MAX_MESSAGE_LENGTH)
 
     # Matrix clients commonly reserve typed "/" for client-local commands;
-    # the adapter accepts "!command" as the alias that always reaches Nyxo
+    # the adapter accepts "!command" as the alias that always reaches Hermes
     # (see _normalize_matrix_bang_command), so instruction text shows "!".
     typed_command_prefix = "!"
 
@@ -805,10 +806,12 @@ class MatrixAdapter(BasePlatformAdapter):
         self._device_id: str = config.extra.get("device_id", "") or os.getenv(
             "MATRIX_DEVICE_ID", ""
         )
+        self._device_id_unverified: bool = False
 
         self._client: Any = None  # mautrix.client.Client
         self._crypto_db: Any = None  # mautrix.util.async_db.Database
         self._sync_task: Optional[asyncio.Task] = None
+        self._invite_join_tasks: Dict[str, asyncio.Task] = {}
         self._closing = False
         self._startup_ts: float = 0.0
         # Clock-skew detection: count grace-check drops that happen well
@@ -921,10 +924,10 @@ class MatrixAdapter(BasePlatformAdapter):
         # Text batching: merge rapid successive messages (Telegram-style).
         # Matrix clients split long messages around 4000 chars.
         self._text_batch_delay_seconds = float(
-            os.getenv("NYXO_MATRIX_TEXT_BATCH_DELAY_SECONDS", "0.6")
+            os.getenv("HERMES_MATRIX_TEXT_BATCH_DELAY_SECONDS", "0.6")
         )
         self._text_batch_split_delay_seconds = float(
-            os.getenv("NYXO_MATRIX_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0")
+            os.getenv("HERMES_MATRIX_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0")
         )
         self._pending_text_batches: Dict[str, MessageEvent] = {}
         self._pending_text_batch_tasks: Dict[str, asyncio.Task] = {}
@@ -1037,6 +1040,12 @@ class MatrixAdapter(BasePlatformAdapter):
         self, client: Any, local_ed25519: str
     ) -> bool:
         """Re-query the server after share_keys() and verify our ed25519 key matches."""
+        if not client.device_id or self._device_id_unverified:
+            logger.warning(
+                "Matrix: skipping post-upload key verification — "
+                "device_id not yet established"
+            )
+            return True
         try:
             resp = await client.query_keys({client.mxid: [client.device_id]})
             dk = getattr(resp, "device_keys", {}) or {}
@@ -1063,6 +1072,12 @@ class MatrixAdapter(BasePlatformAdapter):
         Returns True if keys are valid or were successfully re-uploaded.
         Returns False if verification fails (caller should refuse E2EE).
         """
+        if not client.device_id or self._device_id_unverified:
+            logger.warning(
+                "Matrix: skipping device key verification — "
+                "device_id not yet established"
+            )
+            return True
         try:
             resp = await client.query_keys({client.mxid: [client.device_id]})
         except Exception as exc:
@@ -1135,8 +1150,15 @@ class MatrixAdapter(BasePlatformAdapter):
     # Required overrides
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to the Matrix homeserver and start syncing."""
+        self._device_id_unverified = False
+        if self._client is not None:
+            try:
+                await self.disconnect()
+            except Exception as exc:
+                logger.warning("Matrix: error disconnecting before reconnect: %s", exc)
+
         from mautrix.api import HTTPAPI
         from mautrix.client import Client
         from mautrix.client.state_store import MemoryStateStore, MemorySyncStore
@@ -1187,6 +1209,36 @@ class MatrixAdapter(BasePlatformAdapter):
                 if effective_device_id:
                     client.device_id = effective_device_id
 
+                if not client.device_id:
+                    try:
+                        dev_resp = await client.query_keys({client.mxid: []})
+                        all_devices = (
+                            (getattr(dev_resp, "device_keys", {}) or {})
+                            .get(str(client.mxid)) or {}
+                        )
+                        if len(all_devices) == 1:
+                            client.device_id = next(iter(all_devices))
+                        elif len(all_devices) == 0:
+                            logger.warning(
+                                "Matrix: no devices found for %s — "
+                                "key verification will be skipped",
+                                client.mxid,
+                            )
+                    except Exception as exc:
+                        logger.warning(
+                            "Matrix: device list query failed: %s", exc
+                        )
+
+                if not client.device_id:
+                    logger.warning(
+                        "Matrix: device_id could not be resolved for %s. "
+                        "Set MATRIX_DEVICE_ID for full key verification. "
+                        "E2EE will proceed without server-side device "
+                        "key confirmation.",
+                        client.mxid,
+                    )
+                    self._device_id_unverified = True
+
                 logger.info(
                     "Matrix: using access token for %s%s",
                     self._user_id or "(unknown user)",
@@ -1205,7 +1257,7 @@ class MatrixAdapter(BasePlatformAdapter):
                 resp = await client.login(
                     identifier=self._user_id,
                     password=self._password,
-                    device_name="Nyxo Agent",
+                    device_name="Hermes Agent",
                     device_id=self._device_id or None,
                 )
                 if resp and hasattr(resp, "device_id"):
@@ -1283,7 +1335,7 @@ class MatrixAdapter(BasePlatformAdapter):
                     await crypto_db.start()
                     self._crypto_db = crypto_db
 
-                    _acct_id = self._user_id or "nyxo"
+                    _acct_id = self._user_id or "hermes"
                     _pickle_key = f"{_acct_id}:{self._device_id or 'default'}"
                     crypto_store = PgCryptoStore(
                         account_id=_acct_id,
@@ -1407,9 +1459,21 @@ class MatrixAdapter(BasePlatformAdapter):
         # Without this the INVITE handler below never fires.
         client.add_dispatcher(MembershipEventDispatcher)
 
-        client.add_event_handler(EventType.ROOM_MESSAGE, self._on_room_message)
-        client.add_event_handler(EventType.REACTION, self._on_reaction)
-        client.add_event_handler(IntEvt.INVITE, self._on_invite)
+        client.add_event_handler(
+            EventType.ROOM_MESSAGE,
+            self._on_room_message,
+            wait_sync=True,
+        )
+        client.add_event_handler(
+            EventType.REACTION,
+            self._on_reaction,
+            wait_sync=True,
+        )
+        client.add_event_handler(
+            IntEvt.INVITE,
+            self._on_invite,
+            wait_sync=True,
+        )
 
         # Initial sync to catch up, then start background sync.
         self._startup_ts = time.time()
@@ -1447,7 +1511,7 @@ class MatrixAdapter(BasePlatformAdapter):
                     await self._dispatch_sync(sync_data)
                 except Exception as exc:
                     logger.warning("Matrix: initial sync event dispatch error: %s", exc)
-                await self._join_pending_invites(sync_data)
+                self._schedule_pending_invite_joins(sync_data)
             else:
                 logger.warning(
                     "Matrix: initial sync returned unexpected type %s",
@@ -1478,6 +1542,14 @@ class MatrixAdapter(BasePlatformAdapter):
                 await self._sync_task
             except (asyncio.CancelledError, Exception):
                 pass
+
+        invite_join_tasks = list(self._invite_join_tasks.values())
+        for task in invite_join_tasks:
+            if not task.done():
+                task.cancel()
+        if invite_join_tasks:
+            await asyncio.gather(*invite_join_tasks, return_exceptions=True)
+        self._invite_join_tasks.clear()
 
         redaction_tasks = list(self._reaction_redaction_tasks)
         for task in redaction_tasks:
@@ -1757,36 +1829,57 @@ class MatrixAdapter(BasePlatformAdapter):
 
         fname = url.rsplit("/", 1)[-1].split("?")[0] or "image.png"
 
+        def _safe_redirect_target(current_url: str, location: str) -> str:
+            """Resolve a redirect Location and re-validate it against SSRF policy.
+
+            A public-looking URL can 302-redirect the gateway toward loopback,
+            private-network, or cloud-metadata endpoints. Validating only the
+            final URL is insufficient because the connection to the unsafe hop
+            has already been made. Re-check every hop before following it.
+            """
+            next_url = urljoin(current_url, location)
+            if not is_safe_url(next_url):
+                raise ValueError("blocked unsafe redirect URL")
+            return next_url
+
         try:
             import aiohttp as _aiohttp
 
             _sess_kw, _req_kw = proxy_kwargs_for_aiohttp(self._proxy_url)
             async with _aiohttp.ClientSession(**_sess_kw) as http:
-                async with http.get(
-                    url,
-                    timeout=_aiohttp.ClientTimeout(total=30),
-                    allow_redirects=True,
-                    **_req_kw,
-                ) as resp:
-                    resp.raise_for_status()
-                    if not is_safe_url(str(resp.url)):
-                        raise ValueError("blocked unsafe redirect URL")
-                    _check_content_length(resp.headers)
-                    parts: list[bytes] = []
-                    total = 0
-                    async for chunk in resp.content.iter_chunked(65536):
-                        total = _append_chunk(parts, total, bytes(chunk))
-                    ct = _check_image_content_type(
-                        getattr(resp, "content_type", None)
-                        or resp.headers.get("content-type", "application/octet-stream")
-                    )
-                    return b"".join(parts), ct, fname
+                fetch_url = url
+                for _ in range(20):
+                    async with http.get(
+                        fetch_url,
+                        timeout=_aiohttp.ClientTimeout(total=30),
+                        allow_redirects=False,
+                        **_req_kw,
+                    ) as resp:
+                        if resp.status in {301, 302, 303, 307, 308}:
+                            location = resp.headers.get("Location")
+                            if not location:
+                                raise ValueError("redirect missing Location")
+                            fetch_url = _safe_redirect_target(fetch_url, location)
+                            continue
+                        resp.raise_for_status()
+                        _check_content_length(resp.headers)
+                        parts: list[bytes] = []
+                        total = 0
+                        async for chunk in resp.content.iter_chunked(65536):
+                            total = _append_chunk(parts, total, bytes(chunk))
+                        ct = _check_image_content_type(
+                            getattr(resp, "content_type", None)
+                            or resp.headers.get("content-type", "application/octet-stream")
+                        )
+                        return b"".join(parts), ct, fname
+                raise ValueError("too many redirects")
         except ImportError:
             import httpx
 
             _httpx_kw: dict = {}
             if self._proxy_url:
                 _httpx_kw["proxy"] = self._proxy_url
+            _httpx_kw["event_hooks"] = {"response": [_ssrf_redirect_guard]}
             async with httpx.AsyncClient(**_httpx_kw) as http:
                 async with http.stream(
                     "GET",
@@ -1795,8 +1888,6 @@ class MatrixAdapter(BasePlatformAdapter):
                     timeout=30,
                 ) as resp:
                     resp.raise_for_status()
-                    if not is_safe_url(str(resp.url)):
-                        raise ValueError("blocked unsafe redirect URL")
                     _check_content_length(resp.headers)
                     parts: list[bytes] = []
                     total = 0
@@ -1994,7 +2085,7 @@ class MatrixAdapter(BasePlatformAdapter):
             )
 
         try:
-            from nyxo_cli.providers import get_label
+            from hermes_cli.providers import get_label
             provider_label = get_label(current_provider)
         except Exception:
             provider_label = current_provider
@@ -2140,9 +2231,14 @@ class MatrixAdapter(BasePlatformAdapter):
         """Read a local file and upload it."""
         p = Path(file_path).expanduser()
         if not p.exists():
-            return await self.send(
-                room_id, f"{caption or ''}\n(file not found: {file_path})", reply_to
+            # file_path is a host-local path; never echo it into chat.
+            logger.warning(
+                "[%s] upload fallback: media file not found for %s",
+                self.name, file_path,
             )
+            text = f"{caption}\n⚠️ Couldn't deliver the attachment." if caption \
+                else "⚠️ Couldn't deliver the attachment."
+            return await self.send(room_id, text, reply_to)
         try:
             file_size = p.stat().st_size
         except OSError:
@@ -2217,7 +2313,10 @@ class MatrixAdapter(BasePlatformAdapter):
                         await self._dispatch_sync(sync_data)
                     except Exception as exc:
                         logger.warning("Matrix: sync event dispatch error: %s", exc)
-                    await self._join_pending_invites(sync_data)
+                    self._schedule_pending_invite_joins(sync_data)
+                    # Let freshly scheduled invite joins start before the next
+                    # sync iteration without waiting for slow or stuck joins.
+                    await asyncio.sleep(0)
 
             except asyncio.CancelledError:
                 return
@@ -2252,7 +2351,18 @@ class MatrixAdapter(BasePlatformAdapter):
         if inspect.isawaitable(tasks):
             tasks = await tasks
         if tasks:
-            await asyncio.gather(*tasks)
+            # return_exceptions=True so one failing event handler doesn't abort
+            # the whole gather and silently drop the SIBLING events in the same
+            # sync response (a bare gather re-raises the first exception, leaving
+            # the rest of the batch unprocessed). Mirrors the invite/redaction
+            # gathers above. Surface each failure instead of swallowing it.
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    logger.warning(
+                        "Matrix: event handler failed during sync dispatch: %s",
+                        result,
+                    )
 
     def _is_self_sender(self, sender: str) -> bool:
         """Return True if the sender refers to the bot's own account.
@@ -2873,15 +2983,46 @@ class MatrixAdapter(BasePlatformAdapter):
         await self.handle_message(msg_event)
 
     async def _on_invite(self, event: Any) -> None:
-        """Auto-join rooms when invited."""
+        """Auto-join rooms when invited, recording DM rooms in m.direct."""
 
         room_id = str(getattr(event, "room_id", ""))
+        content = getattr(event, "content", None)
+        is_direct = bool(getattr(content, "is_direct", False))
+        inviter = str(getattr(event, "sender", ""))
+
+        # Only auto-join when the inviter is authorized. Without this, any
+        # federated Matrix user could invite the bot into arbitrary rooms,
+        # exposing its presence and metadata. Mirrors the allow-list gate
+        # used on the message/reaction paths.
+        allow_all = os.getenv("GATEWAY_ALLOW_ALL_USERS", "").lower() in {
+            "true",
+            "1",
+            "yes",
+        }
+        if not allow_all and not (
+            self._allowed_user_ids and inviter in self._allowed_user_ids
+        ):
+            logger.warning(
+                "Matrix: rejecting invite to %s from unauthorized user %s",
+                room_id,
+                inviter,
+            )
+            return
 
         logger.info(
-            "Matrix: invited to %s — joining",
+            "Matrix: invited to %s — joining (is_direct=%s)",
             room_id,
+            is_direct,
         )
-        await self._join_room_by_id(room_id)
+        # When the invite declares this as a DM, record it in m.direct after
+        # the (non-blocking) join completes so that _resolve_room_identity
+        # treats it correctly even when the bot account has no prior DM
+        # history. The join itself stays off the sync path.
+        self._schedule_invite_join(
+            room_id,
+            is_direct=is_direct and bool(inviter),
+            inviter=inviter,
+        )
 
     async def _join_room_by_id(self, room_id: str) -> bool:
         """Join a room by ID and refresh local caches on success."""
@@ -2899,9 +3040,52 @@ class MatrixAdapter(BasePlatformAdapter):
             return True
         except Exception as exc:
             logger.warning("Matrix: error joining %s: %s", room_id, exc)
+            # Abandoned rooms (no current members) surface as "no servers
+            # in the room have been provided" or "room not found". The
+            # pending invite keeps retrying every startup unless we
+            # explicitly leave it. The match is narrow enough that
+            # transient failures still leave the invite untouched for the
+            # next try.
+            msg = str(exc).lower()
+            if ("no servers" in msg) or ("room not found" in msg):
+                try:
+                    await self._client.leave_room(RoomID(room_id))
+                    logger.info("Matrix: declined dead invite to %s", room_id)
+                except Exception:
+                    pass
             return False
 
-    async def _join_pending_invites(self, sync_data: Dict[str, Any]) -> None:
+    def _schedule_invite_join(
+        self,
+        room_id: str,
+        *,
+        is_direct: bool = False,
+        inviter: str = "",
+    ) -> None:
+        """Schedule an invite join without blocking sync or gateway readiness."""
+        if not room_id or room_id in self._joined_rooms:
+            return
+        existing = self._invite_join_tasks.get(room_id)
+        if existing and not existing.done():
+            return
+
+        async def _join_invite() -> None:
+            try:
+                joined = await asyncio.wait_for(
+                    self._join_room_by_id(room_id), timeout=45.0
+                )
+                # Persist the DM signal from the invite once the join lands,
+                # so m.direct is authoritative even on a fresh bot account.
+                if joined and is_direct and inviter:
+                    await self._record_dm_room(room_id, inviter)
+            except asyncio.TimeoutError:
+                logger.warning("Matrix: timed out joining invite %s", room_id)
+            finally:
+                self._invite_join_tasks.pop(room_id, None)
+
+        self._invite_join_tasks[room_id] = asyncio.create_task(_join_invite())
+
+    def _schedule_pending_invite_joins(self, sync_data: Dict[str, Any]) -> None:
         """Join rooms still present in rooms.invite after sync processing."""
         rooms = sync_data.get("rooms", {}) if isinstance(sync_data, dict) else {}
         invites = rooms.get("invite", {})
@@ -2911,7 +3095,7 @@ class MatrixAdapter(BasePlatformAdapter):
             if room_id in self._joined_rooms:
                 continue
             logger.info("Matrix: reconciling pending invite for %s", room_id)
-            await self._join_room_by_id(str(room_id))
+            self._schedule_invite_join(str(room_id))
 
     # ------------------------------------------------------------------
     # Reactions (send, receive, processing lifecycle)
@@ -3749,6 +3933,47 @@ class MatrixAdapter(BasePlatformAdapter):
         self._room_identities.clear()
         self._room_identity_cached_at.clear()
 
+    async def _record_dm_room(self, room_id: str, inviter: str) -> None:
+        """Persist a room as DM in m.direct account data after an invite.
+
+        When the bot account has never been used for DMs, ``m.direct`` is
+        absent (404).  This method fetches the current mapping (if any),
+        appends *room_id* under the *inviter*'s entry, and writes it back
+        so that subsequent ``_refresh_dm_cache`` calls treat the room as a
+        DM without requiring manual ``m.direct`` setup.
+        """
+        if not self._client:
+            return
+
+        dm_data: Dict[str, list] = {}
+        try:
+            resp = await self._client.get_account_data("m.direct")
+            if hasattr(resp, "content") and isinstance(resp.content, dict):
+                dm_data = resp.content
+            elif isinstance(resp, dict):
+                dm_data = resp
+        except Exception:
+            pass  # m.direct doesn't exist yet — start fresh
+
+        rooms_for_user = dm_data.get(inviter, [])
+        if not isinstance(rooms_for_user, list):
+            rooms_for_user = []
+        if room_id not in rooms_for_user:
+            rooms_for_user.append(room_id)
+            dm_data[inviter] = rooms_for_user
+            try:
+                await self._client.set_account_data("m.direct", dm_data)
+                logger.info(
+                    "Matrix: recorded %s as DM room (inviter=%s)", room_id, inviter
+                )
+            except Exception as exc:
+                logger.warning("Matrix: failed to update m.direct: %s", exc)
+
+        # Update local cache so _resolve_room_identity sees it immediately.
+        self._dm_rooms[room_id] = True
+        self._room_identities.pop(room_id, None)
+        self._room_identity_cached_at.pop(room_id, None)
+
     # ------------------------------------------------------------------
     # Mention detection helpers
     # ------------------------------------------------------------------
@@ -3895,7 +4120,7 @@ class MatrixAdapter(BasePlatformAdapter):
 
         Important: only strip explicit mention tokens (``@user:server`` or
         ``@localpart``). Do NOT strip bare words matching the bot localpart,
-        otherwise normal phrases like "Nyxo Agent" become "Agent".
+        otherwise normal phrases like "Hermes Agent" become "Agent".
         """
         if not body:
             return ""
@@ -4140,7 +4365,7 @@ class MatrixAdapter(BasePlatformAdapter):
 # register(ctx) entry point plus hook implementations that replace the
 # per-platform core touchpoints (the Platform.MATRIX elif in gateway/run.py,
 # the matrix_cfg YAML→env block in gateway/config.py, the _setup_matrix wizard
-# + _PLATFORMS["matrix"] static dict in nyxo_cli/{setup,gateway}.py, and the
+# + _PLATFORMS["matrix"] static dict in hermes_cli/{setup,gateway}.py, and the
 # _send_matrix dispatch in tools/send_message_tool.py).  Matrix uses the
 # generic token/api_key connected check, so no is_connected override is needed.
 # ──────────────────────────────────────────────────────────────────────────
@@ -4173,7 +4398,7 @@ async def _standalone_send(
         token = token or os.getenv("MATRIX_ACCESS_TOKEN", "")
         if not homeserver or not token:
             return {"error": "Matrix not configured (MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN required)"}
-        txn_id = f"nyxo_{int(time.time() * 1000)}_{os.urandom(4).hex()}"
+        txn_id = f"hermes_{int(time.time() * 1000)}_{os.urandom(4).hex()}"
         from urllib.parse import quote
         encoded_room = quote(chat_id, safe="")
         url = f"{homeserver}/_matrix/client/v3/rooms/{encoded_room}/send/m.room.message/{txn_id}"
@@ -4201,12 +4426,12 @@ async def _standalone_send(
 
 
 def interactive_setup() -> None:
-    """Configure Matrix credentials. Replaces nyxo_cli/setup.py::_setup_matrix
+    """Configure Matrix credentials. Replaces hermes_cli/setup.py::_setup_matrix
     and the static _PLATFORMS["matrix"] dict. CLI helpers are lazy-imported."""
     import shutil
     import sys as _sys
-    from nyxo_cli.config import get_env_value, save_env_value
-    from nyxo_cli.cli_output import (
+    from hermes_cli.config import get_env_value, save_env_value
+    from hermes_cli.cli_output import (
         prompt,
         prompt_yes_no,
         print_header,
@@ -4272,23 +4497,14 @@ def interactive_setup() -> None:
                 __import__("mautrix")
             except ImportError:
                 print_info(f"Installing {matrix_pkg}...")
-                import subprocess
-                uv_bin = shutil.which("uv")
-                if uv_bin:
-                    result = subprocess.run(
-                        [uv_bin, "pip", "install", "--python", _sys.executable, matrix_pkg],
-                        capture_output=True, text=True,
-                    )
-                else:
-                    result = subprocess.run(
-                        [_sys.executable, "-m", "pip", "install", matrix_pkg],
-                        capture_output=True, text=True,
-                    )
+                from hermes_cli.tools_config import _pip_install
+
+                result = _pip_install([matrix_pkg])
                 if result.returncode == 0:
                     print_success(f"{matrix_pkg} installed")
                 else:
                     print_warning(
-                        f"Install failed — run manually: pip install "
+                        f"Install failed — run manually: uv pip install "
                         f"'{matrix_pkg}' asyncpg aiosqlite Markdown aiohttp-socks"
                     )
 
@@ -4301,7 +4517,7 @@ def interactive_setup() -> None:
         else:
             print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
 
-        print_info("📬 Home Room: where Nyxo delivers cron job results and notifications.")
+        print_info("📬 Home Room: where Hermes delivers cron job results and notifications.")
         print_info("   Room IDs look like !abc123:server (shown in Element room settings)")
         print_info("   You can also set this later by typing /set-home in a Matrix room.")
         home_room = prompt("Home room ID (leave empty to set later with /set-home)")
@@ -4351,7 +4567,7 @@ def _apply_yaml_config(yaml_cfg: dict, matrix_cfg: dict) -> dict | None:
 
 def _is_connected(config) -> bool:
     """Matrix is connected when a homeserver + access token (or password) are
-    configured. Read via nyxo_cli.gateway.get_env_value so setup-status
+    configured. Read via hermes_cli.gateway.get_env_value so setup-status
     callers that patch get_env_value observe the same value, and PlatformConfig
     extras (homeserver) are honored too. As a built-in, Matrix used the generic
     token check; as a plugin it needs an explicit is_connected so
@@ -4359,7 +4575,7 @@ def _is_connected(config) -> bool:
     rather than mere SDK presence. #41112.
     """
     extra = getattr(config, "extra", {}) or {}
-    import nyxo_cli.gateway as gateway_mod
+    import hermes_cli.gateway as gateway_mod
     homeserver = extra.get("homeserver") or gateway_mod.get_env_value("MATRIX_HOMESERVER") or ""
     token = (
         getattr(config, "token", None)
@@ -4376,7 +4592,7 @@ def _build_adapter(config):
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the Nyxo plugin system."""
+    """Plugin entry point — called by the Hermes plugin system."""
     ctx.register_platform(
         name="matrix",
         label="Matrix",

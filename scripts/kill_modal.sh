@@ -2,7 +2,7 @@
 # Kill all running Modal apps (sandboxes, deployments, etc.)
 #
 # Usage:
-#   bash scripts/kill_modal.sh          # Stop nyxo-agent sandboxes
+#   bash scripts/kill_modal.sh          # Stop flash-agent sandboxes
 #   bash scripts/kill_modal.sh --all    # Stop ALL Modal apps
 
 set -uo pipefail
@@ -17,10 +17,10 @@ if [[ "${1:-}" == "--all" ]]; then
         modal app stop "$app_id" 2>/dev/null || true
     done
 else
-    echo "Stopping nyxo-agent sandboxes..."
-    APPS=$(echo "$APP_LIST" | grep 'nyxo-agent' | grep -oE 'ap-[A-Za-z0-9]+' || true)
+    echo "Stopping flash-agent sandboxes..."
+    APPS=$(echo "$APP_LIST" | grep 'flash-agent' | grep -oE 'ap-[A-Za-z0-9]+' || true)
     if [[ -z "$APPS" ]]; then
-        echo "  No nyxo-agent apps found."
+        echo "  No flash-agent apps found."
     else
         echo "$APPS" | while read app_id; do
             echo "  Stopping $app_id"
@@ -30,5 +30,5 @@ else
 fi
 
 echo ""
-echo "Current nyxo-agent status:"
-modal app list 2>/dev/null | grep -E 'State|nyxo-agent' || echo "  (none)"
+echo "Current flash-agent status:"
+modal app list 2>/dev/null | grep -E 'State|flash-agent' || echo "  (none)"

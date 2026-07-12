@@ -6,7 +6,7 @@ Complete, copy-pasteable examples. Wrap each in the `.excalidraw` envelope befor
 {
   "type": "excalidraw",
   "version": 2,
-  "source": "nyxo-agent",
+  "source": "flash-agent",
   "elements": [ ...elements from examples below... ],
   "appState": { "viewBackgroundColor": "#ffffff" }
 }

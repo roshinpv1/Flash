@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================================
-# Nyxo Agent Installer
+# Hermes Agent Installer
 # ============================================================================
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   curl -fsSL https://nyxo-agent.nousresearch.com/install.sh | bash
+#   curl -fsSL https://flash-agent.flashorg.com/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -16,7 +16,7 @@
 set -e
 
 # Guard against environment leakage when the installer is launched from another
-# Python-driven tool session (e.g. Nyxo terminal tool). A pre-set PYTHONPATH
+# Python-driven tool session (e.g. Hermes terminal tool). A pre-set PYTHONPATH
 # can force pip/entrypoints to import a different checkout than the one being
 # installed, which makes fresh installs appear broken or stale.
 if [ -n "${PYTHONPATH:-}" ]; then
@@ -43,14 +43,14 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/nyxo-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/nyxo-agent.git"
-NYXO_HOME="${NYXO_HOME:-$HOME/.nyxo}"
+REPO_URL_SSH="git@github.com:FlashOrg/flash-agent.git"
+REPO_URL_HTTPS="https://github.com/FlashOrg/flash-agent.git"
+HERMES_HOME="${HERMES_HOME:-$HOME/.flash}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
-if [ -n "${NYXO_INSTALL_DIR:-}" ]; then
-    INSTALL_DIR="$NYXO_INSTALL_DIR"
+if [ -n "${HERMES_INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$HERMES_INSTALL_DIR"
     INSTALL_DIR_EXPLICIT=true
 else
     INSTALL_DIR=""
@@ -60,8 +60,8 @@ PYTHON_VERSION="3.11"
 NODE_VERSION="22"
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
-#   code at /usr/local/lib/nyxo-agent, command at /usr/local/bin/nyxo,
-#   data still at /root/.nyxo (NYXO_HOME).  Matches Claude Code / Codex CLI
+#   code at /usr/local/lib/flash-agent, command at /usr/local/bin/flash,
+#   data still at /root/.flash (HERMES_HOME).  Matches Claude Code / Codex CLI
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
 DETECTED_BROWSER_EXECUTABLE=""
@@ -142,8 +142,8 @@ while [[ $# -gt 0 ]]; do
             INSTALL_DIR_EXPLICIT=true
             shift 2
             ;;
-        --nyxo-home)
-            NYXO_HOME="$2"
+        --flash-home)
+            HERMES_HOME="$2"
             shift 2
             ;;
         --ensure)
@@ -155,7 +155,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Nyxo Agent Installer"
+            echo "Hermes Agent Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -164,34 +164,34 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --no-skills    Start with a blank slate — seed no bundled skills, and"
-            echo "                   write \$NYXO_HOME/.no-bundled-skills so future"
-            echo "                   'nyxo update' runs never inject bundled skills either"
+            echo "                   write \$HERMES_HOME/.no-bundled-skills so future"
+            echo "                   'flash update' runs never inject bundled skills either"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --commit SHA   Pin checkout to a specific commit after clone/update"
             echo "  --manifest     Print desktop bootstrap stage manifest as JSON"
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Nyxo.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Hermes.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.nyxo/nyxo-agent"
-            echo "                   default (root, Linux): /usr/local/lib/nyxo-agent"
-            echo "  --nyxo-home PATH  Data directory (default: ~/.nyxo, or \$NYXO_HOME)"
+            echo "                   default (non-root):  ~/.flash/flash-agent"
+            echo "                   default (root, Linux): /usr/local/lib/flash-agent"
+            echo "  --flash-home PATH  Data directory (default: ~/.flash, or \$HERMES_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  When running as root on Linux, Nyxo installs the code under"
-            echo "  /usr/local/lib/nyxo-agent and links the command into"
-            echo "  /usr/local/bin/nyxo (FHS layout — matches Claude Code / Codex CLI)."
-            echo "  Data, config, sessions, and logs still live in \$NYXO_HOME"
-            echo "  (default /root/.nyxo).  This keeps Docker bind-mounted volumes"
+            echo "  When running as root on Linux, Hermes installs the code under"
+            echo "  /usr/local/lib/flash-agent and links the command into"
+            echo "  /usr/local/bin/flash (FHS layout — matches Claude Code / Codex CLI)."
+            echo "  Data, config, sessions, and logs still live in \$HERMES_HOME"
+            echo "  (default /root/.flash).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
-            echo "  Existing installs at \$NYXO_HOME/nyxo-agent are preserved in-place."
+            echo "  Existing installs at \$HERMES_HOME/flash-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
             echo "                   Supported: node, browser, ripgrep, ffmpeg"
             echo "                   Does NOT clone repo or create venv"
             echo "  --postinstall  Run post-install setup only (for pip users)"
-            echo "                   Installs optional deps + runs nyxo setup"
+            echo "                   Installs optional deps + runs flash setup"
             echo "                   Does NOT clone repo or create venv"
             exit 0
             ;;
@@ -210,7 +210,7 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ Nyxo Agent Installer                    │"
+    echo "│             ⚕ Hermes Agent Installer                    │"
     echo "├─────────────────────────────────────────────────────────┤"
     echo "│  An open source AI agent by Nous Research.              │"
     echo "└─────────────────────────────────────────────────────────┘"
@@ -243,7 +243,7 @@ json_escape() {
 
 # npm rewrites tracked package-lock.json files non-deterministically during
 # `npm install` / `npm run pack`. On a managed install those diffs are never
-# intentional, but they leave the checkout dirty — which forces `nyxo update`
+# intentional, but they leave the checkout dirty — which forces `flash update`
 # to autostash on every run and makes branch switches fragile. Restore them so
 # a fresh install ends with a clean tree. Best-effort; only touches lockfiles.
 restore_dirty_lockfiles() {
@@ -258,9 +258,61 @@ restore_dirty_lockfiles() {
     done
 }
 
+# npm rewrites tracked package-lock.json files non-deterministically during
+# local builds. On a managed install those diffs are usually runtime churn, not
+# intentional user edits, so discard them before the repository-stage stash.
+# If package.json in the same directory is also dirty we keep both changes.
+discard_update_lockfile_churn() {
+    local repo="${1:-$INSTALL_DIR}"
+    [ -n "$repo" ] && [ -d "$repo/.git" ] || return 0
+    command -v git >/dev/null 2>&1 || return 0
+
+    local dirty_diff
+    dirty_diff=$(git -C "$repo" diff --name-only 2>/dev/null) || return 0
+    [ -n "$dirty_diff" ] || return 0
+
+    local dirty_package_dirs=""
+    while IFS= read -r path; do
+        case "$path" in
+            *package.json)
+                dirty_package_dirs="${dirty_package_dirs}$(dirname "$path")"$'\n'
+                ;;
+        esac
+    done <<EOF
+$dirty_diff
+EOF
+
+    local dirty_locks=""
+    local dirty_count=0
+    while IFS= read -r path; do
+        case "$path" in
+            *package-lock.json)
+                local lock_dir
+                lock_dir=$(dirname "$path")
+                case $'\n'"$dirty_package_dirs" in
+                    *$'\n'"$lock_dir"$'\n'*) continue ;;
+                esac
+                dirty_locks="${dirty_locks}${path}"$'\n'
+                dirty_count=$((dirty_count + 1))
+                ;;
+        esac
+    done <<EOF
+$dirty_diff
+EOF
+
+    [ "$dirty_count" -gt 0 ] || return 0
+    while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        git -C "$repo" checkout -- "$path" 2>/dev/null || true
+    done <<EOF
+$dirty_locks
+EOF
+    log_info "Discarded npm lockfile churn (${dirty_count} file(s))"
+}
+
 emit_manifest() {
     # Stage-Desktop is included only with --include-desktop, mirroring
-    # install.ps1: the signed bootstrap installer (Nyxo-Setup) passes it so
+    # install.ps1: the signed bootstrap installer (Hermes-Setup) passes it so
     # a GUI install ends up with a launchable app; the Electron app's own
     # first-launch bootstrap and the CLI one-liner omit it (building the
     # desktop from inside the already-running app would clobber it).
@@ -268,7 +320,7 @@ emit_manifest() {
     if [ "$INCLUDE_DESKTOP" = true ]; then
         desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Nyxo Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install nyxo command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Hermes Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install flash command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -336,29 +388,29 @@ is_termux() {
     [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]
 }
 
-# Decide where the repo checkout + venv live, and where the `nyxo` command
+# Decide where the repo checkout + venv live, and where the `flash` command
 # symlink goes.  Called after detect_os so $OS/$DISTRO are known.
 #
 # Defaults:
-#   - Non-root, any OS:       INSTALL_DIR = $NYXO_HOME/nyxo-agent
+#   - Non-root, any OS:       INSTALL_DIR = $HERMES_HOME/flash-agent
 #                             command link in $HOME/.local/bin
-#   - Termux (any uid):       INSTALL_DIR = $NYXO_HOME/nyxo-agent
+#   - Termux (any uid):       INSTALL_DIR = $HERMES_HOME/flash-agent
 #                             command link in $PREFIX/bin (already on PATH)
-#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/nyxo-agent
+#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/flash-agent
 #                             command link in /usr/local/bin
 #                             (unless a legacy install already exists at
-#                              $NYXO_HOME/nyxo-agent — then preserve it)
+#                              $HERMES_HOME/flash-agent — then preserve it)
 #
-# Always no-op when the user set --dir or $NYXO_INSTALL_DIR.
+# Always no-op when the user set --dir or $HERMES_INSTALL_DIR.
 resolve_install_layout() {
     if [ "$INSTALL_DIR_EXPLICIT" = true ]; then
         log_info "Install directory: $INSTALL_DIR (explicit)"
         return 0
     fi
 
-    # Termux: package manager manages /data/data/..., keep code in NYXO_HOME.
+    # Termux: package manager manages /data/data/..., keep code in HERMES_HOME.
     if is_termux; then
-        INSTALL_DIR="$NYXO_HOME/nyxo-agent"
+        INSTALL_DIR="$HERMES_HOME/flash-agent"
         return 0
     fi
 
@@ -366,31 +418,31 @@ resolve_install_layout() {
     # macOS root installs keep the legacy layout because /usr/local/ on macOS
     # is Homebrew territory and we don't want to fight that.
     if [ "$OS" = "linux" ] && [ "$(id -u)" -eq 0 ]; then
-        if [ -d "$NYXO_HOME/nyxo-agent/.git" ]; then
-            INSTALL_DIR="$NYXO_HOME/nyxo-agent"
+        if [ -d "$HERMES_HOME/flash-agent/.git" ]; then
+            INSTALL_DIR="$HERMES_HOME/flash-agent"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
-            log_info "  (new root installs use /usr/local/lib/nyxo-agent)"
+            log_info "  (new root installs use /usr/local/lib/flash-agent)"
             return 0
         fi
-        INSTALL_DIR="/usr/local/lib/nyxo-agent"
+        INSTALL_DIR="/usr/local/lib/flash-agent"
         ROOT_FHS_LAYOUT=true
         # Place uv-managed Python under /usr/local/share so the venv interpreter
         # is world-readable.  Default uv paths land in /root/.local/share/uv,
         # which non-root users can't traverse — leaving the shared
-        # /usr/local/bin/nyxo wrapper unable to exec the bad-interpreter venv
+        # /usr/local/bin/flash wrapper unable to exec the bad-interpreter venv
         # python.  See #21457.
         export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-/usr/local/share/uv/python}"
         export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-/usr/local/share/uv/bin}"
         log_info "Root install on Linux — using FHS layout"
         log_info "  Code:    $INSTALL_DIR"
-        log_info "  Command: /usr/local/bin/nyxo"
-        log_info "  Data:    $NYXO_HOME (unchanged)"
+        log_info "  Command: /usr/local/bin/flash"
+        log_info "  Data:    $HERMES_HOME (unchanged)"
         log_info "  uv Python: $UV_PYTHON_INSTALL_DIR (world-readable)"
         return 0
     fi
 
     # Default: non-root, non-Termux → legacy user-scoped layout.
-    INSTALL_DIR="$NYXO_HOME/nyxo-agent"
+    INSTALL_DIR="$HERMES_HOME/flash-agent"
 }
 
 get_command_link_dir() {
@@ -413,32 +465,32 @@ get_command_link_display_dir() {
     fi
 }
 
-# Point a Nyxo-managed Node's `npm install -g` at a directory that is on
+# Point a Hermes-managed Node's `npm install -g` at a directory that is on
 # PATH. npm's default global prefix for a bundled Node is the Node dir itself,
-# so global package binaries land in $NYXO_HOME/node/bin — which is NOT on
+# so global package binaries land in $HERMES_HOME/node/bin — which is NOT on
 # PATH (only the command link dir is) and is wiped on every Node upgrade.
 # Redirecting the prefix to the link dir's parent makes global bins resolve to
 # the command link dir (node/npm/npx live there too, already on PATH) and
 # survive upgrades. Scoped to the managed Node via its prefix-local global
 # npmrc, so the user's other Node installs and their ~/.npmrc are untouched.
-# Nyxo's own global installs pass an explicit --prefix and are unaffected.
-# Idempotent and a no-op when there is no Nyxo-managed npm, so calling it on
+# Hermes's own global installs pass an explicit --prefix and are unaffected.
+# Idempotent and a no-op when there is no Hermes-managed npm, so calling it on
 # every install run repairs pre-existing installs, not just fresh ones.
 configure_managed_node_npm_prefix() {
-    [ -x "$NYXO_HOME/node/bin/npm" ] || return 0
+    [ -x "$HERMES_HOME/node/bin/npm" ] || return 0
     local link_dir
     link_dir="$(get_command_link_dir)"
-    mkdir -p "$NYXO_HOME/node/etc"
-    printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$NYXO_HOME/node/etc/npmrc"
+    mkdir -p "$HERMES_HOME/node/etc"
+    printf 'prefix=%s\n' "$(dirname "$link_dir")" > "$HERMES_HOME/node/etc/npmrc"
 }
 
-get_nyxo_command_path() {
+get_flash_command_path() {
     local link_dir
     link_dir="$(get_command_link_dir)"
-    if [ -x "$link_dir/nyxo" ]; then
-        echo "$link_dir/nyxo"
+    if [ -x "$link_dir/flash" ]; then
+        echo "$link_dir/flash"
     else
-        echo "nyxo"
+        echo "flash"
     fi
 }
 
@@ -457,8 +509,13 @@ detect_os() {
                 if [ -f /etc/os-release ]; then
                     . /etc/os-release
                     DISTRO="$ID"
+                    # VERSION_ID (e.g. "26.04", "14") lets us tell whether the
+                    # apt release is newer than the newest one Playwright's
+                    # platform resolver recognizes — the #35166 hang condition.
+                    DISTRO_VERSION="${VERSION_ID:-}"
                 else
                     DISTRO="unknown"
+                    DISTRO_VERSION=""
                 fi
             fi
             ;;
@@ -470,7 +527,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://nyxo-agent.nousresearch.com/install.ps1)"
+            log_info "  iex (irm https://flash-agent.flashorg.com/install.ps1)"
             exit 1
             ;;
         *)
@@ -494,11 +551,11 @@ install_uv() {
         return 0
     fi
 
-    # Nyxo owns its own uv at $NYXO_HOME/bin/uv.  Always install there —
+    # Hermes owns its own uv at $HERMES_HOME/bin/uv.  Always install there —
     # no PATH probing, no conda guards, no multi-location resolution chains.
-    # The runtime update path (nyxo_cli/managed_uv.py) looks in the same
-    # place, so install.sh and `nyxo update` stay in sync.
-    local _managed_uv="$NYXO_HOME/bin/uv"
+    # The runtime update path (flash_cli/managed_uv.py) looks in the same
+    # place, so install.sh and `flash update` stay in sync.
+    local _managed_uv="$HERMES_HOME/bin/uv"
 
     if [ -x "$_managed_uv" ]; then
         UV_CMD="$_managed_uv"
@@ -507,15 +564,15 @@ install_uv() {
         return 0
     fi
 
-    log_info "Installing managed uv into $NYXO_HOME/bin ..."
-    mkdir -p "$NYXO_HOME/bin"
+    log_info "Installing managed uv into $HERMES_HOME/bin ..."
+    mkdir -p "$HERMES_HOME/bin"
 
     # Two-stage: download the installer, then run it.  Piping
     # `curl | sh` masks curl failures (sh exits 0 on empty stdin)
     # and conflates network errors with installer errors.
     local _uv_install_log _uv_installer
-    _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/nyxo-uv-install.$$.log")"
-    _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/nyxo-uv-installer.$$.sh")"
+    _uv_install_log="$(mktemp 2>/dev/null || echo "/tmp/flash-uv-install.$$.log")"
+    _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/flash-uv-installer.$$.sh")"
     if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_install_log"; then
         log_error "Failed to download uv installer from https://astral.sh/uv/install.sh"
         log_info "curl output:"
@@ -525,8 +582,8 @@ install_uv() {
         exit 1
     fi
     # UV_UNMANAGED_INSTALL tells the astral installer to place the binary
-    # directly into $NYXO_HOME/bin instead of ~/.local/bin.
-    if UV_UNMANAGED_INSTALL="$NYXO_HOME/bin" sh "$_uv_installer" >>"$_uv_install_log" 2>&1; then
+    # directly into $HERMES_HOME/bin instead of ~/.local/bin.
+    if UV_UNMANAGED_INSTALL="$HERMES_HOME/bin" sh "$_uv_installer" >>"$_uv_install_log" 2>&1; then
         rm -f "$_uv_installer"
         if [ -x "$_managed_uv" ]; then
             UV_CMD="$_managed_uv"
@@ -725,7 +782,7 @@ check_git() {
 # `^20.19 || >=22.12` — older Node lacks `node:util.styleText`, so `vite build`
 # crashes with a SyntaxError that surfaces only as the opaque "Build desktop
 # app … exit code 1" install failure. Returns 0 when the given `node --version`
-# string clears that floor; anything below it is replaced with the Nyxo-
+# string clears that floor; anything below it is replaced with the Hermes-
 # managed Node $NODE_VERSION LTS.
 node_satisfies_build() {
     local ver="${1#v}"
@@ -741,7 +798,7 @@ node_satisfies_build() {
 check_node() {
     log_info "Checking Node.js (for browser tools)..."
 
-    # Repair pre-existing Nyxo-managed installs where `npm install -g` lands
+    # Repair pre-existing Hermes-managed installs where `npm install -g` lands
     # off PATH. No-op when there's no managed Node, so this is safe to run on
     # every install — including re-runs that skip the Node (re)install below.
     configure_managed_node_npm_prefix
@@ -752,16 +809,16 @@ check_node() {
         return 0
     fi
 
-    # Prefer a Nyxo-managed Node from a previous run over a too-old system one.
-    if [ -x "$NYXO_HOME/node/bin/node" ] && node_satisfies_build "$("$NYXO_HOME/node/bin/node" --version)"; then
-        export PATH="$NYXO_HOME/node/bin:$PATH"
-        log_success "Node.js $("$NYXO_HOME/node/bin/node" --version) found (Nyxo-managed)"
+    # Prefer a Hermes-managed Node from a previous run over a too-old system one.
+    if [ -x "$HERMES_HOME/node/bin/node" ] && node_satisfies_build "$("$HERMES_HOME/node/bin/node" --version)"; then
+        export PATH="$HERMES_HOME/node/bin:$PATH"
+        log_success "Node.js $("$HERMES_HOME/node/bin/node" --version) found (Hermes-managed)"
         HAS_NODE=true
         return 0
     fi
 
     if command -v node &> /dev/null; then
-        log_warn "Node.js $(node --version) is too old for the desktop build (need ^20.19 or >=22.12) — installing Nyxo-managed Node $NODE_VERSION LTS..."
+        log_warn "Node.js $(node --version) is too old for the desktop build (need ^20.19 or >=22.12) — installing Hermes-managed Node $NODE_VERSION LTS..."
     elif [ "$DISTRO" = "termux" ]; then
         log_info "Node.js not found — installing Node.js via pkg..."
     else
@@ -843,7 +900,7 @@ install_node() {
         return 0
     fi
 
-    log_info "Extracting to ~/.nyxo/node/..."
+    log_info "Extracting to ~/.flash/node/..."
     if [[ "$tarball_name" == *.tar.xz ]]; then
         tar xf "$tmp_dir/$tarball_name" -C "$tmp_dir"
     else
@@ -860,28 +917,28 @@ install_node() {
         return 0
     fi
 
-    # Place into ~/.nyxo/node/ and symlink binaries into the same bin dir
-    # the nyxo command uses (get_command_link_dir): /usr/local/bin for root
+    # Place into ~/.flash/node/ and symlink binaries into the same bin dir
+    # the flash command uses (get_command_link_dir): /usr/local/bin for root
     # FHS installs, $PREFIX/bin on Termux, ~/.local/bin otherwise.
-    rm -rf "$NYXO_HOME/node"
-    mkdir -p "$NYXO_HOME"
-    mv "$extracted_dir" "$NYXO_HOME/node"
+    rm -rf "$HERMES_HOME/node"
+    mkdir -p "$HERMES_HOME"
+    mv "$extracted_dir" "$HERMES_HOME/node"
     rm -rf "$tmp_dir"
 
     local node_link_dir
     node_link_dir="$(get_command_link_dir)"
     mkdir -p "$node_link_dir"
-    ln -sf "$NYXO_HOME/node/bin/node" "$node_link_dir/node"
-    ln -sf "$NYXO_HOME/node/bin/npm"  "$node_link_dir/npm"
-    ln -sf "$NYXO_HOME/node/bin/npx"  "$node_link_dir/npx"
+    ln -sf "$HERMES_HOME/node/bin/node" "$node_link_dir/node"
+    ln -sf "$HERMES_HOME/node/bin/npm"  "$node_link_dir/npm"
+    ln -sf "$HERMES_HOME/node/bin/npx"  "$node_link_dir/npx"
 
     configure_managed_node_npm_prefix
 
-    export PATH="$NYXO_HOME/node/bin:$PATH"
+    export PATH="$HERMES_HOME/node/bin:$PATH"
 
     local installed_ver
-    installed_ver=$("$NYXO_HOME/node/bin/node" --version 2>/dev/null)
-    log_success "Node.js $installed_ver installed to ~/.nyxo/node/"
+    installed_ver=$("$HERMES_HOME/node/bin/node" --version 2>/dev/null)
+    log_success "Node.js $installed_ver installed to ~/.flash/node/"
     HAS_NODE=true
 }
 
@@ -915,7 +972,7 @@ check_network_prerequisites() {
         log_info "If mirrors are stale: termux-change-repo"
         log_info "Then test: curl -I https://pypi.org/simple/ && curl -I https://duckduckgo.com/"
     else
-        log_warn "Network checks failed. Nyxo install may complete, but web search and dependency downloads can fail."
+        log_warn "Network checks failed. Hermes install may complete, but web search and dependency downloads can fail."
         log_info "Verify internet/DNS and retry if pip install fails."
     fi
 }
@@ -1039,7 +1096,7 @@ install_system_packages() {
             if [ "$IS_INTERACTIVE" = true ]; then
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Nyxo Agent itself does not require or retain root access."
+                log_info "Hermes Agent itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}? (requires sudo)" "no"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1055,7 +1112,7 @@ install_system_packages() {
                 # but opening fails with ENXIO. See #16746.
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Nyxo Agent itself does not require or retain root access."
+                log_info "Hermes Agent itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}?" "yes"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd < /dev/tty; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1136,6 +1193,7 @@ clone_repo() {
             cd "$INSTALL_DIR"
 
             local autostash_ref=""
+            discard_update_lockfile_churn "$INSTALL_DIR"
             if [ -n "$(git status --porcelain)" ]; then
                 # A previously interrupted update can leave the index with
                 # unmerged entries. In that state `git stash` aborts with
@@ -1144,14 +1202,14 @@ clone_repo() {
                 # the whole install at the repository stage. Clear the conflict
                 # markers with `git reset` first -- this keeps working-tree
                 # changes (they're still stashed just below) and only drops the
-                # index-level conflict state. Mirrors the `nyxo update` path
+                # index-level conflict state. Mirrors the `flash update` path
                 # (#4735).
                 if [ -n "$(git ls-files --unmerged)" ]; then
                     log_info "Clearing unmerged index entries from a previous conflict..."
                     git reset -q
                 fi
                 local stash_name
-                stash_name="nyxo-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
+                stash_name="flash-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
                 log_info "Local changes detected, stashing before update..."
                 git stash push --include-untracked -m "$stash_name"
                 autostash_ref="stash@{0}"
@@ -1164,7 +1222,14 @@ clone_repo() {
             git remote set-branches origin "$BRANCH" 2>/dev/null || true
             git fetch origin "$BRANCH"
             git checkout "$BRANCH"
-            git pull --ff-only origin "$BRANCH"
+            # Managed installs should follow origin/$BRANCH exactly. If the
+            # checkout has diverged (or has local-only commits), ff-only pull
+            # cannot succeed — mirror ``flash update`` and reset to the
+            # fetched remote so bootstrap/install can recover.
+            if ! git pull --ff-only origin "$BRANCH"; then
+                log_warn "Fast-forward not possible; resetting managed install to origin/$BRANCH..."
+                git reset --hard "origin/$BRANCH"
+            fi
 
             if [ -n "$autostash_ref" ]; then
                 local restore_now="yes"
@@ -1185,7 +1250,7 @@ clone_repo() {
                     if git stash apply "$autostash_ref"; then
                         git stash drop "$autostash_ref" >/dev/null
                         log_warn "Local changes were restored on top of the updated codebase."
-                        log_warn "Review git diff / git status if Nyxo behaves unexpectedly."
+                        log_warn "Review git diff / git status if Hermes behaves unexpectedly."
                     else
                         log_error "Update succeeded, but restoring local changes failed. Your changes are still preserved in git stash."
                         log_info "Resolve manually with: git stash apply $autostash_ref"
@@ -1369,7 +1434,7 @@ install_deps() {
                     log_success "Build tools installed"
                 else
                     log_info "sudo is needed ONLY to install build tools (build-essential, python3-dev, libffi-dev) via apt."
-                    log_info "Nyxo Agent itself does not require or retain root access."
+                    log_info "Hermes Agent itself does not require or retain root access."
                     if prompt_yes_no "Install build tools?" "yes"; then
                         sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y -qq build-essential python3-dev libffi-dev >/dev/null 2>&1 || true
                         log_success "Build tools installed"
@@ -1460,7 +1525,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"nyxo-agent\[([\w-]+)\]", s)
+        m = re.search(r"flash-agent\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -1533,21 +1598,21 @@ PY
 }
 
 setup_path() {
-    log_info "Setting up nyxo command..."
+    log_info "Setting up flash command..."
 
     if [ "$USE_VENV" = true ]; then
-        NYXO_BIN="$INSTALL_DIR/venv/bin/nyxo"
+        HERMES_BIN="$INSTALL_DIR/venv/bin/flash"
     else
-        NYXO_BIN="$(which nyxo 2>/dev/null || echo "")"
-        if [ -z "$NYXO_BIN" ]; then
-            log_warn "nyxo not found on PATH after install"
+        HERMES_BIN="$(which flash 2>/dev/null || echo "")"
+        if [ -z "$HERMES_BIN" ]; then
+            log_warn "flash not found on PATH after install"
             return 0
         fi
     fi
 
     # Verify the entry point script was actually generated
-    if [ ! -x "$NYXO_BIN" ]; then
-        log_warn "nyxo entry point not found at $NYXO_BIN"
+    if [ ! -x "$HERMES_BIN" ]; then
+        log_warn "flash entry point not found at $HERMES_BIN"
         log_info "This usually means the pip install didn't complete successfully."
         if [ "$DISTRO" = "termux" ]; then
             log_info "Try: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints-termux.txt"
@@ -1562,27 +1627,27 @@ setup_path() {
     command_link_dir="$(get_command_link_dir)"
     command_link_display_dir="$(get_command_link_display_dir)"
 
-    # Create a user-facing shim for the nyxo command.
+    # Create a user-facing shim for the flash command.
     # We intentionally clear PYTHONPATH/PYTHONHOME here so inherited env vars
     # can't make this launcher import modules from another checkout.
     mkdir -p "$command_link_dir"
-    # Older installs created this path as a symlink to $NYXO_BIN. Without
+    # Older installs created this path as a symlink to $HERMES_BIN. Without
     # the rm, `cat >` follows the symlink and overwrites the venv pip entry
-    # point with this shim — making `exec "$NYXO_BIN"` self-recurse. (#21454)
-    rm -f "$command_link_dir/nyxo"
-    cat > "$command_link_dir/nyxo" <<EOF
+    # point with this shim — making `exec "$HERMES_BIN"` self-recurse. (#21454)
+    rm -f "$command_link_dir/flash"
+    cat > "$command_link_dir/flash" <<EOF
 #!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
-exec "$NYXO_BIN" "\$@"
+exec "$HERMES_BIN" "\$@"
 EOF
-    chmod +x "$command_link_dir/nyxo"
-    log_success "Installed nyxo launcher → $command_link_display_dir/nyxo"
+    chmod +x "$command_link_dir/flash"
+    log_success "Installed flash launcher → $command_link_display_dir/flash"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"
         log_info "$command_link_display_dir is the native Termux command path"
-        log_success "nyxo command ready"
+        log_success "flash command ready"
         return 0
     fi
 
@@ -1597,16 +1662,16 @@ EOF
         # Probe a fresh non-login interactive bash the way the user will use it.
         # `bash -i -c` sources ~/.bashrc but NOT ~/.bash_profile or /etc/profile,
         # which is the exact scenario where RHEL root loses /usr/local/bin.
-        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v nyxo' \
+        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v flash' \
                 >/dev/null 2>&1; then
             log_info "/usr/local/bin is already on PATH for all shells"
-            log_success "nyxo command ready"
+            log_success "flash command ready"
             return 0
         fi
 
-        log_info "nyxo not on PATH in non-login shells (common on RHEL-family)"
+        log_info "flash not on PATH in non-login shells (common on RHEL-family)"
         PATH_LINE='export PATH="/usr/local/bin:$PATH"'
-        PATH_COMMENT='# Nyxo Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
+        PATH_COMMENT='# Hermes Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
         for SHELL_CONFIG in "$HOME/.bashrc" "$HOME/.bash_profile"; do
             [ -f "$SHELL_CONFIG" ] || continue
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null \
@@ -1617,7 +1682,7 @@ EOF
                 log_success "Added /usr/local/bin to PATH in $SHELL_CONFIG"
             fi
         done
-        log_success "nyxo command ready"
+        log_success "flash command ready"
         return 0
     fi
 
@@ -1663,7 +1728,7 @@ EOF
         for SHELL_CONFIG in "${SHELL_CONFIGS[@]}"; do
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null | grep -qE 'PATH=.*\.local/bin'; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Nyxo Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo "$PATH_LINE" >> "$SHELL_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $SHELL_CONFIG"
             fi
@@ -1673,7 +1738,7 @@ EOF
         if [ "$IS_FISH" = "true" ]; then
             if ! grep -q 'fish_add_path.*\.local/bin' "$FISH_CONFIG" 2>/dev/null; then
                 echo "" >> "$FISH_CONFIG"
-                echo "# Nyxo Agent — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
+                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
                 echo 'fish_add_path "$HOME/.local/bin"' >> "$FISH_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $FISH_CONFIG"
             fi
@@ -1687,80 +1752,80 @@ EOF
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so nyxo works immediately
+    # Export for current session so flash works immediately
     export PATH="$command_link_dir:$PATH"
 
-    log_success "nyxo command ready"
+    log_success "flash command ready"
 }
 
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
-    # Create ~/.nyxo directory structure (config at top level, code in subdir)
-    mkdir -p "$NYXO_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
+    # Create ~/.flash directory structure (config at top level, code in subdir)
+    mkdir -p "$HERMES_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
 
-    # Create .env at ~/.nyxo/.env (top level, easy to find)
-    if [ ! -f "$NYXO_HOME/.env" ]; then
+    # Create .env at ~/.flash/.env (top level, easy to find)
+    if [ ! -f "$HERMES_HOME/.env" ]; then
         if [ -f "$INSTALL_DIR/.env.example" ]; then
-            cp "$INSTALL_DIR/.env.example" "$NYXO_HOME/.env"
-            log_success "Created ~/.nyxo/.env from template"
+            cp "$INSTALL_DIR/.env.example" "$HERMES_HOME/.env"
+            log_success "Created ~/.flash/.env from template"
         else
-            touch "$NYXO_HOME/.env"
-            log_success "Created ~/.nyxo/.env"
+            touch "$HERMES_HOME/.env"
+            log_success "Created ~/.flash/.env"
         fi
     else
-        log_info "~/.nyxo/.env already exists, keeping it"
+        log_info "~/.flash/.env already exists, keeping it"
     fi
     # Restrict .env permissions — this file holds API keys and tokens.
     # 0600 ensures only the file owner can read/write, matching standard
     # practice for credential files (.netrc, .aws/credentials, .ssh/config).
-    chmod 600 "$NYXO_HOME/.env"
+    chmod 600 "$HERMES_HOME/.env"
     configure_browser_env_from_system_browser
 
-    # Create config.yaml at ~/.nyxo/config.yaml (top level, easy to find)
-    if [ ! -f "$NYXO_HOME/config.yaml" ]; then
+    # Create config.yaml at ~/.flash/config.yaml (top level, easy to find)
+    if [ ! -f "$HERMES_HOME/config.yaml" ]; then
         if [ -f "$INSTALL_DIR/cli-config.yaml.example" ]; then
-            cp "$INSTALL_DIR/cli-config.yaml.example" "$NYXO_HOME/config.yaml"
-            log_success "Created ~/.nyxo/config.yaml from template"
+            cp "$INSTALL_DIR/cli-config.yaml.example" "$HERMES_HOME/config.yaml"
+            log_success "Created ~/.flash/config.yaml from template"
         fi
     else
-        log_info "~/.nyxo/config.yaml already exists, keeping it"
+        log_info "~/.flash/config.yaml already exists, keeping it"
     fi
 
     # Create SOUL.md if it doesn't exist (global persona file).
-    # This MUST match DEFAULT_SOUL_MD in nyxo_cli/default_soul.py — the
+    # This MUST match DEFAULT_SOUL_MD in flash_cli/default_soul.py — the
     # runtime (_ensure_default_soul_md) treats the old comment-only scaffold as
     # "never customized" and upgrades it to this text on next run, so any drift
     # here is self-healing, but keep them in sync to avoid a churn on first run.
-    if [ ! -f "$NYXO_HOME/SOUL.md" ]; then
-        cat > "$NYXO_HOME/SOUL.md" << 'SOUL_EOF'
-You are Nyxo Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+    if [ ! -f "$HERMES_HOME/SOUL.md" ]; then
+        cat > "$HERMES_HOME/SOUL.md" << 'SOUL_EOF'
+You are Hermes Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
-        log_success "Created ~/.nyxo/SOUL.md (edit to customize personality)"
+        log_success "Created ~/.flash/SOUL.md (edit to customize personality)"
     fi
 
-    log_success "Configuration directory ready: ~/.nyxo/"
+    log_success "Configuration directory ready: ~/.flash/"
 
-    # Seed bundled skills into ~/.nyxo/skills/ (manifest-based, one-time per skill)
+    # Seed bundled skills into ~/.flash/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
         # Blank-slate install: write the opt-out marker and skip seeding.
-        # skills_sync.py and `nyxo update` both honor this marker, so the
+        # skills_sync.py and `flash update` both honor this marker, so the
         # default profile stays empty across future updates too.
         printf '%s\n' \
             "This profile opted out of bundled-skill seeding (installed with --no-skills)." \
-            "Delete this file to re-enable sync on the next 'nyxo update'." \
-            > "$NYXO_HOME/.no-bundled-skills" 2>/dev/null || true
-        log_info "Skipping bundled skills (--no-skills). Wrote $NYXO_HOME/.no-bundled-skills"
-        log_info "  Future 'nyxo update' runs will not inject bundled skills. Delete the marker to opt back in."
+            "Delete this file to re-enable sync on the next 'flash update'." \
+            > "$HERMES_HOME/.no-bundled-skills" 2>/dev/null || true
+        log_info "Skipping bundled skills (--no-skills). Wrote $HERMES_HOME/.no-bundled-skills"
+        log_info "  Future 'flash update' runs will not inject bundled skills. Delete the marker to opt back in."
     else
-        log_info "Syncing bundled skills to ~/.nyxo/skills/ ..."
+        log_info "Syncing bundled skills to ~/.flash/skills/ ..."
         if "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
-            log_success "Skills synced to ~/.nyxo/skills/"
+            log_success "Skills synced to ~/.flash/skills/"
         else
             # Fallback: simple directory copy if Python sync fails
-            if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$NYXO_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
-                cp -r "$INSTALL_DIR/skills/"* "$NYXO_HOME/skills/" 2>/dev/null || true
-                log_success "Skills copied to ~/.nyxo/skills/"
+            if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$HERMES_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
+                cp -r "$INSTALL_DIR/skills/"* "$HERMES_HOME/skills/" 2>/dev/null || true
+                log_success "Skills copied to ~/.flash/skills/"
             fi
         fi
     fi
@@ -1809,17 +1874,17 @@ strip_snap_browser_override() {
     # snap-pointing override here (and its auto-written comment) so the bundled
     # Chromium download runs and the agent stops using the broken binary. A
     # deliberately-set non-snap override is left untouched.
-    local env_file="$NYXO_HOME/.env"
+    local env_file="$HERMES_HOME/.env"
 
     [ -f "$env_file" ] || return 0
     grep -Eq '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/' "$env_file" 2>/dev/null || return 0
 
     local tmp
     tmp="$(mktemp)" || return 0
-    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# Nyxo Agent browser tools' "$env_file" > "$tmp"; then
+    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# Hermes Agent browser tools' "$env_file" > "$tmp"; then
         mv "$tmp" "$env_file"
         log_warn "Removed stale Snap browser override (AGENT_BROWSER_EXECUTABLE_PATH=/snap/...) from $env_file"
-        log_info "Nyxo will use the bundled Chromium instead."
+        log_info "Hermes will use the bundled Chromium instead."
         # Drop it from this process too so the rest of the run doesn't re-detect it.
         unset AGENT_BROWSER_EXECUTABLE_PATH
     else
@@ -1828,18 +1893,196 @@ strip_snap_browser_override() {
 }
 
 run_browser_install_with_timeout() {
+    run_with_timeout "$@"
+}
+
+# Run a command with a hard wall-clock timeout, returning non-zero if it is
+# killed. Prefers GNU coreutils `timeout` (Linux) or `gtimeout` (macOS via
+# Homebrew) for an external-command target; otherwise (and always for a shell
+# function target, which the `timeout` binary cannot exec) it uses a pure-shell
+# watchdog: launch the command in its own process group, poll until it finishes,
+# and SIGTERM (then SIGKILL) the whole group on timeout. The pure-shell path is
+# what protects the bug-#39219 case — a stalled Electron download on macOS,
+# where `timeout` is usually absent — turning an indefinite hang into a non-zero
+# exit so callers (install_desktop) can self-heal via the mirror fallback.
+#
+# $1 (timeout) must be a bare integer number of seconds — the pure-shell loop
+# compares it arithmetically (the `timeout` binary would also accept suffixes
+# like 15m, but we normalize so both paths share one contract). On timeout the
+# return code is 124, matching GNU `timeout`.
+run_with_timeout() {
     local timeout_seconds="$1"
     shift
 
-    if command -v timeout >/dev/null 2>&1; then
-        timeout "$timeout_seconds" "$@"
-    else
-        "$@"
+    # Normalize to a bare integer; fall back to the desktop default if a caller
+    # ever passes a suffixed/empty value (the pure-shell loop needs an int).
+    case "$timeout_seconds" in
+        ''|*[!0-9]*) timeout_seconds=900 ;;
+    esac
+
+    # The `timeout` binary can only exec an external command, not a shell
+    # function. Use it only when the target is NOT a function; functions always
+    # go through the pure-shell watchdog (which runs them in a subshell of the
+    # current shell and sees them directly — no fragile env export needed).
+    if [ "$(type -t "$1" 2>/dev/null)" != "function" ]; then
+        local timeout_bin=""
+        if command -v timeout >/dev/null 2>&1; then
+            timeout_bin="timeout"
+        elif command -v gtimeout >/dev/null 2>&1; then
+            timeout_bin="gtimeout"
+        fi
+        if [ -n "$timeout_bin" ]; then
+            # GNU `timeout` runs the command in its own process group, so a
+            # terminal Ctrl+C is delivered to `timeout` but never reaches the
+            # child — the download looks frozen and ignores Ctrl+C (#35166).
+            # `--foreground` keeps the command in the shell's foreground group
+            # so Ctrl+C reaches it; `-k 10` sends SIGKILL 10s after the deadline
+            # so a wedged download can't outlive the timeout. Both flags are
+            # GNU-only — probe once and fall back to plain `timeout` on BusyBox
+            # (Alpine). When neither binary exists (stock macOS) we drop to the
+            # pure-shell watchdog below.
+            if "$timeout_bin" --foreground -k 10 1 true >/dev/null 2>&1; then
+                "$timeout_bin" --foreground -k 10 "$timeout_seconds" "$@"
+            else
+                "$timeout_bin" "$timeout_seconds" "$@"
+            fi
+            return $?
+        fi
     fi
+
+    # Pure-shell fallback: run in a new process group so we can kill the whole
+    # subtree (npm spawns node + the Electron downloader as children).
+    set -m
+    ( "$@" ) &
+    local cmd_pid=$!
+    set +m
+
+    local waited=0
+    local rc
+    while [ "$waited" -lt "$timeout_seconds" ]; do
+        if ! kill -0 "$cmd_pid" 2>/dev/null; then
+            # `|| rc=$?` keeps the non-zero child status without letting `set -e`
+            # abort the caller here (this would fire if run_with_timeout were
+            # ever called outside an if/|| context).
+            rc=0; wait "$cmd_pid" 2>/dev/null || rc=$?
+            return "$rc"
+        fi
+        sleep 1
+        waited=$((waited + 1))
+    done
+
+    # Final boundary recheck: the command may have finished during the last
+    # poll interval — don't kill (and mislabel as 124) a process that already
+    # exited cleanly in the last second of the budget.
+    if ! kill -0 "$cmd_pid" 2>/dev/null; then
+        rc=0; wait "$cmd_pid" 2>/dev/null || rc=$?
+        return "$rc"
+    fi
+
+    # Timed out: kill the process group (negative PID), escalate to KILL.
+    kill -TERM "-$cmd_pid" 2>/dev/null || kill -TERM "$cmd_pid" 2>/dev/null || true
+    sleep 2
+    kill -KILL "-$cmd_pid" 2>/dev/null || kill -KILL "$cmd_pid" 2>/dev/null || true
+    wait "$cmd_pid" 2>/dev/null || true
+    return 124
+}
+
+# Return success only when the host is an apt release NEWER than the newest one
+# Playwright's platform resolver recognizes — the exact condition that makes
+# `playwright install` hang uninterruptibly (#35166). We scope the override
+# retry to this case rather than retrying on *any* failure, so a genuine
+# network/disk/permission failure doesn't get a mismatched-glibc build forced
+# onto it. Newest Playwright-known apt releases as of this writing: Ubuntu
+# 24.04, Debian 13. Anything above triggers the fallback; everything Playwright
+# already handles (and every non-apt distro) does not.
+playwright_host_unrecognized() {
+    # Compare dotted versions: returns 0 if $1 > $2.
+    _ver_gt() {
+        [ "$1" = "$2" ] && return 1
+        [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
+    }
+    case "$DISTRO" in
+        ubuntu) _ver_gt "${DISTRO_VERSION:-0}" "24.04" ;;
+        debian) _ver_gt "${DISTRO_VERSION:-0}" "13" ;;
+        *) return 1 ;;  # Non-apt or unknown — not the #35166 hang condition.
+    esac
+}
+
+# Compute the PLAYWRIGHT_HOST_PLATFORM_OVERRIDE value to retry an install with
+# when Playwright's platform resolver rejects the host. ubuntu24.04 is the
+# newest Linux build Playwright has shipped across recent releases and runs on
+# newer apt releases (its binaries are dynamically linked); we point too-new /
+# unrecognized hosts at it. Only x64/arm64 Linux have Playwright builds — emit
+# nothing for anything else so the caller skips the retry. Echoes the value
+# (e.g. "ubuntu24.04-x64") or nothing.
+playwright_fallback_platform() {
+    case "$(uname -m)" in
+        x86_64|amd64) echo "ubuntu24.04-x64" ;;
+        aarch64|arm64) echo "ubuntu24.04-arm64" ;;
+        *) : ;;  # No Playwright Linux build for this arch.
+    esac
+}
+
+# Run a `playwright install ...` command, and if it fails or hangs (the
+# uninterruptible "Installing Playwright Chromium with system dependencies"
+# stall on apt releases Playwright doesn't recognize yet — Ubuntu 26.04,
+# Debian 14, future distros — see #35166), retry it ONCE with
+# PLAYWRIGHT_HOST_PLATFORM_OVERRIDE pinned to the newest known build.
+#
+# The override retry is scoped to the actual hang condition: it fires only when
+# the host is an apt release NEWER than Playwright recognizes
+# (playwright_host_unrecognized). On every release Playwright already supports
+# (Ubuntu <=24.04, Debian <=13) and every non-apt distro, the first attempt is
+# authoritative and a failure is reported as-is — we never force a
+# mismatched-glibc build (microsoft/playwright#35114) onto a host Playwright
+# handles correctly. This is deliberately narrower than a retry-on-any-failure:
+# a network/disk/permission error on a supported host should surface, not get
+# papered over with a platform override. Playwright's maintainers bless this
+# env var as the supported escape hatch for unrecognized platforms
+# (microsoft/playwright#33434); a hardcoded full distro/version table was
+# rejected upstream (microsoft/playwright#33432), so we only need the
+# newest-known floor here.
+#
+# An operator-provided PLAYWRIGHT_HOST_PLATFORM_OVERRIDE is always respected:
+# it is inherited by the first attempt, and the retry is skipped.
+#
+# Usage: run_playwright_install <timeout_seconds> npx playwright install [args...]
+run_playwright_install() {
+    local timeout_seconds="$1"
+    shift
+
+    # First attempt: native platform resolution (inherits any operator override).
+    if run_browser_install_with_timeout "$timeout_seconds" "$@" 2>/dev/null; then
+        return 0
+    fi
+
+    # Operator already pinned the platform — their choice already applied to the
+    # attempt above; a second identical run won't help.
+    if [ -n "${PLAYWRIGHT_HOST_PLATFORM_OVERRIDE:-}" ]; then
+        return 1
+    fi
+
+    # Only retry with an override on the apt releases too new for Playwright to
+    # recognize (the #35166 hang). Any other failure is a real failure and is
+    # surfaced unchanged.
+    if ! playwright_host_unrecognized; then
+        return 1
+    fi
+
+    local fallback
+    fallback="$(playwright_fallback_platform)"
+    if [ -z "$fallback" ]; then
+        return 1  # No usable fallback build for this arch.
+    fi
+
+    log_warn "Playwright doesn't recognize ${DISTRO} ${DISTRO_VERSION} yet — retrying with PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=$fallback"
+    log_info "(apt releases newer than Playwright knows hang at this step; see #35166)"
+    PLAYWRIGHT_HOST_PLATFORM_OVERRIDE="$fallback" \
+        run_browser_install_with_timeout "$timeout_seconds" "$@"
 }
 
 configure_browser_env_from_system_browser() {
-    local env_file="$NYXO_HOME/.env"
+    local env_file="$HERMES_HOME/.env"
     local browser_path="${DETECTED_BROWSER_EXECUTABLE:-}"
 
     if [ -z "$browser_path" ]; then
@@ -1850,7 +2093,7 @@ configure_browser_env_from_system_browser() {
         return 0
     fi
 
-    mkdir -p "$NYXO_HOME"
+    mkdir -p "$HERMES_HOME"
     if [ ! -f "$env_file" ]; then
         touch "$env_file"
     fi
@@ -1862,7 +2105,7 @@ configure_browser_env_from_system_browser() {
 
     {
         echo ""
-        echo "# Nyxo Agent browser tools — explicit browser override."
+        echo "# Hermes Agent browser tools — explicit browser override."
         echo "AGENT_BROWSER_EXECUTABLE_PATH=$browser_path"
     } >> "$env_file"
     log_success "Configured browser tools to use $browser_path"
@@ -1884,8 +2127,10 @@ install_node_deps() {
     if [ -f "$INSTALL_DIR/package.json" ]; then
         log_info "Installing Node.js dependencies (browser tools)..."
         cd "$INSTALL_DIR"
-        npm install --silent 2>/dev/null || {
-            log_warn "npm install failed (browser tools may not work)"
+        # Time-boxed: a stalled registry fetch would otherwise hang here with no
+        # progress (same #39219 stall class as the desktop build below).
+        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
+            log_warn "npm install failed or timed out (browser tools may not work)"
         }
         log_success "Node.js dependencies installed"
 
@@ -1918,7 +2163,7 @@ install_node_deps() {
                     # exact command the admin needs to run separately.
                     if [ "$(id -u)" -eq 0 ] || (command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null); then
                         log_info "Installing Playwright Chromium with system dependencies..."
-                        cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install --with-deps chromium 2>/dev/null || {
+                        cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install --with-deps chromium || {
                             log_warn "Playwright browser installation failed — browser tools will not work."
                             log_warn "Try running manually: cd $INSTALL_DIR && npx playwright install --with-deps chromium"
                         }
@@ -1928,7 +2173,7 @@ install_node_deps() {
                         log_info "  sudo npx playwright install-deps chromium"
                         log_info "  (from $INSTALL_DIR, after Node.js deps are installed)"
                         log_info "Installing Chromium binary into this user's Playwright cache..."
-                        cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install chromium 2>/dev/null || {
+                        cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install chromium || {
                             log_warn "Playwright browser installation failed — browser tools will not work."
                             log_warn "Try running manually: cd $INSTALL_DIR && npx playwright install chromium"
                         }
@@ -1948,7 +2193,7 @@ install_node_deps() {
                             log_warn "  sudo pacman -S nss atk at-spi2-core cups libdrm libxkbcommon mesa pango cairo alsa-lib"
                         fi
                     fi
-                    cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install chromium 2>/dev/null || {
+                    cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install chromium || {
                         log_warn "Playwright browser installation failed — browser tools will not work."
                     }
                     ;;
@@ -1956,7 +2201,7 @@ install_node_deps() {
                     log_warn "Playwright does not support automatic dependency installation on RPM-based systems."
                     log_info "Install Chromium system dependencies manually before using browser tools:"
                     log_info "  sudo dnf install nss atk at-spi2-core cups-libs libdrm libxkbcommon mesa-libgbm pango cairo alsa-lib"
-                    cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install chromium 2>/dev/null || {
+                    cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install chromium || {
                         log_warn "Playwright browser installation failed — install dependencies above and retry."
                     }
                     ;;
@@ -1964,7 +2209,7 @@ install_node_deps() {
                     log_warn "Playwright does not support automatic dependency installation on zypper-based systems."
                     log_info "Install Chromium system dependencies manually before using browser tools:"
                     log_info "  sudo zypper install mozilla-nss libatk-1_0-0 at-spi2-core cups-libs libdrm2 libxkbcommon0 Mesa-libgbm1 pango cairo libasound2"
-                    cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install chromium 2>/dev/null || {
+                    cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install chromium || {
                         log_warn "Playwright browser installation failed — install dependencies above and retry."
                     }
                     ;;
@@ -1973,7 +2218,7 @@ install_node_deps() {
                     log_info "Install Chromium/browser system dependencies for your distribution, then run:"
                     log_info "  cd $INSTALL_DIR && npx playwright install chromium"
                     log_info "Browser tools will not work until dependencies are installed."
-                    cd "$INSTALL_DIR" && run_browser_install_with_timeout 600 npx playwright install chromium 2>/dev/null || true
+                    cd "$INSTALL_DIR" && run_playwright_install 600 npx playwright install chromium || true
                     ;;
             esac
         fi
@@ -1985,13 +2230,14 @@ install_node_deps() {
     if [ -f "$INSTALL_DIR/ui-tui/package.json" ]; then
         log_info "Installing TUI dependencies..."
         cd "$INSTALL_DIR/ui-tui"
-        npm install --silent 2>/dev/null || {
-            log_warn "TUI npm install failed (nyxo --tui may not work)"
+        # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
+        run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
+            log_warn "TUI npm install failed or timed out (flash --tui may not work)"
         }
         log_success "TUI dependencies installed"
     fi
 
-    # Keep the checkout clean so `nyxo update` doesn't autostash every run.
+    # Keep the checkout clean so `flash update` doesn't autostash every run.
     restore_dirty_lockfiles "$INSTALL_DIR"
 }
 
@@ -2010,7 +2256,7 @@ run_setup_wizard() {
     # but opening fails with ENXIO, so the wizard would proceed and
     # then crash on `< /dev/tty` below.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Setup wizard skipped (no terminal available). Run 'nyxo setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'flash setup' after install."
         return 0
     fi
 
@@ -2020,18 +2266,18 @@ run_setup_wizard() {
 
     cd "$INSTALL_DIR"
 
-    # Run nyxo setup using the venv Python directly (no activation needed).
+    # Run flash setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
-        "$INSTALL_DIR/venv/bin/python" -m nyxo_cli.main setup < /dev/tty
+        "$INSTALL_DIR/venv/bin/python" -m flash_cli.main setup < /dev/tty
     else
-        python -m nyxo_cli.main setup < /dev/tty
+        python -m flash_cli.main setup < /dev/tty
     fi
 }
 
 maybe_start_gateway() {
     # Check if any messaging platform tokens were configured
-    ENV_FILE="$NYXO_HOME/.env"
+    ENV_FILE="$HERMES_HOME/.env"
     if [ ! -f "$ENV_FILE" ]; then
         return 0
     fi
@@ -2051,23 +2297,23 @@ maybe_start_gateway() {
 
     echo ""
     log_info "Messaging platform token detected!"
-    log_info "The gateway needs to be running for Nyxo to send/receive messages."
+    log_info "The gateway needs to be running for Hermes to send/receive messages."
 
     # If WhatsApp is enabled and no session exists yet, run foreground first for QR scan
     WHATSAPP_VAL=$(grep "^WHATSAPP_ENABLED=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2-)
-    WHATSAPP_SESSION="$NYXO_HOME/whatsapp/session/creds.json"
+    WHATSAPP_SESSION="$HERMES_HOME/whatsapp/session/creds.json"
     if [ "$WHATSAPP_VAL" = "true" ] && [ ! -f "$WHATSAPP_SESSION" ]; then
         if [ "$IS_INTERACTIVE" = true ]; then
             echo ""
             log_info "WhatsApp is enabled but not yet paired."
-            log_info "Running 'nyxo whatsapp' to pair via QR code..."
+            log_info "Running 'flash whatsapp' to pair via QR code..."
             echo ""
             if prompt_yes_no "Pair WhatsApp now?" "yes"; then
-                NYXO_CMD="$(get_nyxo_command_path)"
-                $NYXO_CMD whatsapp || true
+                HERMES_CMD="$(get_flash_command_path)"
+                $HERMES_CMD whatsapp || true
             fi
         else
-            log_info "WhatsApp pairing skipped (non-interactive). Run 'nyxo whatsapp' to pair."
+            log_info "WhatsApp pairing skipped (non-interactive). Run 'flash whatsapp' to pair."
         fi
     fi
 
@@ -2075,7 +2321,7 @@ maybe_start_gateway() {
     # in Docker builds where the device node is in the mount namespace
     # but opening fails with ENXIO. See #16746.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Gateway setup skipped (no terminal available). Run 'nyxo gateway install' later."
+        log_info "Gateway setup skipped (no terminal available). Run 'flash gateway install' later."
         return 0
     fi
 
@@ -2092,19 +2338,19 @@ maybe_start_gateway() {
     fi
 
     if [ "$should_install_gateway" = true ]; then
-        NYXO_CMD="$(get_nyxo_command_path)"
+        HERMES_CMD="$(get_flash_command_path)"
 
         if [ "$DISTRO" != "termux" ] && command -v systemctl &> /dev/null; then
             log_info "Installing systemd service..."
-            if $NYXO_CMD gateway install 2>/dev/null; then
+            if $HERMES_CMD gateway install 2>/dev/null; then
                 log_success "Gateway service installed"
-                if $NYXO_CMD gateway start 2>/dev/null; then
+                if $HERMES_CMD gateway start 2>/dev/null; then
                     log_success "Gateway started! Your bot is now online."
                 else
-                    log_warn "Service installed but failed to start. Try: nyxo gateway start"
+                    log_warn "Service installed but failed to start. Try: flash gateway start"
                 fi
             else
-                log_warn "Systemd install failed. You can start manually: nyxo gateway"
+                log_warn "Systemd install failed. You can start manually: flash gateway"
             fi
         else
             if [ "$DISTRO" = "termux" ]; then
@@ -2112,17 +2358,17 @@ maybe_start_gateway() {
             else
                 log_info "systemd not available — starting gateway in background..."
             fi
-            nohup $NYXO_CMD gateway > "$NYXO_HOME/logs/gateway.log" 2>&1 &
+            nohup $HERMES_CMD gateway > "$HERMES_HOME/logs/gateway.log" 2>&1 &
             GATEWAY_PID=$!
-            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.nyxo/logs/gateway.log"
+            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.flash/logs/gateway.log"
             log_info "To stop: kill $GATEWAY_PID"
-            log_info "To restart later: nyxo gateway"
+            log_info "To restart later: flash gateway"
             if [ "$DISTRO" = "termux" ]; then
                 log_warn "Android may stop background processes when Termux is suspended or the system reclaims resources."
             fi
         fi
     else
-        log_info "Skipped. Start the gateway later with: nyxo gateway"
+        log_info "Skipped. Start the gateway later with: flash gateway"
     fi
 }
 
@@ -2138,9 +2384,9 @@ print_success() {
     # Show file locations
     echo -e "${CYAN}${BOLD}📁 Your files:${NC}"
     echo ""
-    echo -e "   ${YELLOW}Config:${NC}    $NYXO_HOME/config.yaml"
-    echo -e "   ${YELLOW}API Keys:${NC}  $NYXO_HOME/.env"
-    echo -e "   ${YELLOW}Data:${NC}      $NYXO_HOME/cron/, sessions/, logs/"
+    echo -e "   ${YELLOW}Config:${NC}    $HERMES_HOME/config.yaml"
+    echo -e "   ${YELLOW}API Keys:${NC}  $HERMES_HOME/.env"
+    echo -e "   ${YELLOW}Data:${NC}      $HERMES_HOME/cron/, sessions/, logs/"
     echo -e "   ${YELLOW}Code:${NC}      $INSTALL_DIR"
     echo ""
 
@@ -2148,24 +2394,24 @@ print_success() {
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}nyxo${NC}              Start chatting"
-    echo -e "   ${GREEN}nyxo setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}nyxo config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}nyxo config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}nyxo gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}nyxo update${NC}       Update to latest version"
+    echo -e "   ${GREEN}flash${NC}              Start chatting"
+    echo -e "   ${GREEN}flash setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}flash config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}flash config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}flash gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}flash update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     if [ "$DISTRO" = "termux" ]; then
-        echo -e "${YELLOW}⚡ 'nyxo' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
+        echo -e "${YELLOW}⚡ 'flash' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
         echo ""
     elif [ "$ROOT_FHS_LAYOUT" = true ]; then
-        echo -e "${YELLOW}⚡ 'nyxo' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
+        echo -e "${YELLOW}⚡ 'flash' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
         echo ""
     else
-        echo -e "${YELLOW}⚡ Reload your shell to use 'nyxo' command:${NC}"
+        echo -e "${YELLOW}⚡ Reload your shell to use 'flash' command:${NC}"
         echo ""
         LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
         if [ "$LOGIN_SHELL" = "zsh" ]; then
@@ -2209,9 +2455,9 @@ print_success() {
 
 ensure_browser() {
     if ! command -v node >/dev/null 2>&1; then
-        local node_bin="$NYXO_HOME/node/bin/node"
+        local node_bin="$HERMES_HOME/node/bin/node"
         if [ -x "$node_bin" ]; then
-            export PATH="$NYXO_HOME/node/bin:$PATH"
+            export PATH="$HERMES_HOME/node/bin:$PATH"
         else
             log_error "Node.js not found. Run with --ensure node first."
             return 1
@@ -2219,7 +2465,7 @@ ensure_browser() {
     fi
 
     local npm_bin
-    npm_bin="$(command -v npm 2>/dev/null || echo "$NYXO_HOME/node/bin/npm")"
+    npm_bin="$(command -v npm 2>/dev/null || echo "$HERMES_HOME/node/bin/npm")"
     if [ ! -x "$npm_bin" ]; then
         log_error "npm not found"
         return 1
@@ -2228,17 +2474,19 @@ ensure_browser() {
     log_info "Installing agent-browser..."
     local log_file
     log_file="$(mktemp)"
-    if ! "$npm_bin" install -g --prefix "$NYXO_HOME/node" --silent --ignore-scripts \
+    # Time-boxed (#39219): a stalled npm registry fetch here would otherwise
+    # hang the installer with no progress, same class as the desktop build.
+    if ! run_with_timeout "$NODE_DEPS_TIMEOUT" "$npm_bin" install -g --prefix "$HERMES_HOME/node" --silent --ignore-scripts \
         "agent-browser@^0.26.0" \
         "@askjo/camofox-browser@^1.5.2" \
         >"$log_file" 2>&1; then
-        log_error "npm install failed:"
+        log_error "npm install failed or timed out:"
         cat "$log_file" >&2
         rm -f "$log_file"
         return 1
     fi
     rm -f "$log_file"
-    export PATH="$NYXO_HOME/node/bin:$PATH"
+    export PATH="$HERMES_HOME/node/bin:$PATH"
 
     strip_snap_browser_override
     local sys_browser
@@ -2250,7 +2498,7 @@ ensure_browser() {
     fi
 
     log_info "Installing Chromium via agent-browser install..."
-    local ab_bin="$NYXO_HOME/node/bin/agent-browser"
+    local ab_bin="$HERMES_HOME/node/bin/agent-browser"
     if [ -x "$ab_bin" ]; then
         "$ab_bin" install 2>/dev/null || {
             log_warn "Chromium install failed. Browser tools may not work without a system browser."
@@ -2316,7 +2564,7 @@ postinstall_mode() {
     print_banner
     detect_os
 
-    log_info "Post-install mode: setting up Nyxo for pip install"
+    log_info "Post-install mode: setting up Hermes for pip install"
 
     check_node
     check_network_prerequisites
@@ -2326,13 +2574,13 @@ postinstall_mode() {
         ensure_browser
     fi
 
-    NYXO_CMD="$(command -v nyxo 2>/dev/null || echo "")"
-    if [ -n "$NYXO_CMD" ]; then
-        log_info "Running nyxo setup..."
-        "$NYXO_CMD" setup
+    HERMES_CMD="$(command -v flash 2>/dev/null || echo "")"
+    if [ -n "$HERMES_CMD" ]; then
+        log_info "Running flash setup..."
+        "$HERMES_CMD" setup
     else
-        log_warn "nyxo command not found on PATH"
-        log_info "Try: python -m nyxo_cli.main setup"
+        log_warn "flash command not found on PATH"
+        log_info "Try: python -m flash_cli.main setup"
     fi
 }
 
@@ -2340,10 +2588,10 @@ postinstall_mode() {
 # next `npm run pack` re-downloads and re-stages from scratch. A corrupt zip in
 # the per-user Electron download cache - most often a partial/resumed download
 # that leaves concatenated junk - makes electron-builder's `unpack-electron`
-# extract a tree MISSING the electron binary, so the `electron`->`Nyxo` rename
+# extract a tree MISSING the electron binary, so the `electron`->`Hermes` rename
 # dies with ENOENT and every re-run repeats the broken extraction forever. This
 # is the bash sibling of install.ps1's Clear-ElectronBuildCache and the Python
-# _purge_electron_build_cache() used by `nyxo desktop`; install.sh was the only
+# _purge_electron_build_cache() used by `flash desktop`; install.sh was the only
 # build path lacking it. Echoes the removed paths (one per line); best-effort.
 clear_electron_build_cache() {
     local desktop_dir="$1"
@@ -2417,6 +2665,18 @@ _desktop_pack() {
 # Last-resort Electron mirror after GitHub download fails (#47266).
 DESKTOP_ELECTRON_FALLBACK_MIRROR="https://npmmirror.com/mirrors/electron/"
 
+# Per-attempt wall-clock cap for the desktop npm install / electron-builder pack
+# (#39219). A stalled (not failed) Electron download on a throttled/blocked link
+# never returns, so without this the installer hangs forever on "Build desktop
+# app". 900s is generous enough for a slow-but-progressing ~150MB fetch + build;
+# override with DESKTOP_BUILD_TIMEOUT for very slow links.
+DESKTOP_BUILD_TIMEOUT="${DESKTOP_BUILD_TIMEOUT:-900}"
+
+# Wall-clock cap for the plain registry `npm install`s (browser-tools + TUI
+# deps). Same #39219 stall class but no ~150MB Electron binary, so a shorter
+# default; override with NODE_DEPS_TIMEOUT for very slow links.
+NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
+
 # Electron package dir — workspace-local nest first, then root hoist.
 _electron_dir() {
     local install_dir="$1"
@@ -2427,7 +2687,7 @@ _electron_dir() {
     fi
 }
 
-# True when dist/ holds a usable Electron binary (#38673 / run-electron-builder.cjs).
+# True when dist/ holds a usable Electron binary (#38673 / run-electron-builder.mjs).
 _electron_dist_ok() {
     local install_dir="$1"
     local electron_dir
@@ -2489,7 +2749,7 @@ install_desktop() {
     # with no app and a confusing "couldn't find a built desktop" at launch.
     # Always re-resolve Node here. Stages run in separate processes, so we can't
     # trust an earlier check; more importantly check_node now enforces the build
-    # floor (^20.19 || >=22.12) and prepends the Nyxo-managed Node to PATH, so
+    # floor (^20.19 || >=22.12) and prepends the Hermes-managed Node to PATH, so
     # the build never runs on a too-old system Node — the cause of the opaque
     # "Build desktop app … exit code 1" failure (Vite crashes on old Node).
     check_node
@@ -2514,8 +2774,28 @@ install_desktop() {
     #    flake) — leaving tsc/typescript unresolved and `npm run pack`'s
     #    `tsc -b` failing with no obvious cause. Fall back to `npm install`
     #    only if `npm ci` is unavailable or the lockfile is out of sync.
+    #
+    #    Both the install and the build below are wrapped in a hard wall-clock
+    #    timeout (#39219): the Electron binary (~150MB) is fetched from GitHub,
+    #    and on a throttled/blocked connection that download can *stall* — npm
+    #    neither errors nor exits, so the installer sits on "Build desktop app"
+    #    forever with only `npm warn deprecated` lines visible. A stall now
+    #    converts to a non-zero exit, which feeds the existing self-heal /
+    #    mirror-fallback escalation instead of hanging the whole install.
+    #
+    #    The `npm ci` and its `npm install` fallback SHARE one budget: a stalled
+    #    link wedges both identically, so giving each a full DESKTOP_BUILD_TIMEOUT
+    #    would double the worst-case hang. We compute a single deadline and pass
+    #    the remaining seconds to the fallback (min 30s so it still gets a real
+    #    attempt if `npm ci` failed fast rather than stalling).
     log_info "Installing desktop workspace dependencies (includes Electron ~150MB, 1-3min)..."
-    if ( cd "$INSTALL_DIR" && npm ci ) || ( cd "$INSTALL_DIR" && npm install ); then
+    local _deps_start _deps_remaining
+    _deps_start=$(date +%s)
+    if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" bash -c 'cd "$1" && npm ci' _ "$INSTALL_DIR"; then
+        log_success "Desktop workspace dependencies installed"
+    elif _deps_remaining=$(( DESKTOP_BUILD_TIMEOUT - ($(date +%s) - _deps_start) )); \
+         [ "$_deps_remaining" -lt 30 ] && _deps_remaining=30; \
+         run_with_timeout "$_deps_remaining" bash -c 'cd "$1" && npm install' _ "$INSTALL_DIR"; then
         log_success "Desktop workspace dependencies installed"
     elif _electron_pkg_staged_missing_dist "$INSTALL_DIR"; then
         log_warn "Desktop dependency install failed with a missing Electron dist; attempting self-heal..."
@@ -2539,12 +2819,12 @@ install_desktop() {
     #    Electron download self-heals instead of failing the whole install:
     #      a) plain `npm run pack` (downloads Electron from GitHub),
     #      b) on failure, purge a corrupt cached zip + stale unpacked dir and
-    #         retry (matches install.ps1 / `nyxo desktop`),
+    #         retry (matches install.ps1 / `flash desktop`),
     #      c) on still-failing, fall back to a public Electron mirror — this is
     #         the GitHub-blocked/throttled case (the repeating "retrying" log).
     log_info "Building desktop app (this takes 1-3 minutes)..."
     local pack_ok=false
-    if _desktop_pack "$desktop_dir"; then
+    if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
         pack_ok=true
     else
         local purged=""
@@ -2555,7 +2835,7 @@ install_desktop() {
         fi
         if [ "$restored" = true ]; then
             log_warn "Desktop build failed; refreshed the Electron download and retrying once..."
-            if _desktop_pack "$desktop_dir"; then
+            if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir"; then
                 pack_ok=true
             fi
         fi
@@ -2567,7 +2847,7 @@ install_desktop() {
         log_warn "Re-downloading Electron via a public mirror ($DESKTOP_ELECTRON_FALLBACK_MIRROR), then rebuilding..."
         log_warn "  (set ELECTRON_MIRROR yourself to use a different/trusted mirror)"
         _electron_dist_ok "$INSTALL_DIR" || _restore_electron_dist "$INSTALL_DIR" "$DESKTOP_ELECTRON_FALLBACK_MIRROR" || true
-        if _desktop_pack "$desktop_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
+        if run_with_timeout "$DESKTOP_BUILD_TIMEOUT" _desktop_pack "$desktop_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; then
             pack_ok=true
         fi
     fi
@@ -2587,16 +2867,16 @@ install_desktop() {
 
     local app=""
     if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/Nyxo" ]; then
-            app="$desktop_dir/release/linux-unpacked/Nyxo"
-        elif [ -x "$desktop_dir/release/linux-unpacked/nyxo" ]; then
-            app="$desktop_dir/release/linux-unpacked/nyxo"
+        if [ -x "$desktop_dir/release/linux-unpacked/Hermes" ]; then
+            app="$desktop_dir/release/linux-unpacked/Hermes"
+        elif [ -x "$desktop_dir/release/linux-unpacked/flash" ]; then
+            app="$desktop_dir/release/linux-unpacked/flash"
         fi
     else
         local cand
         for cand in \
-            "$desktop_dir/release/mac-arm64/Nyxo.app" \
-            "$desktop_dir/release/mac/Nyxo.app"; do
+            "$desktop_dir/release/mac-arm64/Hermes.app" \
+            "$desktop_dir/release/mac/Hermes.app"; do
             if [ -d "$cand" ]; then
                 app="$cand"
                 break
@@ -2636,7 +2916,7 @@ install_desktop() {
     # macOS: make the locally-built (ad-hoc) app relaunchable after an in-place
     # self-update. An ad-hoc bundle has no stable Designated Requirement, so a
     # later in-place rebuild (new cdhash) plus the inherited quarantine flag
-    # trips Gatekeeper's tamper check ("Nyxo is damaged and can't be opened").
+    # trips Gatekeeper's tamper check ("Hermes is damaged and can't be opened").
     # Strip quarantine + re-apply a clean deep ad-hoc signature (no
     # hardened-runtime flag, which an ad-hoc build can't satisfy). Skipped when a
     # real signing identity is configured so a signed build isn't clobbered.
@@ -2646,7 +2926,7 @@ install_desktop() {
     fi
 
     # `npm install` + `npm run pack` rewrite lockfiles; restore them so the
-    # checkout stays clean for the next `nyxo update`.
+    # checkout stays clean for the next `flash update`.
     restore_dirty_lockfiles "$INSTALL_DIR"
 }
 
@@ -2737,8 +3017,8 @@ run_stage_body() {
             detect_os
             resolve_install_layout
             require_install_dir
-            # Each stage runs in its own process, so the Nyxo-managed Node
-            # provisioned during prerequisites/node-deps (at $NYXO_HOME/node/bin)
+            # Each stage runs in its own process, so the Hermes-managed Node
+            # provisioned during prerequisites/node-deps (at $HERMES_HOME/node/bin)
             # isn't on PATH here. check_node re-adds it (or installs if missing)
             # so install_desktop can find npm instead of silently skipping.
             check_node
@@ -2749,10 +3029,10 @@ run_stage_body() {
             resolve_install_layout
             print_success
             # Code-scoped stamp: write next to the install tree, not into
-            # $NYXO_HOME. $NYXO_HOME is a shared data dir (it can be
+            # $HERMES_HOME. $HERMES_HOME is a shared data dir (it can be
             # bind-mounted into a Docker gateway too), so a stamp there gets
             # clobbered by the container's 'docker' stamp and wrongly blocks
-            # 'nyxo update' on this host install. See detect_install_method().
+            # 'flash update' on this host install. See detect_install_method().
             echo "git" > "$INSTALL_DIR/.install_method"
             ;;
         *)
@@ -2832,10 +3112,10 @@ main() {
 
     print_success
 
-    # Code-scoped stamp: write next to the install tree, not into $NYXO_HOME.
-    # $NYXO_HOME is a shared data dir (it can be bind-mounted into a Docker
+    # Code-scoped stamp: write next to the install tree, not into $HERMES_HOME.
+    # $HERMES_HOME is a shared data dir (it can be bind-mounted into a Docker
     # gateway too), so a stamp there gets clobbered by the container's 'docker'
-    # stamp and wrongly blocks 'nyxo update' on this host install.
+    # stamp and wrongly blocks 'flash update' on this host install.
     # See detect_install_method().
     echo "git" > "$INSTALL_DIR/.install_method"
 }

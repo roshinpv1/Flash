@@ -1,12 +1,12 @@
 """Derive ACP session-provenance metadata from the existing compression chain.
 
-This is an additive Nyxo extension surfaced under ACP ``_meta.nyxo`` so
+This is an additive Hermes extension surfaced under ACP ``_meta.flash`` so
 existing ACP clients ignore it. It carries no new persisted state: everything
 is derived on demand from the ``sessions`` table (``parent_session_id`` /
 ``end_reason``), which already models compression-continuation chains.
 
 The ACP/editor ``session_id`` stays the stable public handle. When context
-compression rotates the internal Nyxo head, ``build_session_provenance`` lets
+compression rotates the internal Hermes head, ``build_session_provenance`` lets
 a client see the previous/current internal ids and the lineage root without
 parsing status text, guessing from token drops, or reading ``state.db``.
 """
@@ -22,26 +22,26 @@ _MAX_WALK = 100
 def build_session_provenance(
     db: Any,
     acp_session_id: str,
-    current_nyxo_session_id: str,
+    current_flash_session_id: str,
     *,
-    previous_nyxo_session_id: Optional[str] = None,
+    previous_flash_session_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Build ``_meta.nyxo.sessionProvenance`` for an ACP session.
+    """Build ``_meta.flash.sessionProvenance`` for an ACP session.
 
     Args:
         db: A ``SessionDB`` (must expose ``get_session``).
         acp_session_id: The stable ACP/editor-facing session handle.
-        current_nyxo_session_id: The live internal Nyxo DB session id
+        current_flash_session_id: The live internal Hermes DB session id
             (``state.agent.session_id``).
-        previous_nyxo_session_id: The internal id from before the most recent
+        previous_flash_session_id: The internal id from before the most recent
             turn, when known. Supplied by ``prompt()`` to flag a rotation.
 
     Returns:
-        A dict suitable for ``{"nyxo": {"sessionProvenance": <dict>}}`` under
+        A dict suitable for ``{"flash": {"sessionProvenance": <dict>}}`` under
         ACP ``_meta``, or ``None`` if the session can't be read.
     """
     try:
-        row = db.get_session(current_nyxo_session_id)
+        row = db.get_session(current_flash_session_id)
     except Exception:
         return None
     if not row:
@@ -54,10 +54,10 @@ def build_session_provenance(
     # compression-split parents (parent.end_reason == 'compression') count
     # toward depth — delegate/branch children share the parent_session_id
     # column but are not compaction boundaries.
-    root_id = current_nyxo_session_id
+    root_id = current_flash_session_id
     compression_depth = 0
     cursor_parent = parent_id
-    seen = {current_nyxo_session_id}
+    seen = {current_flash_session_id}
     for _ in range(_MAX_WALK):
         if not cursor_parent or cursor_parent in seen:
             break
@@ -85,20 +85,20 @@ def build_session_provenance(
             is_continuation = True
 
     rotated = bool(
-        previous_nyxo_session_id
-        and previous_nyxo_session_id != current_nyxo_session_id
+        previous_flash_session_id
+        and previous_flash_session_id != current_flash_session_id
     )
 
     provenance: Dict[str, Any] = {
         "acpSessionId": acp_session_id,
-        "currentNyxoSessionId": current_nyxo_session_id,
-        "rootNyxoSessionId": root_id,
-        "parentNyxoSessionId": parent_id,
+        "currentHermesSessionId": current_flash_session_id,
+        "rootHermesSessionId": root_id,
+        "parentHermesSessionId": parent_id,
         "sessionKind": "continuation" if is_continuation else "root",
         "compressionDepth": compression_depth,
     }
-    if previous_nyxo_session_id:
-        provenance["previousNyxoSessionId"] = previous_nyxo_session_id
+    if previous_flash_session_id:
+        provenance["previousHermesSessionId"] = previous_flash_session_id
     if rotated:
         # The head moved during the last turn. The only mechanism that rotates
         # the internal id mid-turn is compression-driven session splitting.
@@ -111,17 +111,17 @@ def build_session_provenance(
 def session_provenance_meta(
     db: Any,
     acp_session_id: str,
-    current_nyxo_session_id: str,
+    current_flash_session_id: str,
     *,
-    previous_nyxo_session_id: Optional[str] = None,
+    previous_flash_session_id: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Return a ready ``_meta`` payload: ``{"nyxo": {"sessionProvenance": ...}}``."""
+    """Return a ready ``_meta`` payload: ``{"flash": {"sessionProvenance": ...}}``."""
     prov = build_session_provenance(
         db,
         acp_session_id,
-        current_nyxo_session_id,
-        previous_nyxo_session_id=previous_nyxo_session_id,
+        current_flash_session_id,
+        previous_flash_session_id=previous_flash_session_id,
     )
     if prov is None:
         return None
-    return {"nyxo": {"sessionProvenance": prov}}
+    return {"flash": {"sessionProvenance": prov}}

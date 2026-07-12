@@ -161,15 +161,15 @@ async function main() {
     samples.push({ round: i, ...result })
     console.log(
       `r${i}: clear=${(result.composerClearedMs ?? -1).toFixed?.(0) ?? '?'}ms ` +
-        `userMsg=${(result.userMessageRenderedMs ?? -1).toFixed?.(0) ?? '?'}ms ` +
-        `paint=${(result.userMessagePaintMs ?? -1).toFixed?.(0) ?? '?'}ms ` +
-        `reason=${result.reason}`
+      `userMsg=${(result.userMessageRenderedMs ?? -1).toFixed?.(0) ?? '?'}ms ` +
+      `paint=${(result.userMessagePaintMs ?? -1).toFixed?.(0) ?? '?'}ms ` +
+      `reason=${result.reason}`
     )
     // wait for any agent activity to finish before next round so we're not piling up
     await new Promise(r => setTimeout(r, 4000))
   }
-  writeFileSync('/tmp/nyxo-submit-latency.json', JSON.stringify(samples, null, 2))
-  console.log('\nwrote /tmp/nyxo-submit-latency.json')
+  writeFileSync('/tmp/flash-submit-latency.json', JSON.stringify(samples, null, 2))
+  console.log('\nwrote /tmp/flash-submit-latency.json')
   cdp.close()
 }
 

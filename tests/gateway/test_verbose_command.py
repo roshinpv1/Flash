@@ -47,12 +47,12 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_disabled_by_default(self, tmp_path, monkeypatch):
         """When tool_progress_command is false, /verbose returns an info message."""
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text("display:\n  tool_progress: all\n", encoding="utf-8")
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
 
         runner = _make_runner()
         result = await runner._handle_verbose_command(_make_event())
@@ -63,15 +63,15 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_enabled_cycles_mode(self, tmp_path, monkeypatch):
         """When enabled, /verbose cycles tool_progress mode per-platform."""
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "display:\n  tool_progress_command: true\n  tool_progress: all\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
 
         runner = _make_runner()
         result = await runner._handle_verbose_command(_make_event())
@@ -87,15 +87,15 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_quoted_false_keeps_command_disabled(self, tmp_path, monkeypatch):
         """Quoted false must not enable the /verbose gateway command."""
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             'display:\n  tool_progress_command: "false"\n  tool_progress: all\n',
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
 
         runner = _make_runner()
         result = await runner._handle_verbose_command(_make_event())
@@ -105,20 +105,20 @@ class TestVerboseCommand:
 
     @pytest.mark.asyncio
     async def test_cycles_through_all_modes(self, tmp_path, monkeypatch):
-        """Calling /verbose repeatedly cycles through all four modes."""
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        """Calling /verbose repeatedly cycles through all tool-progress visibility modes."""
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "display:\n  tool_progress_command: true\n  tool_progress: 'off'\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
         runner = _make_runner()
 
-        # off -> new -> all -> verbose -> off
-        expected = ["new", "all", "verbose", "off"]
+        # off -> new -> all -> verbose -> log -> off
+        expected = ["new", "all", "verbose", "log", "off"]
         for mode in expected:
             result = await runner._handle_verbose_command(_make_event())
             saved = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -132,18 +132,17 @@ class TestVerboseCommand:
 
         Telegram's tier-1 preset overrides ``tool_progress`` to ``"off"`` so the
         platform stays final-answer-first by default on mobile inboxes.  The
-        first ``/verbose`` invocation therefore cycles ``off → new``, not
-        ``all → ...``.
+        first ``/verbose`` invocation therefore cycles ``off → new``.
         """
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         config_path.write_text(
             "display:\n  tool_progress_command: true\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
 
         runner = _make_runner()
         result = await runner._handle_verbose_command(_make_event())
@@ -161,16 +160,16 @@ class TestVerboseCommand:
         default — Telegram = 'off' (tier-1 inbox override), Slack = 'off'
         (quiet Slack default). Both cycle to 'new' on first /verbose.
         """
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
-        config_path = nyxo_home / "config.yaml"
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
+        config_path = flash_home / "config.yaml"
         # No global tool_progress → built-in platform defaults apply
         config_path.write_text(
             "display:\n  tool_progress_command: true\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
         runner = _make_runner()
 
         # Cycle on Telegram
@@ -192,11 +191,11 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_no_config_file_returns_disabled(self, tmp_path, monkeypatch):
         """When config.yaml doesn't exist, command reports disabled."""
-        nyxo_home = tmp_path / "nyxo"
-        nyxo_home.mkdir()
+        flash_home = tmp_path / "flash"
+        flash_home.mkdir()
         # No config.yaml
 
-        monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+        monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
 
         runner = _make_runner()
         result = await runner._handle_verbose_command(_make_event())
@@ -204,5 +203,5 @@ class TestVerboseCommand:
 
     def test_verbose_is_in_gateway_known_commands(self):
         """The /verbose command is recognized by the gateway dispatch."""
-        from nyxo_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from flash_cli.commands import GATEWAY_KNOWN_COMMANDS
         assert "verbose" in GATEWAY_KNOWN_COMMANDS

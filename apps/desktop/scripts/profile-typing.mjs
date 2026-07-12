@@ -10,7 +10,7 @@
 //
 // Usage:
 //   node apps/desktop/scripts/profile-typing.mjs
-//     [--port=9222] [--out=/tmp/nyxo-typing]
+//     [--port=9222] [--out=/tmp/flash-typing]
 //     [--chars=400]              # how many characters to type
 //     [--cps=30]                 # keystrokes per second
 //     [--text="..."]             # override generated text
@@ -29,7 +29,7 @@ const args = Object.fromEntries(
 )
 
 const PORT = Number(args.port ?? 9222)
-const OUT = String(args.out ?? `/tmp/nyxo-typing-${Date.now()}`)
+const OUT = String(args.out ?? `/tmp/flash-typing-${Date.now()}`)
 const CHARS = Number(args.chars ?? 400)
 const CPS = Number(args.cps ?? 30)
 const HEAP = args['no-heap'] ? false : true
@@ -80,7 +80,7 @@ function connect(url) {
         pending.delete(m.id)
         m.error ? p.rej(new Error(m.error.message)) : p.res(m.result)
       } else if (m.method) {
-        ;(events.get(m.method) ?? []).forEach(h => h(m.params))
+        ; (events.get(m.method) ?? []).forEach(h => h(m.params))
       }
     })
   })
@@ -212,7 +212,7 @@ async function main() {
   if (HEAP) {
     try {
       await cdp.send('HeapProfiler.collectGarbage')
-    } catch {}
+    } catch { }
     await captureHeap(cdp, `${OUT}.after.heapsnapshot`)
   }
 
@@ -222,7 +222,7 @@ async function main() {
   for (const row of top.slice(0, 20)) {
     console.log(
       `  ${row.selfMs.toFixed(1).padStart(7)}ms  ${row.functionName || '(anonymous)'}` +
-        `  ${row.url ? '· ' + row.url.replace(/^.*\/src\//, 'src/').slice(0, 80) : ''}`
+      `  ${row.url ? '· ' + row.url.replace(/^.*\/src\//, 'src/').slice(0, 80) : ''}`
     )
   }
   console.log()

@@ -72,12 +72,12 @@ def _isolated_config(tmp_path, monkeypatch):
     and deterministic (no real provider creds / network)."""
     import gateway.run as gateway_run
 
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text("model:\n  default: gpt-x\n  provider: openrouter\nproviders: {}\n", encoding="utf-8")
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text("model:\n  default: gpt-x\n  provider: openrouter\nproviders: {}\n", encoding="utf-8")
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
-    return nyxo_home
+    return flash_home
 
 
 # --------------------------------------------------------------------------- #
@@ -98,7 +98,7 @@ async def test_text_fallback_offloads_list_authenticated_providers(_isolated_con
         return sentinel
 
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.list_authenticated_providers",
+        "flash_cli.model_switch.list_authenticated_providers",
         _fake_list_authenticated_providers,
     )
 
@@ -147,7 +147,7 @@ async def test_picker_path_offloads_list_picker_providers(_isolated_config, monk
         return fake_providers
 
     monkeypatch.setattr(
-        "nyxo_cli.model_switch.list_picker_providers",
+        "flash_cli.model_switch.list_picker_providers",
         _fake_list_picker_providers,
     )
 
@@ -166,3 +166,29 @@ async def test_picker_path_offloads_list_picker_providers(_isolated_config, monk
         "list_picker_providers must be dispatched via asyncio.to_thread "
         "(it was called inline on the event loop instead)"
     )
+
+
+@pytest.mark.asyncio
+async def test_picker_path_requests_moa_presets(_isolated_config, monkeypatch):
+    """Gateway /model pickers must opt into the virtual MoA preset provider."""
+    captured = {}
+
+    def _fake_list_picker_providers(**kwargs):
+        captured.update(kwargs)
+        return [{"slug": "moa", "name": "Mixture of Agents", "is_current": False,
+                 "models": ["battle", "smart"], "total_models": 2}]
+
+    monkeypatch.setattr(
+        "flash_cli.model_switch.list_picker_providers",
+        _fake_list_picker_providers,
+    )
+
+    runner = _make_runner()
+    runner.adapters = {Platform.TELEGRAM: _FakePickerAdapter()}
+    monkeypatch.setattr(runner, "_thread_metadata_for_source", lambda *a, **k: None, raising=False)
+    monkeypatch.setattr(runner, "_reply_anchor_for_event", lambda *a, **k: None, raising=False)
+
+    result = await runner._handle_model_command(_make_event())
+
+    assert result is None
+    assert captured["include_moa"] is True

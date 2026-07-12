@@ -2,10 +2,10 @@
 
 When _compress_context rotates session_id (compression split), the active
 context engine receives on_session_start(new_sid, boundary_reason="compression",
-old_session_id=<old>). This lets plugin engines (e.g. nyxo-lcm) preserve
+old_session_id=<old>). This lets plugin engines (e.g. flash-lcm) preserve
 DAG lineage across the split instead of treating it as a fresh /new.
 
-See nyxo-lcm#68: after Nyxo compresses and mints a new physical session,
+See flash-lcm#68: after Hermes compresses and mints a new physical session,
 LCM was losing continuity (compression_count: 1, store_messages: 0,
 dag_nodes: 0). With boundary_reason="compression" plugins can distinguish
 this from a real user-initiated /new.
@@ -22,7 +22,7 @@ class TestCompressionBoundaryHook:
     def _make_agent(self, session_db):
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             from run_agent import AIAgent
-            return AIAgent(
+            agent = AIAgent(
                 api_key="test-key",
                 base_url="https://openrouter.ai/api/v1",
                 model="test/model",
@@ -32,9 +32,12 @@ class TestCompressionBoundaryHook:
                 skip_context_files=True,
                 skip_memory=True,
             )
+            # ROTATION fallback — pin in_place=False regardless of default (#38763).
+            agent.compression_in_place = False
+            return agent
 
     def test_on_session_start_called_with_compression_boundary(self):
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db = SessionDB(db_path=Path(tmpdir) / "test.db")
@@ -129,7 +132,7 @@ class TestCompressionBoundaryHook:
 
     def test_hook_failure_does_not_break_compression(self):
         """If the context engine raises from on_session_start, compression still completes."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db = SessionDB(db_path=Path(tmpdir) / "test.db")
@@ -167,7 +170,7 @@ class TestSessionCompressEvent:
     def _make_agent(self, session_db, event_callback=None):
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             from run_agent import AIAgent
-            return AIAgent(
+            agent = AIAgent(
                 api_key="test-key",
                 base_url="https://openrouter.ai/api/v1",
                 model="test/model",
@@ -178,6 +181,9 @@ class TestSessionCompressEvent:
                 skip_memory=True,
                 event_callback=event_callback,
             )
+            # ROTATION fallback — pin in_place=False regardless of default (#38763).
+            agent.compression_in_place = False
+            return agent
 
     def _stub_compressor(self):
         compressor = MagicMock()
@@ -193,7 +199,7 @@ class TestSessionCompressEvent:
         return compressor
 
     def test_event_emitted_on_compression(self):
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         events = []
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -219,7 +225,7 @@ class TestSessionCompressEvent:
 
     def test_no_callback_is_safe(self):
         """Compression must work when no event_callback is wired."""
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db = SessionDB(db_path=Path(tmpdir) / "test.db")
@@ -231,7 +237,7 @@ class TestSessionCompressEvent:
             assert compressed
 
     def test_callback_exception_does_not_break_compression(self):
-        from nyxo_state import SessionDB
+        from flash_state import SessionDB
 
         def _boom(event_type, ctx):
             raise RuntimeError("hook exploded")

@@ -1,5 +1,5 @@
 """
-Microsoft Teams platform adapter for Nyxo Agent.
+Microsoft Teams platform adapter for Hermes Agent.
 
 Uses the microsoft-teams-apps SDK for authentication and activity processing.
 Runs an aiohttp webhook server to receive messages from Teams.
@@ -102,6 +102,9 @@ from gateway.platforms.base import (
 logger = logging.getLogger(__name__)
 
 _DEFAULT_PORT = 3978
+# Bot Framework activities are JSON payloads well under 1 MiB; an explicit
+# aiohttp client_max_size keeps oversized/chunked request bodies bounded.
+_MAX_BODY_BYTES = 1_048_576
 _WEBHOOK_PATH = "/api/messages"
 
 
@@ -506,8 +509,8 @@ async def _standalone_send(
     """Acquire a Bot Framework bearer token and POST a single message activity.
 
     Used by ``tools/send_message_tool._send_via_adapter`` when the gateway
-    runner is not in this process (e.g. ``nyxo cron`` running as a
-    separate process from ``nyxo gateway``).  Without this hook,
+    runner is not in this process (e.g. ``hermes cron`` running as a
+    separate process from ``hermes gateway``).  Without this hook,
     ``deliver=teams`` cron jobs fail with ``No live adapter for platform``.
 
     Configuration: requires ``TEAMS_CLIENT_ID``, ``TEAMS_CLIENT_SECRET``,
@@ -709,7 +712,7 @@ class TeamsAdapter(BasePlatformAdapter):
         # Used to send cards with the correct conversation type (personal/group/channel).
         self._conv_refs: Dict[str, Any] = {}
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         # Lazy-install the Teams SDK on demand (parity with Slack/Discord/etc.),
         # then re-check the module globals it rebinds.
         check_teams_requirements()
@@ -738,8 +741,12 @@ class TeamsAdapter(BasePlatformAdapter):
             return False
 
         try:
-            # Set up aiohttp app first — the bridge adapter wires SDK routes into it
-            aiohttp_app = web.Application()
+            # Set up aiohttp app first — the bridge adapter wires SDK routes into it.
+            # client_max_size: Bot Framework activities are JSON (caps out well
+            # under 1 MiB); an explicit cap keeps oversized/chunked bodies from
+            # being buffered unbounded on a 0.0.0.0 bind (same pattern as
+            # webhook.py / raft, #58536/#58902).
+            aiohttp_app = web.Application(client_max_size=_MAX_BODY_BYTES)
             aiohttp_app.router.add_get("/health", lambda _: web.Response(text="ok"))
 
             self._app = App(
@@ -747,7 +754,7 @@ class TeamsAdapter(BasePlatformAdapter):
                 client_secret=self._client_secret,
                 tenant_id=self._tenant_id,
                 http_server_adapter=_AiohttpBridgeAdapter(aiohttp_app),
-                client=ClientOptions(headers={"User-Agent": "Nyxo"}),
+                client=ClientOptions(headers={"User-Agent": "Hermes"}),
             )
 
             # Register message handler before initialize()
@@ -820,7 +827,7 @@ class TeamsAdapter(BasePlatformAdapter):
         ) as client:
             response = await client.get(
                 url,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; NyxoAgent/1.0)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; HermesAgent/1.0)"},
             )
             response.raise_for_status()
             return response.content
@@ -997,10 +1004,10 @@ class TeamsAdapter(BasePlatformAdapter):
 
         action = ctx.activity.value.action
         data = action.data or {}
-        nyxo_action = data.get("nyxo_action", "")
+        hermes_action = data.get("hermes_action", "")
         session_key = data.get("session_key", "")
 
-        if not nyxo_action or not session_key:
+        if not hermes_action or not session_key:
             return InvokeResponse(
                 status=200,
                 body=AdaptiveCardActionMessageResponse(value="Unknown action."),
@@ -1042,7 +1049,7 @@ class TeamsAdapter(BasePlatformAdapter):
             "approve_always": "always",
             "deny": "deny",
         }
-        choice = choice_map.get(nyxo_action)
+        choice = choice_map.get(hermes_action)
         if not choice:
             return InvokeResponse(
                 status=200,
@@ -1115,24 +1122,24 @@ class TeamsAdapter(BasePlatformAdapter):
             .with_actions([
                 ExecuteAction(
                     title="Allow Once",
-                    verb="nyxo_approve",
-                    data={**btn_data_base, "nyxo_action": "approve_once"},
+                    verb="hermes_approve",
+                    data={**btn_data_base, "hermes_action": "approve_once"},
                     style="positive",
                 ),
                 ExecuteAction(
                     title="Allow Session",
-                    verb="nyxo_approve",
-                    data={**btn_data_base, "nyxo_action": "approve_session"},
+                    verb="hermes_approve",
+                    data={**btn_data_base, "hermes_action": "approve_session"},
                 ),
                 ExecuteAction(
                     title="Always Allow",
-                    verb="nyxo_approve",
-                    data={**btn_data_base, "nyxo_action": "approve_always"},
+                    verb="hermes_approve",
+                    data={**btn_data_base, "hermes_action": "approve_always"},
                 ),
                 ExecuteAction(
                     title="Deny",
-                    verb="nyxo_approve",
-                    data={**btn_data_base, "nyxo_action": "deny"},
+                    verb="hermes_approve",
+                    data={**btn_data_base, "hermes_action": "deny"},
                     style="destructive",
                 ),
             ])
@@ -1331,11 +1338,11 @@ class TeamsAdapter(BasePlatformAdapter):
 
 def interactive_setup() -> None:
     """Guide the user through Teams setup using the Teams CLI."""
-    from nyxo_cli.config import (
+    from hermes_cli.config import (
         get_env_value,
         save_env_value,
     )
-    from nyxo_cli.cli_output import (
+    from hermes_cli.cli_output import (
         prompt,
         prompt_yes_no,
         print_info,
@@ -1355,7 +1362,7 @@ def interactive_setup() -> None:
     print()
     print_info("Then expose port 3978 publicly (devtunnel / ngrok / cloudflared),")
     print_info("and create your bot:")
-    print_info("  teams app create --name \"Nyxo\" --endpoint \"https://<tunnel>/api/messages\"")
+    print_info("  teams app create --name \"Hermes\" --endpoint \"https://<tunnel>/api/messages\"")
     print()
     print_info("The CLI will print CLIENT_ID, CLIENT_SECRET, and TENANT_ID. Paste them below.")
     print()
@@ -1395,15 +1402,15 @@ def interactive_setup() -> None:
         print_warning("⚠️  Open access — anyone who can message the bot can command it.")
 
     print()
-    print_success("Teams configuration saved to ~/.nyxo/.env")
+    print_success("Teams configuration saved to ~/.hermes/.env")
     print_info("Install the app in Teams:  teams app install --id <teamsAppId>")
-    print_info("Restart the gateway:       nyxo gateway restart")
+    print_info("Restart the gateway:       hermes gateway restart")
 
 
 # ── Plugin entry point ────────────────────────────────────────────────────────
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the Nyxo plugin system."""
+    """Plugin entry point — called by the Hermes plugin system."""
     ctx.register_platform(
         name="teams",
         label="Microsoft Teams",

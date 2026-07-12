@@ -9,7 +9,7 @@ content parts for grounding, and read the generated images back from
 
 Nous Portal proxies OpenRouter, so one implementation services both — we only
 swap the resolved ``(base_url, api_key)``. Credentials are resolved through the
-agent's existing :func:`~nyxo_cli.runtime_provider.resolve_runtime_provider`,
+agent's existing :func:`~hermes_cli.runtime_provider.resolve_runtime_provider`,
 which already understands OpenRouter's key pool and the Nous OAuth device-code
 token, so this plugin never reinvents auth.
 
@@ -46,8 +46,9 @@ logger = logging.getLogger(__name__)
 # image model first, then fall back to Gemini 3 Pro Image if the OpenAI model
 # is access-gated / unavailable / times out on this endpoint.
 #
-# Explicit override (OPENROUTER_IMAGE_MODEL or image_gen.<provider>.model):
-# use exactly that model (no auto fallback), so power users keep full control.
+# Explicit override (OPENROUTER_IMAGE_MODEL, image_gen.<provider>.model, or
+# image_gen.model from ``hermes tools``): use exactly that model (no auto
+# fallback), so power users keep full control.
 DEFAULT_MODEL = "openai/gpt-5.4-image-2"
 _FALLBACK_MODEL = "google/gemini-3-pro-image"
 _DEFAULT_MODEL_CHAIN = (DEFAULT_MODEL, _FALLBACK_MODEL)
@@ -73,7 +74,7 @@ _REQUEST_TIMEOUT = 300.0
 def _load_image_gen_config() -> Dict[str, Any]:
     """Read the ``image_gen`` section from config.yaml (``{}`` on failure)."""
     try:
-        from nyxo_cli.config import load_config
+        from hermes_cli.config import load_config
 
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
@@ -96,6 +97,10 @@ def _to_image_url_part(ref: str) -> Optional[str]:
     if ref.startswith(("http://", "https://", "data:")):
         return ref
     path = Path(ref)
+    # Enforce the shared credential-read guard before inlining local bytes.
+    from agent.file_safety import raise_if_read_blocked
+
+    raise_if_read_blocked(ref)
     try:
         raw = path.read_bytes()
     except OSError as exc:
@@ -203,7 +208,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
 
     def _resolve_runtime(self) -> Dict[str, Any]:
         """Resolve ``(base_url, api_key)`` via the shared runtime resolver."""
-        from nyxo_cli.runtime_provider import resolve_runtime_provider
+        from hermes_cli.runtime_provider import resolve_runtime_provider
 
         return resolve_runtime_provider(requested=self._runtime_name)
 
@@ -243,16 +248,23 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
     def get_setup_schema(self) -> Dict[str, Any]:
         return dict(self._setup_schema)
 
-    def _resolve_model(self) -> str:
-        """Pick the image model: env override → config → :data:`DEFAULT_MODEL`."""
-        return self._resolve_model_chain()[0]
+    def _resolve_model(self, explicit: Optional[str] = None) -> str:
+        """Pick the image model (first of :meth:`_resolve_model_chain`)."""
+        return self._resolve_model_chain(explicit)[0]
 
-    def _resolve_model_chain(self) -> list[str]:
+    def _resolve_model_chain(self, explicit: Optional[str] = None) -> list[str]:
         """Ordered model attempts for this request.
 
-        Explicit user/model config means "use this exact model", so no fallback.
-        Without overrides we run the quality-first default chain.
+        Precedence: explicit caller override (the ``model`` kwarg) → the
+        provider's ``*_IMAGE_MODEL`` env override → scoped
+        ``image_gen.<provider>.model`` → top-level ``image_gen.model`` (written
+        by ``hermes tools``) → the quality-first default chain.
+
+        Any explicit user/model selection means "use this exact model", so no
+        fallback. Only the bare default chain carries a Gemini fallback.
         """
+        if isinstance(explicit, str) and explicit.strip():
+            return [explicit.strip()]
         env_override = os.environ.get(self._model_env_var, "").strip()
         if env_override:
             return [env_override]
@@ -262,6 +274,9 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             value = scoped.get("model")
             if isinstance(value, str) and value.strip():
                 return [value.strip()]
+        top = cfg.get("model")
+        if isinstance(top, str) and top.strip():
+            return [top.strip()]
         return _dedupe_models(list(_DEFAULT_MODEL_CHAIN))
 
     def generate(
@@ -290,14 +305,14 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             return error_response(
                 error=(
                     f"No {self._display} credentials found. "
-                    f"Configure {self._display} in `nyxo tools` → Image Generation."
+                    f"Configure {self._display} in `hermes tools` → Image Generation."
                 ),
                 error_type="missing_api_key",
                 provider=self._name,
                 aspect_ratio=aspect_ratio,
             )
 
-        model_chain = self._resolve_model_chain()
+        model_chain = self._resolve_model_chain(kwargs.get("model"))
         aspect = resolve_aspect_ratio(aspect_ratio)
         or_aspect = _ASPECT_RATIOS.get(aspect, "1:1")
 
@@ -322,8 +337,8 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             # OpenRouter attribution headers (harmless against Nous Portal).
-            "HTTP-Referer": "https://github.com/NousResearch/nyxo-agent",
-            "X-Title": "Nyxo Agent",
+            "HTTP-Referer": "https://github.com/FlashOrg/hermes-agent",
+            "X-Title": "Hermes Agent",
         }
         last_error: Optional[Dict[str, Any]] = None
         for i, model_id in enumerate(model_chain):

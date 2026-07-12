@@ -13,22 +13,26 @@ beforeAll(() => {
 const getGlobalModelInfo = vi.fn()
 const getGlobalModelOptions = vi.fn()
 const getAuxiliaryModels = vi.fn()
+const getMoaModels = vi.fn()
 const setModelAssignment = vi.fn()
 const getRecommendedDefaultModel = vi.fn()
+const saveMoaModels = vi.fn()
 const setEnvVar = vi.fn()
-const getNyxoConfigRecord = vi.fn()
-const saveNyxoConfig = vi.fn()
+const getHermesConfigRecord = vi.fn()
+const saveHermesConfig = vi.fn()
 const startManualProviderOAuth = vi.fn()
 
-vi.mock('@/nyxo', () => ({
+vi.mock('@/flash', () => ({
   getGlobalModelInfo: () => getGlobalModelInfo(),
   getGlobalModelOptions: () => getGlobalModelOptions(),
   getAuxiliaryModels: () => getAuxiliaryModels(),
+  getMoaModels: () => getMoaModels(),
   setModelAssignment: (body: unknown) => setModelAssignment(body),
   getRecommendedDefaultModel: (slug: string) => getRecommendedDefaultModel(slug),
+  saveMoaModels: (body: unknown) => saveMoaModels(body),
   setEnvVar: (key: string, value: string) => setEnvVar(key, value),
-  getNyxoConfigRecord: () => getNyxoConfigRecord(),
-  saveNyxoConfig: (config: unknown) => saveNyxoConfig(config)
+  getHermesConfigRecord: () => getHermesConfigRecord(),
+  saveHermesConfig: (config: unknown) => saveHermesConfig(config)
 }))
 
 vi.mock('@/store/onboarding', () => ({
@@ -36,29 +40,28 @@ vi.mock('@/store/onboarding', () => ({
 }))
 
 beforeEach(() => {
-  getGlobalModelInfo.mockResolvedValue({ provider: 'nous', model: 'nyxo-4' })
+  getGlobalModelInfo.mockResolvedValue({ provider: 'nous', model: 'flash-4' })
   getGlobalModelOptions.mockResolvedValue({
     providers: [
       {
         name: 'Nous',
         slug: 'nous',
-        models: ['nyxo-4', 'nyxo-4-mini'],
+        models: ['flash-4', 'flash-4-mini'],
         authenticated: true,
-        capabilities: { 'nyxo-4': { reasoning: true, fast: true } }
-      },
-      // An unconfigured api_key provider — surfaced by the full-universe payload.
-      { name: 'DeepSeek', slug: 'deepseek', models: [], authenticated: false, auth_type: 'api_key', key_env: 'DEEPSEEK_API_KEY' }
+        capabilities: { 'flash-4': { reasoning: true, fast: true } }
+      }
     ]
   })
   getAuxiliaryModels.mockResolvedValue({
-    main: { provider: 'nous', model: 'nyxo-4' },
+    main: { provider: 'nous', model: 'flash-4' },
     tasks: [{ task: 'vision', provider: 'auto', model: '', base_url: '' }]
   })
-  setModelAssignment.mockResolvedValue({ provider: 'nous', model: 'nyxo-4', gateway_tools: [] })
-  getRecommendedDefaultModel.mockResolvedValue({ provider: 'deepseek', model: 'deepseek-chat', free_tier: null })
+  getMoaModels.mockResolvedValue(null)
+  setModelAssignment.mockResolvedValue({ provider: 'nous', model: 'flash-4', gateway_tools: [] })
+  getRecommendedDefaultModel.mockResolvedValue({ provider: 'nous', model: 'flash-4', free_tier: null })
   setEnvVar.mockResolvedValue({ ok: true })
-  getNyxoConfigRecord.mockResolvedValue({ agent: { reasoning_effort: 'medium', service_tier: 'normal' } })
-  saveNyxoConfig.mockResolvedValue({ ok: true })
+  getHermesConfigRecord.mockResolvedValue({ agent: { reasoning_effort: 'medium', service_tier: 'normal' } })
+  saveHermesConfig.mockResolvedValue({ ok: true })
 })
 
 afterEach(() => {
@@ -73,54 +76,30 @@ async function renderModelSettings() {
 }
 
 describe('ModelSettings', () => {
-  it('loads the current main model and lists the full provider universe', async () => {
+  it('loads the current main model and lists configured providers only', async () => {
     await renderModelSettings()
 
     await waitFor(() => expect(getGlobalModelInfo).toHaveBeenCalled())
     await waitFor(() => expect(getGlobalModelOptions).toHaveBeenCalled())
 
-    // Open the provider Select — every provider from the full payload should be
-    // listed, including the unconfigured one with its "set up" hint.
+    // Open the provider Select — only configured providers should be listed.
     const triggers = await screen.findAllByRole('combobox')
     fireEvent.click(triggers[0])
 
-    // "Nous" shows in both the trigger and the open list; the unconfigured
-    // provider + its setup hint are the unique signal of the full universe.
+    // "Nous" shows in both the trigger and the open list.
     expect((await screen.findAllByText('Nous')).length).toBeGreaterThan(0)
-    expect(await screen.findByText(/DeepSeek/)).toBeTruthy()
-    expect(await screen.findByText(/set up/)).toBeTruthy()
-  })
-
-  it('activates an unconfigured api_key provider inline by saving its key', async () => {
-    await renderModelSettings()
-
-    await waitFor(() => expect(getGlobalModelOptions).toHaveBeenCalled())
-
-    // Open the provider Select and pick the unconfigured provider.
-    const triggers = screen.getAllByRole('combobox')
-    fireEvent.click(triggers[0])
-    const deepseekOption = await screen.findByText(/DeepSeek/)
-    fireEvent.click(deepseekOption)
-
-    // The inline key input appears for an api_key provider that needs setup.
-    const keyInput = await screen.findByPlaceholderText(/Paste DEEPSEEK_API_KEY/)
-    fireEvent.change(keyInput, { target: { value: 'sk-test-123' } })
-
-    const activate = await screen.findByRole('button', { name: /Activate/ })
-    fireEvent.click(activate)
-
-    await waitFor(() => expect(setEnvVar).toHaveBeenCalledWith('DEEPSEEK_API_KEY', 'sk-test-123'))
+    expect(screen.queryByText(/DeepSeek/)).toBeNull()
   })
 
   it('writes the profile default speed (service_tier) when the fast switch is toggled', async () => {
     await renderModelSettings()
-    await waitFor(() => expect(getNyxoConfigRecord).toHaveBeenCalled())
+    await waitFor(() => expect(getHermesConfigRecord).toHaveBeenCalled())
 
     const fastSwitch = await screen.findByRole('switch')
     fireEvent.click(fastSwitch)
 
     await waitFor(() =>
-      expect(saveNyxoConfig).toHaveBeenCalledWith(
+      expect(saveHermesConfig).toHaveBeenCalledWith(
         expect.objectContaining({ agent: expect.objectContaining({ service_tier: 'fast' }) })
       )
     )
@@ -128,11 +107,19 @@ describe('ModelSettings', () => {
 
   it('hides the reasoning/speed defaults when the main model reports no capabilities', async () => {
     getGlobalModelOptions.mockResolvedValueOnce({
-      providers: [{ name: 'Nous', slug: 'nous', models: ['nyxo-4'], authenticated: true, capabilities: { 'nyxo-4': { reasoning: false, fast: false } } }]
+      providers: [
+        {
+          name: 'Nous',
+          slug: 'nous',
+          models: ['flash-4'],
+          authenticated: true,
+          capabilities: { 'flash-4': { reasoning: false, fast: false } }
+        }
+      ]
     })
 
     await renderModelSettings()
-    await waitFor(() => expect(getNyxoConfigRecord).toHaveBeenCalled())
+    await waitFor(() => expect(getHermesConfigRecord).toHaveBeenCalled())
 
     expect(screen.queryByRole('switch')).toBeNull()
   })
@@ -153,7 +140,7 @@ describe('ModelSettings', () => {
 
     await waitFor(() =>
       expect(setModelAssignment).toHaveBeenCalledWith({
-        model: 'nyxo-4',
+        model: 'flash-4',
         provider: 'nous',
         scope: 'auxiliary',
         task: 'vision'
@@ -166,7 +153,7 @@ describe('ModelSettings', () => {
       provider: 'openrouter',
       model: 'anthropic/claude-opus-4.7',
       gateway_tools: [],
-      stale_aux: [{ task: 'compression', provider: 'nous', model: 'nyxo-4' }]
+      stale_aux: [{ task: 'compression', provider: 'nous', model: 'flash-4' }]
     })
 
     await renderModelSettings()
@@ -182,7 +169,7 @@ describe('ModelSettings', () => {
 
   it('shows a persistent banner when a loaded aux slot mismatches the main provider', async () => {
     getAuxiliaryModels.mockResolvedValueOnce({
-      main: { provider: 'nous', model: 'nyxo-4' },
+      main: { provider: 'nous', model: 'flash-4' },
       tasks: [{ task: 'curator', provider: 'openrouter', model: 'anthropic/claude-opus-4.7', base_url: '' }]
     })
 

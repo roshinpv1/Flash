@@ -21,7 +21,7 @@ def _make_adapter(
     group_allowed_chats=None,
     guest_mode=None,
     observe_unmentioned_group_messages=None,
-    bot_username="nyxo_bot",
+    bot_username="flash_bot",
 ):
     from plugins.platforms.telegram.adapter import TelegramAdapter
 
@@ -130,7 +130,7 @@ def _dm_message(text="hello", *, from_user_id=111):
     )
 
 
-def _mention_entity(text, mention="@nyxo_bot"):
+def _mention_entity(text, mention="@flash_bot"):
     offset = text.index(mention)
     return SimpleNamespace(type="mention", offset=offset, length=len(mention))
 
@@ -200,7 +200,7 @@ def test_observed_group_context_uses_shared_source_and_prompt_for_later_mentions
             observe_unmentioned_group_messages=True,
         )
         adapter._session_store = _FakeSessionStore()
-        text = "@nyxo_bot what did Alice say?"
+        text = "@flash_bot what did Alice say?"
         msg = _group_message(
             text,
             from_user_id=222,
@@ -323,7 +323,7 @@ def test_observed_group_context_preserves_slash_command_text_for_dispatch():
         observe_unmentioned_group_messages=True,
     )
     event = MessageEvent(
-        text="/new@nyxo_bot",
+        text="/new@flash_bot",
         message_type=MessageType.COMMAND,
         source=SessionSource(
             platform=Platform.TELEGRAM,
@@ -334,14 +334,14 @@ def test_observed_group_context_preserves_slash_command_text_for_dispatch():
             thread_id="7",
         ),
         raw_message=_group_message(
-            "/new@nyxo_bot",
-            entities=[_bot_command_entity("/new@nyxo_bot", "/new@nyxo_bot")],
+            "/new@flash_bot",
+            entities=[_bot_command_entity("/new@flash_bot", "/new@flash_bot")],
         ),
     )
 
     attributed = adapter._apply_telegram_group_observe_attribution(event)
 
-    assert attributed.text == "/new@nyxo_bot"
+    assert attributed.text == "/new@flash_bot"
     assert attributed.get_command() == "new"
     assert attributed.source.user_id is None
     assert "observed Telegram group context" in attributed.channel_prompt
@@ -433,7 +433,7 @@ def test_group_messages_can_require_direct_trigger_via_config():
     adapter = _make_adapter(require_mention=True)
 
     assert adapter._should_process_message(_group_message("hello everyone")) is False
-    assert adapter._should_process_message(_group_message("hi @nyxo_bot", entities=[_mention_entity("hi @nyxo_bot")])) is True
+    assert adapter._should_process_message(_group_message("hi @flash_bot", entities=[_mention_entity("hi @flash_bot")])) is True
     assert adapter._should_process_message(_group_message("replying", reply_to_bot=True)) is True
     # Commands must also respect require_mention when it is enabled
     assert adapter._should_process_message(_group_message("/status"), is_command=True) is False
@@ -442,8 +442,8 @@ def test_group_messages_can_require_direct_trigger_via_config():
     # entity). We must accept it so the menu works when require_mention is on.
     assert adapter._should_process_message(
         _group_message(
-            "/status@nyxo_bot",
-            entities=[_bot_command_entity("/status@nyxo_bot", "/status@nyxo_bot")],
+            "/status@flash_bot",
+            entities=[_bot_command_entity("/status@flash_bot", "/status@flash_bot")],
         ),
         is_command=True,
     ) is True
@@ -517,11 +517,11 @@ def test_bot_command_addressed_to_other_bot_is_exclusive_even_when_mentions_not_
 
 
 def test_raw_bot_mention_fallback_does_not_match_email_or_substring():
-    adapter = _make_adapter(require_mention=True, bot_username="nyxo_bot")
+    adapter = _make_adapter(require_mention=True, bot_username="flash_bot")
 
-    assert adapter._should_process_message(_group_message("email ops@nyxo_bot.example")) is False
-    assert adapter._should_process_message(_group_message("prefix@nyxo_bot hi")) is False
-    assert adapter._should_process_message(_group_message("hi @nyxo_bot")) is True
+    assert adapter._should_process_message(_group_message("email ops@flash_bot.example")) is False
+    assert adapter._should_process_message(_group_message("prefix@flash_bot hi")) is False
+    assert adapter._should_process_message(_group_message("hi @flash_bot")) is True
 
 
 def test_exclusive_bot_mentions_can_be_disabled_for_legacy_groups():
@@ -552,9 +552,9 @@ def test_guest_mode_allows_only_direct_mentions_outside_allowed_chats():
     )
 
     mentioned = _group_message(
-        "hi @nyxo_bot",
+        "hi @flash_bot",
         chat_id=-201,
-        entities=[_mention_entity("hi @nyxo_bot")],
+        entities=[_mention_entity("hi @flash_bot")],
     )
     assert adapter._should_process_message(mentioned) is True
     assert adapter._should_process_message(_group_message("reply", chat_id=-201, reply_to_bot=True)) is False
@@ -566,9 +566,9 @@ def test_guest_mode_defaults_to_false_for_allowed_chat_bypass():
     adapter = _make_adapter(require_mention=True, allowed_chats=["-200"], guest_mode=False)
 
     mentioned = _group_message(
-        "hi @nyxo_bot",
+        "hi @flash_bot",
         chat_id=-201,
-        entities=[_mention_entity("hi @nyxo_bot")],
+        entities=[_mention_entity("hi @flash_bot")],
     )
     assert adapter._should_process_message(mentioned) is False
 
@@ -582,9 +582,9 @@ def test_guest_mode_mention_dropped_in_ignored_thread():
         ignored_threads=[42],
     )
     mentioned = _group_message(
-        "hi @nyxo_bot",
+        "hi @flash_bot",
         chat_id=-201,
-        entities=[_mention_entity("hi @nyxo_bot")],
+        entities=[_mention_entity("hi @flash_bot")],
         thread_id=42,
     )
     assert adapter._should_process_message(mentioned) is False
@@ -604,7 +604,7 @@ def test_allowed_topics_drop_other_forum_topics_before_other_gates():
     assert adapter._should_process_message(_group_message("hello", chat_id=-100, thread_id=8)) is True
     assert adapter._should_process_message(_group_message("hello", chat_id=-100, thread_id=11)) is False
     assert adapter._should_process_message(
-        _group_message("hi @nyxo_bot", chat_id=-100, thread_id=11, entities=[_mention_entity("hi @nyxo_bot")])
+        _group_message("hi @flash_bot", chat_id=-100, thread_id=11, entities=[_mention_entity("hi @flash_bot")])
     ) is False
 
 
@@ -619,6 +619,62 @@ def test_allowed_topics_treat_missing_thread_as_general_topic():
 
     assert adapter._should_process_message(_group_message("hello", thread_id=None)) is True
     assert adapter._should_process_message(_group_message("hello", thread_id=8)) is False
+
+
+def _forum_message(*, chat_id, thread_id, is_topic_message, is_forum, chat_type="supergroup"):
+    """Build a message with independently-controlled topic/forum flags.
+
+    The shared ``_group_message`` fixture couples ``is_topic_message`` and
+    ``is_forum`` to ``thread_id is not None``, which cannot express a plain
+    reply-UI anchor (``message_thread_id`` set, ``is_topic_message=False``,
+    ``is_forum=False``). This helper decouples them for gating regressions.
+    """
+    return SimpleNamespace(
+        message_id=42,
+        text="hello",
+        caption=None,
+        entities=[],
+        caption_entities=[],
+        message_thread_id=thread_id,
+        is_topic_message=is_topic_message,
+        chat=SimpleNamespace(id=chat_id, type=chat_type, title="T", is_forum=is_forum),
+        from_user=SimpleNamespace(id=111, full_name="Alice", first_name="Alice"),
+        reply_to_message=None,
+        date=None,
+    )
+
+
+def test_gating_ignores_non_forum_reply_anchor_thread_id():
+    """A plain group reply's ``message_thread_id`` is a UI anchor, not a topic.
+
+    Before the shared ``_effective_message_thread_id`` normalizer, gating read
+    the raw ``message_thread_id`` — so a non-forum group reply whose anchor id
+    happened to match an ``ignored_threads`` entry was wrongly dropped, and its
+    anchor id was treated as a routable topic under ``allowed_topics``. The
+    normalizer drops reply anchors (non-forum, ``is_topic_message=False``), so
+    such a reply gates as the General topic instead.
+    """
+    # ignored_threads: reply anchor 55 must NOT be treated as thread 55.
+    adapter = _make_adapter(require_mention=False, free_response_chats=["-200"], ignored_threads=[55])
+    reply_anchor = _forum_message(
+        chat_id=-200, thread_id=55, is_topic_message=False, is_forum=False, chat_type="group"
+    )
+    assert adapter._should_process_message(reply_anchor) is True
+
+    # allowed_topics: reply anchor 55 normalizes to General ("1"), so a group
+    # that only allows topic "1" still processes the reply.
+    adapter2 = _make_adapter(require_mention=False, allowed_chats=["-200"], allowed_topics=["1"])
+    assert adapter2._should_process_message(reply_anchor) is True
+
+
+def test_gating_forum_general_topic_normalizes_to_one():
+    """Forum General-topic messages (thread_id=None) gate as topic "1"."""
+    adapter = _make_adapter(require_mention=False, allowed_chats=["-100"], allowed_topics=["1"])
+    general = _forum_message(chat_id=-100, thread_id=None, is_topic_message=False, is_forum=True)
+    assert adapter._should_process_message(general) is True
+
+    adapter2 = _make_adapter(require_mention=False, allowed_chats=["-100"], allowed_topics=["8"])
+    assert adapter2._should_process_message(general) is False
 
 
 def test_regex_mention_patterns_allow_custom_wake_words():
@@ -636,10 +692,70 @@ def test_invalid_regex_patterns_are_ignored():
     assert adapter._should_process_message(_group_message("hello everyone")) is False
 
 
+def test_bot_self_messages_are_ignored_in_dm_and_group():
+    """Bot-authored messages must not re-enter as fresh user turns (issue #11905).
+
+    Telegram echoes the bot's own outbound messages back through getUpdates.
+    Without a self-author guard, those echoes — including
+    ``[SYSTEM: Background process ...]`` watcher notifications — get ingested
+    as new inbound turns, producing the "haunted topic" loop. The guard keys
+    on ``from_user.id == self._bot.id`` (bot id is 999 in ``_make_adapter``).
+    """
+    adapter = _make_adapter(require_mention=False)
+
+    # Control: a real user in the same group IS processed.
+    assert adapter._should_process_message(_group_message("hi", chat_id=-100)) is True
+
+    # The exact reported symptom: a bot-authored DM-topic watcher echo.
+    self_dm = _group_message(
+        "[SYSTEM: Background process matched watch pattern ...]",
+        chat_id=555,
+        from_user_id=999,
+    )
+    self_dm.chat.type = "private"
+    assert adapter._should_process_message(self_dm) is False
+
+    # Same guard applies in groups/supergroups.
+    self_group = _group_message("status tick", chat_id=-100, from_user_id=999)
+    assert adapter._should_process_message(self_group) is False
+
+
+def test_other_bots_are_still_processed():
+    """A different bot's message must not be over-filtered.
+
+    Distinguishes the self-id guard from a blanket ``from_user.is_bot`` check,
+    which would incorrectly drop unrelated bots (weather, music, etc.) sharing
+    the same chat.
+    """
+    adapter = _make_adapter(require_mention=False)
+    other_bot = _group_message("weather update", chat_id=-100, from_user_id=555)
+    other_bot.from_user = SimpleNamespace(id=555, is_bot=True)
+    assert adapter._should_process_message(other_bot) is True
+
+
+def test_self_message_guard_skips_observe_path():
+    """Bot-authored messages are not stored via the observe-unmentioned path.
+
+    When ``_should_process_message`` rejects a message, dispatch falls through
+    to ``_should_observe_unmentioned_group_message``; the self-guard must also
+    sit there so a self-echo is neither dispatched nor stored.
+    """
+    adapter = _make_adapter(require_mention=True, observe_unmentioned_group_messages=True)
+    self_group = _group_message("status tick", chat_id=-100, from_user_id=999)
+    assert adapter._should_observe_unmentioned_group_message(self_group) is False
+
+
+def test_missing_from_user_does_not_crash():
+    adapter = _make_adapter(require_mention=False)
+    anon = _group_message("channel post", chat_id=-100)
+    anon.from_user = None
+    assert adapter._should_process_message(anon) is True
+
+
 def test_config_bridges_telegram_group_settings(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "telegram:\n"
         "  require_mention: true\n"
         "  guest_mode: true\n"
@@ -658,43 +774,55 @@ def test_config_bridges_telegram_group_settings(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
-    monkeypatch.delenv("TELEGRAM_REQUIRE_MENTION", raising=False)
-    monkeypatch.delenv("TELEGRAM_MENTION_PATTERNS", raising=False)
-    monkeypatch.delenv("TELEGRAM_EXCLUSIVE_BOT_MENTIONS", raising=False)
-    monkeypatch.delenv("TELEGRAM_GUEST_MODE", raising=False)
-    monkeypatch.delenv("TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES", raising=False)
-    monkeypatch.delenv("TELEGRAM_FREE_RESPONSE_CHATS", raising=False)
-    monkeypatch.delenv("TELEGRAM_ALLOWED_CHATS", raising=False)
-    monkeypatch.delenv("TELEGRAM_GROUP_ALLOWED_CHATS", raising=False)
-    monkeypatch.delenv("TELEGRAM_ALLOWED_TOPICS", raising=False)
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
+    # Clear the TELEGRAM_* vars this test exercises so a developer's ambient
+    # shell/.env values don't pre-empt the YAML→env bridge (env-over-YAML
+    # precedence, adapter.py::_apply_yaml_config). The authoritative assertions
+    # below read the returned config object, which is immune to env pollution
+    # from third-party import-time load_dotenv calls; see the note at the asserts.
+    for _var in (
+        "TELEGRAM_REQUIRE_MENTION",
+        "TELEGRAM_MENTION_PATTERNS",
+        "TELEGRAM_EXCLUSIVE_BOT_MENTIONS",
+        "TELEGRAM_GUEST_MODE",
+        "TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES",
+        "TELEGRAM_FREE_RESPONSE_CHATS",
+        "TELEGRAM_ALLOWED_CHATS",
+        "TELEGRAM_GROUP_ALLOWED_CHATS",
+        "TELEGRAM_ALLOWED_TOPICS",
+    ):
+        monkeypatch.delenv(_var, raising=False)
 
     config = load_gateway_config()
 
+    # Assert against the returned config object — the authoritative result of the
+    # bridge. We deliberately do NOT assert on os.environ here: a third-party
+    # import (microsoft_teams/apps/app.py) runs load_dotenv(find_dotenv(usecwd=True))
+    # at import time, which walks up from cwd and can repopulate TELEGRAM_* vars
+    # from a developer's real ~/.flash/.env, defeating the env-over-YAML bridge
+    # for any key present there. The PlatformConfig.extra values below are parsed
+    # straight from the test's config.yaml and are immune to that ambient leak.
     assert config is not None
-    assert __import__("os").environ["TELEGRAM_REQUIRE_MENTION"] == "true"
-    assert __import__("os").environ["TELEGRAM_GUEST_MODE"] == "true"
-    assert __import__("os").environ["TELEGRAM_OBSERVE_UNMENTIONED_GROUP_MESSAGES"] == "true"
-    assert __import__("os").environ["TELEGRAM_EXCLUSIVE_BOT_MENTIONS"] == "true"
-    assert json.loads(__import__("os").environ["TELEGRAM_MENTION_PATTERNS"]) == [r"^\s*chompy\b"]
-    assert __import__("os").environ["TELEGRAM_FREE_RESPONSE_CHATS"] == "-123"
-    assert __import__("os").environ["TELEGRAM_ALLOWED_CHATS"] == "-100"
-    assert __import__("os").environ["TELEGRAM_GROUP_ALLOWED_CHATS"] == "-100"
-    assert __import__("os").environ["TELEGRAM_ALLOWED_TOPICS"] == "8"
     tg_cfg = config.platforms.get(Platform.TELEGRAM)
     assert tg_cfg is not None
+    assert tg_cfg.extra.get("require_mention") is True
     assert tg_cfg.extra.get("guest_mode") is True
+    assert tg_cfg.extra.get("exclusive_bot_mentions") is True
+    assert tg_cfg.extra.get("observe_unmentioned_group_messages") is True
+    assert tg_cfg.extra.get("mention_patterns") == [r"^\s*chompy\b"]
     assert tg_cfg.extra.get("allowed_chats") == ["-100"]
     assert tg_cfg.extra.get("group_allowed_chats") == ["-100"]
     assert tg_cfg.extra.get("allowed_topics") == [8]
-    assert tg_cfg.extra.get("exclusive_bot_mentions") is True
-    assert tg_cfg.extra.get("observe_unmentioned_group_messages") is True
+    # free_response_chats is bridged to the env var only (not PlatformConfig.extra).
+    # TELEGRAM_FREE_RESPONSE_CHATS is not a key that appears in developer .env
+    # files, so asserting it via os.environ stays deterministic.
+    assert __import__("os").environ["TELEGRAM_FREE_RESPONSE_CHATS"] == "-123"
 
 
 def test_config_bridges_telegram_user_allowlists(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "telegram:\n"
         "  allow_from:\n"
         "    - \"111\"\n"
@@ -706,7 +834,7 @@ def test_config_bridges_telegram_user_allowlists(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("TELEGRAM_ALLOWED_USERS", raising=False)
     monkeypatch.delenv("TELEGRAM_GROUP_ALLOWED_USERS", raising=False)
     monkeypatch.delenv("TELEGRAM_GROUP_ALLOWED_CHATS", raising=False)
@@ -716,20 +844,26 @@ def test_config_bridges_telegram_user_allowlists(monkeypatch, tmp_path):
     assert config is not None
     assert __import__("os").environ["TELEGRAM_ALLOWED_USERS"] == "111,222"
     assert __import__("os").environ["TELEGRAM_GROUP_ALLOWED_USERS"] == "333"
-    assert __import__("os").environ["TELEGRAM_GROUP_ALLOWED_CHATS"] == "-100"
+    # group_allowed_chats via the config object, not os.environ: the
+    # microsoft_teams import-time load_dotenv(find_dotenv(usecwd=True)) can
+    # repopulate TELEGRAM_GROUP_ALLOWED_CHATS from a developer's real
+    # ~/.flash/.env, which would defeat the env-over-YAML bridge here.
+    tg_cfg = config.platforms.get(Platform.TELEGRAM)
+    assert tg_cfg is not None
+    assert tg_cfg.extra.get("group_allowed_chats") == ["-100"]
 
 
 def test_config_env_overrides_telegram_user_allowlists(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "telegram:\n"
         "  allow_from: \"111\"\n"
         "  group_allow_from: \"222\"\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("TELEGRAM_ALLOWED_USERS", "999")
     monkeypatch.setenv("TELEGRAM_GROUP_ALLOWED_USERS", "888")
 
@@ -757,16 +891,16 @@ def test_top_level_require_mention_bridges_to_telegram(monkeypatch, tmp_path):
     """require_mention at the config.yaml top level (alongside group_sessions_per_user)
     must behave identically to telegram.require_mention: true (#3979).
     """
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
     # Intentionally no "telegram:" section — keys are at the top level.
-    (nyxo_home / "config.yaml").write_text(
+    (flash_home / "config.yaml").write_text(
         "require_mention: true\n"
         "group_sessions_per_user: true\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("TELEGRAM_REQUIRE_MENTION", raising=False)
 
     config = load_gateway_config()
@@ -785,16 +919,16 @@ def test_top_level_require_mention_does_not_override_telegram_section(monkeypatc
     """When telegram.require_mention is explicitly set, top-level require_mention
     must not override it (platform-specific config takes precedence).
     """
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "require_mention: true\n"
         "telegram:\n"
         "  require_mention: false\n",
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("TELEGRAM_REQUIRE_MENTION", raising=False)
 
     config = load_gateway_config()
@@ -805,9 +939,9 @@ def test_top_level_require_mention_does_not_override_telegram_section(monkeypatc
 
 
 def test_config_bridges_telegram_ignored_threads(monkeypatch, tmp_path):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         "telegram:\n"
         "  ignored_threads:\n"
         "    - 31\n"
@@ -815,7 +949,7 @@ def test_config_bridges_telegram_ignored_threads(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.delenv("TELEGRAM_IGNORED_THREADS", raising=False)
 
     config = load_gateway_config()

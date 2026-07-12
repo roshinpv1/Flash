@@ -127,7 +127,7 @@ A nightly backlog triage on Sonnet costs roughly $0.02-0.05. A monitoring check 
 Nyxo Agent is open source and free. The automation infrastructure — cron scheduler, webhook platform, skill system, multi-platform delivery — is built in.
 
 ```bash
-curl -fsSL https://nyxo-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://nyxo-agent.flash.com/install.sh | bash
 nyxo setup
 ```
 
@@ -149,12 +149,12 @@ nyxo webhook subscribe pr-review \
   --deliver github_comment
 ```
 
-Full automation blueprints gallery: [nyxo-agent.nousresearch.com/docs/reference/automation-blueprints-catalog](https://nyxo-agent.nousresearch.com/docs/reference/automation-blueprints-catalog)
+Full automation blueprints gallery: [nyxo-agent.flash.com/docs/reference/automation-blueprints-catalog](https://nyxo-agent.flash.com/docs/reference/automation-blueprints-catalog)
 
-Documentation: [nyxo-agent.nousresearch.com](https://nyxo-agent.nousresearch.com)
+Documentation: [nyxo-agent.flash.com](https://nyxo-agent.flash.com)
 
-GitHub: [github.com/NousResearch/nyxo-agent](https://github.com/NousResearch/nyxo-agent)
+GitHub: [github.com/Flash/nyxo-agent](https://github.com/Flash/nyxo-agent)
 
 ---
 
-*Nyxo Agent is built by [Nous Research](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*
+*Nyxo Agent is built by [Nous Research](https://flash.com). Open source, model-agnostic, runs on your infrastructure.*

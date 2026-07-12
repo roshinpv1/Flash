@@ -1,4 +1,4 @@
-import type { MouseTrackingMode, ScrollBoxHandle } from '@nyxo/ink'
+import type { MouseTrackingMode, ScrollBoxHandle } from '@hermes/ink'
 import type { MutableRefObject, ReactNode, RefObject, SetStateAction } from 'react'
 
 import type { PasteEvent } from '../components/textInput.js'
@@ -134,7 +134,8 @@ export interface OverlayState {
   billing: BillingOverlayState | null
   clarify: ClarifyReq | null
   confirm: ConfirmReq | null
-  modelPicker: boolean
+  journey: boolean
+  modelPicker: boolean | { refresh?: boolean }
   pager: null | PagerState
   petPicker: boolean
   pluginsHub: boolean
@@ -173,7 +174,6 @@ export interface UiState {
 
   sections: SectionVisibility
   sessionTitle: string
-  showCost: boolean
   showReasoning: boolean
   indicatorStyle: IndicatorStyle
   sid: null | string

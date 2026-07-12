@@ -44,12 +44,12 @@ class TestApprovalInterrupt:
         set_interrupt(False)
         self._saved_env = {
             k: os.environ.get(k)
-            for k in ("NYXO_GATEWAY_SESSION", "NYXO_YOLO_MODE",
-                      "NYXO_SESSION_KEY")
+            for k in ("HERMES_GATEWAY_SESSION", "HERMES_YOLO_MODE",
+                      "HERMES_SESSION_KEY")
         }
-        os.environ.pop("NYXO_YOLO_MODE", None)
-        os.environ["NYXO_GATEWAY_SESSION"] = "1"
-        os.environ["NYXO_SESSION_KEY"] = self.SESSION_KEY
+        os.environ.pop("HERMES_YOLO_MODE", None)
+        os.environ["HERMES_GATEWAY_SESSION"] = "1"
+        os.environ["HERMES_SESSION_KEY"] = self.SESSION_KEY
 
     def teardown_method(self):
         from tools.interrupt import set_interrupt
@@ -113,7 +113,7 @@ class TestApprovalInterrupt:
         elapsed = time.monotonic() - start
 
         assert not t.is_alive(), "approval wait did not return after interrupt"
-        assert result_holder["result"] == {"resolved": True, "choice": "deny"}
+        assert result_holder["result"] == {"resolved": True, "choice": "deny", "reason": None}
         # Must be far below the 300s timeout — the interrupt, not the deadline,
         # is what released the wait.
         assert elapsed < 10, f"interrupt path too slow ({elapsed:.1f}s)"
@@ -157,4 +157,4 @@ class TestApprovalInterrupt:
         t.join(timeout=10)
         assert not t.is_alive()
         # Timed out (no resolution) because the foreign interrupt was ignored.
-        assert result_holder["result"] == {"resolved": False, "choice": None}
+        assert result_holder["result"] == {"resolved": False, "choice": None, "reason": None}

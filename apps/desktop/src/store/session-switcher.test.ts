@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SessionInfo } from '@/types/nyxo'
+import type { SessionInfo } from '@/types/flash'
 
 import { $selectedStoredSessionId, $sessions } from './session'
 import {

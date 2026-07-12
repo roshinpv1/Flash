@@ -1,6 +1,6 @@
 """SelfHostedOIDCProvider — generic self-hosted OpenID Connect dashboard auth.
 
-A standards-compliant OpenID Connect Relying Party for the ``nyxo dashboard``
+A standards-compliant OpenID Connect Relying Party for the ``hermes dashboard``
 OAuth gate. Unlike the bundled ``nous`` provider (which encodes Nous Portal's
 bespoke contract — ``agent:{instance_id}`` client ids, a custom access-token
 JWT, the ``x-nous-refresh-token`` header, an ``oauth_contract_version`` claim),
@@ -10,10 +10,10 @@ self-hosted identity provider:
     Authentik · Keycloak · Zitadel · Authelia · Auth0 · Okta · Google · …
 
 It is a pure drop-in plugin: it implements the five
-:class:`~nyxo_cli.dashboard_auth.DashboardAuthProvider` methods and touches
+:class:`~hermes_cli.dashboard_auth.DashboardAuthProvider` methods and touches
 nothing in core auth/runtime/login. The HTTP round trip, cookies, CSRF
 ``state`` check and ``redirect_uri`` reconstruction are all owned by
-``nyxo_cli/dashboard_auth/routes.py``; this provider only:
+``hermes_cli/dashboard_auth/routes.py``; this provider only:
 
   1. discovers the IDP's endpoints from ``{issuer}/.well-known/openid-configuration``,
   2. builds the ``/authorize`` URL with PKCE (S256),
@@ -22,7 +22,7 @@ nothing in core auth/runtime/login. The HTTP round trip, cookies, CSRF
   4. verifies the **ID token** (RS256/ES256) against the discovered
      ``jwks_uri`` with ``iss`` / ``aud`` pinned to the configured issuer /
      client id, and maps standard OIDC claims (``sub``, ``email``, ``name``)
-     onto a :class:`~nyxo_cli.dashboard_auth.Session`.
+     onto a :class:`~hermes_cli.dashboard_auth.Session`.
 
 Why the ID token (not the access token)? OIDC guarantees the ID token is a
 signed JWT carrying identity claims — that is its entire purpose. The access
@@ -32,11 +32,17 @@ only choice that is universally correct across self-hosted IDPs. (The ``nous``
 provider verifies its *access* token because Nous Portal mints a custom JWT
 access token with the dashboard claims baked in — a non-OIDC shortcut.)
 
-Public PKCE clients only. Confidential clients (with a ``client_secret``) are
-not yet supported — see the ``# TODO(confidential-client)`` seam in
-``complete_login`` / ``refresh_session``. Self-hosters configuring a CLI/SPA
-client almost always register a public + PKCE client, which is the smaller,
-simpler surface.
+Both **public** (PKCE-only) and **confidential** (PKCE + ``client_secret``)
+clients are supported. A self-hoster who registers a public client configures
+no secret and the token-endpoint calls authenticate with PKCE alone (the
+default). A self-hoster whose IDP defaults the client to *confidential*
+(Authentik and Keycloak commonly do) sets ``client_secret`` and the provider
+additionally authenticates the client at the token endpoint, choosing
+``client_secret_basic`` (HTTP Basic header) or ``client_secret_post`` (secret
+in the form body) from the IDP's advertised
+``token_endpoint_auth_methods_supported``. PKCE is sent in **both** modes —
+the secret is client authentication layered on top, never a replacement for
+PKCE (OAuth 2.1 / RFC 9700 keep PKCE mandatory regardless).
 
 Configuration surfaces (env wins over config.yaml when set non-empty, so a
 provisioned-but-not-populated secret can't shadow a valid config.yaml entry —
@@ -47,14 +53,19 @@ same precedence convention as the ``nous`` plugin)::
       oauth:
         provider: self-hosted
         self_hosted:
-          issuer: https://auth.example.com/application/o/nyxo/   # required
-          client_id: nyxo-dashboard                              # required
+          issuer: https://auth.example.com/application/o/hermes/   # required
+          client_id: hermes-dashboard                              # required
           scopes: "openid profile email"                           # optional
+          # client_secret: set ONLY for a confidential client. It is a
+          # credential — prefer the env var / ~/.hermes/.env over config.yaml.
 
     # Environment overrides (Docker/Fly secret injection)
-    NYXO_DASHBOARD_OIDC_ISSUER
-    NYXO_DASHBOARD_OIDC_CLIENT_ID
-    NYXO_DASHBOARD_OIDC_SCOPES        # optional; defaults to "openid profile email"
+    HERMES_DASHBOARD_OIDC_ISSUER
+    HERMES_DASHBOARD_OIDC_CLIENT_ID
+    HERMES_DASHBOARD_OIDC_SCOPES        # optional; defaults to "openid profile email"
+    HERMES_DASHBOARD_OIDC_CLIENT_SECRET # optional; set for a confidential client
+                                        # (the .env file is the canonical home —
+                                        # it's a secret, not a behavioural setting)
 
 Skip reasons: when the plugin loads but can't register (missing issuer /
 client_id), it writes a human-readable reason to the module-level
@@ -76,7 +87,7 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from nyxo_cli.dashboard_auth import (
+from hermes_cli.dashboard_auth import (
     DashboardAuthProvider,
     InvalidCodeError,
     LoginStart,
@@ -172,6 +183,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         issuer: str,
         client_id: str,
         scopes: str = _DEFAULT_SCOPES,
+        client_secret: str = "",
     ) -> None:
         if not issuer:
             raise ValueError("issuer is required")
@@ -186,6 +198,10 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         _require_https_or_loopback(self._issuer, field="issuer")
         self._client_id = client_id
         self._scopes = scopes.strip() or _DEFAULT_SCOPES
+        # An empty/whitespace secret means "public client" — strip so a
+        # provisioned-but-blank secret can't flip us into a broken confidential
+        # mode that sends an empty client_secret. Non-empty ⇒ confidential.
+        self._client_secret = (client_secret or "").strip()
 
         # Discovery + JWKS are lazily resolved on first use so plugin
         # registration never makes a network call (the IDP may be down at
@@ -222,7 +238,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         # Same flat ``state=…;verifier=…`` cookie shape every provider uses;
         # the auth-route layer prepends ``provider=`` and parses it back out.
         cookie_payload = {
-            "nyxo_session_pkce": f"state={state};verifier={code_verifier}",
+            "hermes_session_pkce": f"state={state};verifier={code_verifier}",
         }
         return LoginStart(redirect_url=redirect_url, cookie_payload=cookie_payload)
 
@@ -245,11 +261,16 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
             "client_id": self._client_id,
             "code_verifier": code_verifier,
         }
-        # TODO(confidential-client): when client_secret support lands, add it
-        # here (and switch to HTTP Basic auth if the IDP's
-        # token_endpoint_auth_methods_supported prefers client_secret_basic).
+        # Confidential clients additionally authenticate the client here (basic
+        # header or post body, per the IDP's advertised methods); public
+        # clients get ({}, {}) and authenticate with PKCE alone.
+        extra_data, extra_headers = self._token_endpoint_auth(disco)
+        data.update(extra_data)
         return self._exchange(
-            disco["token_endpoint"], data, bad_request_exc=InvalidCodeError
+            disco["token_endpoint"],
+            data,
+            bad_request_exc=InvalidCodeError,
+            extra_headers=extra_headers,
         )
 
     def refresh_session(self, *, refresh_token: str) -> Session:
@@ -265,12 +286,17 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
             # identity claims (some IDPs narrow scope on refresh otherwise).
             "scope": self._scopes,
         }
-        # TODO(confidential-client): add client_secret here when supported.
+        # Same client-authentication treatment as complete_login: confidential
+        # clients must authenticate on the refresh grant too, or the IDP
+        # rejects the rotation with invalid_client.
+        extra_data, extra_headers = self._token_endpoint_auth(disco)
+        data.update(extra_data)
         return self._exchange(
             disco["token_endpoint"],
             data,
             bad_request_exc=RefreshExpiredError,
             previous_refresh_token=refresh_token,
+            extra_headers=extra_headers,
         )
 
     def verify_session(self, *, access_token: str) -> Optional[Session]:
@@ -304,15 +330,23 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         endpoint = str(disco.get("revocation_endpoint") or "").strip()
         if not endpoint:
             return None
+        data = {
+            "token": refresh_token,
+            "token_type_hint": "refresh_token",
+            "client_id": self._client_id,
+        }
+        headers = {"Accept": "application/json"}
+        # A confidential client must authenticate on revocation too (RFC 7009
+        # §2.1), or the IDP rejects it with invalid_client. Reuse the same
+        # method selection as the token endpoint; public clients add nothing.
+        extra_data, extra_headers = self._token_endpoint_auth(disco)
+        data.update(extra_data)
+        headers.update(extra_headers)
         try:
             httpx.post(
                 endpoint,
-                data={
-                    "token": refresh_token,
-                    "token_type_hint": "refresh_token",
-                    "client_id": self._client_id,
-                },
-                headers={"Accept": "application/json"},
+                data=data,
+                headers=headers,
                 timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
             )
         except Exception as exc:  # noqa: BLE001 — best-effort
@@ -321,6 +355,50 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
 
     # ---- internals: token exchange ----------------------------------------
 
+    def _token_endpoint_auth(
+        self, disco: Dict[str, Any]
+    ) -> tuple[Dict[str, str], Dict[str, str]]:
+        """Return ``(extra_data, extra_headers)`` for token-endpoint client auth.
+
+        Public client (no ``client_secret`` configured): returns ``({}, {})`` —
+        the exchange authenticates with PKCE alone, exactly as before this
+        method existed.
+
+        Confidential client (``client_secret`` set): authenticates the client
+        per RFC 6749 §2.3.1, choosing the method from the IDP's advertised
+        ``token_endpoint_auth_methods_supported``:
+
+          * ``client_secret_post`` advertised (and ``client_secret_basic`` not)
+            → secret in the form body.
+          * otherwise → HTTP Basic ``Authorization`` header (the OIDC default;
+            also the fallback when the IDP advertises nothing).
+
+        PKCE's ``code_verifier`` is sent regardless by the callers — the secret
+        is layered on top, never a replacement.
+        """
+        if not self._client_secret:
+            return {}, {}
+
+        methods = disco.get("token_endpoint_auth_methods_supported") or []
+        prefer_post = (
+            "client_secret_post" in methods
+            and "client_secret_basic" not in methods
+        )
+        if prefer_post:
+            # Secret travels in the application/x-www-form-urlencoded body.
+            return {"client_secret": self._client_secret}, {}
+
+        # HTTP Basic: base64(urlencode(client_id) ":" urlencode(secret)).
+        # Both halves must be form-url-encoded *before* base64 per RFC 6749
+        # §2.3.1, or a secret containing ':' / reserved chars corrupts the
+        # header.
+        userpass = (
+            f"{urllib.parse.quote(self._client_id, safe='')}:"
+            f"{urllib.parse.quote(self._client_secret, safe='')}"
+        )
+        encoded = base64.b64encode(userpass.encode("utf-8")).decode("ascii")
+        return {}, {"Authorization": f"Basic {encoded}"}
+
     def _exchange(
         self,
         token_endpoint: str,
@@ -328,6 +406,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         *,
         bad_request_exc: type[Exception],
         previous_refresh_token: str = "",
+        extra_headers: Optional[Dict[str, str]] = None,
     ) -> Session:
         """POST the token endpoint and turn the response into a Session.
 
@@ -335,12 +414,20 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         (refresh grant). ``bad_request_exc`` is raised on a 400 —
         ``InvalidCodeError`` for the auth-code path, ``RefreshExpiredError``
         for the refresh path — preserving the middleware's distinct handling.
+
+        ``extra_headers`` carries the confidential-client ``Authorization``
+        header when one applies (see ``_token_endpoint_auth``); it is empty for
+        a public client, so the request is byte-identical to the pre-
+        confidential-client behaviour in that case.
         """
+        headers = {"Accept": "application/json"}
+        if extra_headers:
+            headers.update(extra_headers)
         try:
             response = httpx.post(
                 token_endpoint,
                 data=data,
-                headers={"Accept": "application/json"},
+                headers=headers,
                 timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
             )
         except httpx.RequestError as exc:
@@ -419,10 +506,26 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
     def _fetch_discovery(self) -> Dict[str, Any]:
         url = self._discovery_url()
         try:
+            # follow_redirects=True: many IDPs answer the discovery GET with a
+            # 3xx rather than a direct 200 — Authentik canonicalises the
+            # ``.well-known`` path, and any IDP behind a reverse proxy doing an
+            # http→https upgrade redirects too. httpx (unlike curl -L or the
+            # requests library) defaults to follow_redirects=False, so without
+            # this the redirect comes back as a bare 3xx with an empty body and
+            # the ``status != 200`` check below raises "discovery returned 302"
+            # → provider_unreachable → 503. Following the redirect is safe: the
+            # issuer-pin check and _require_https_or_loopback below still
+            # validate the *resolved* document and every endpoint in it, so a
+            # redirect to a hostile location can't smuggle in a bad issuer or a
+            # cleartext endpoint. (The token/revocation POSTs deliberately do
+            # NOT follow redirects — see _exchange — because they carry an auth
+            # code / refresh token and the endpoint is already the canonical
+            # absolute URL resolved here.)
             response = httpx.get(
                 url,
                 headers={"Accept": "application/json"},
                 timeout=_DISCOVERY_TIMEOUT_SEC,
+                follow_redirects=True,
             )
         except httpx.RequestError as exc:
             raise ProviderError(f"OIDC discovery unreachable: {exc}") from exc
@@ -467,12 +570,24 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
             payload.get("revocation_endpoint", "") or ""
         ).strip()
 
+        # Client-authentication methods the IDP advertises for the token
+        # endpoint. Used to pick client_secret_basic vs client_secret_post for
+        # a confidential client (see ``_token_endpoint_auth``). Absent/garbage
+        # → empty list → we fall back to the OIDC default (basic).
+        auth_methods_raw = payload.get("token_endpoint_auth_methods_supported")
+        token_endpoint_auth_methods = (
+            [str(m) for m in auth_methods_raw]
+            if isinstance(auth_methods_raw, list)
+            else []
+        )
+
         return {
             "issuer": advertised_issuer or self._issuer,
             "authorization_endpoint": authorization_endpoint,
             "token_endpoint": token_endpoint,
             "jwks_uri": jwks_uri,
             "revocation_endpoint": revocation_endpoint,
+            "token_endpoint_auth_methods_supported": token_endpoint_auth_methods,
         }
 
     # ---- internals: JWT verification --------------------------------------
@@ -553,7 +668,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
 
         The verified ID token is stored in ``Session.access_token`` so the
         per-request ``verify_session`` re-verifies a real JWT. The opaque
-        OAuth access token is intentionally NOT stored — Nyxo does not call
+        OAuth access token is intentionally NOT stored — Hermes does not call
         any resource API with it; the dashboard only needs identity.
         """
         user_id = str(claims.get("sub", ""))
@@ -594,20 +709,16 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         """Fast-fail obviously-broken redirect_uris before bouncing to the IDP.
 
         The IDP's own allowlist is authoritative; this just catches the common
-        operator-error case with a clear message. Mirrors the nous provider.
+        operator-error case with a clear message. We allow any ``http://`` host
+        (not just localhost) so self-hosted dashboards reached over plain HTTP —
+        LAN IPs, internal hostnames, reverse proxies that terminate TLS upstream
+        — are not rejected here; the IDP makes the final call on which
+        redirect_uris are permitted. Mirrors the nous provider.
         """
         parsed = urllib.parse.urlparse(redirect_uri)
         if parsed.scheme not in ("https", "http"):
             raise ProviderError(
                 f"redirect_uri must be http(s), got {redirect_uri!r}"
-            )
-        if parsed.scheme == "http" and parsed.hostname not in (
-            "localhost",
-            "127.0.0.1",
-        ):
-            raise ProviderError(
-                "redirect_uri may only use http:// for localhost/127.0.0.1, "
-                f"got {redirect_uri!r}"
             )
         if not parsed.path or not parsed.path.endswith("/auth/callback"):
             raise ProviderError(
@@ -639,7 +750,7 @@ def _load_config_oauth_section() -> dict:
     to ``{}`` so callers can rely on ``.get(...)``.
     """
     try:
-        from nyxo_cli.config import cfg_get, load_config
+        from hermes_cli.config import cfg_get, load_config
 
         cfg = load_config()
     except Exception as exc:  # noqa: BLE001 — broad catch is intentional
@@ -677,7 +788,7 @@ def register(ctx) -> None:
     """Plugin entry — called by the plugin loader at startup.
 
     Registers :class:`SelfHostedOIDCProvider` only when both an issuer and a
-    client_id are configured (via ``NYXO_DASHBOARD_OIDC_*`` env vars or the
+    client_id are configured (via ``HERMES_DASHBOARD_OIDC_*`` env vars or the
     ``dashboard.oauth.self_hosted`` block in config.yaml). Operator-owned
     loopback / ``--insecure`` dashboards leave these unset, so the plugin is a
     no-op for them.
@@ -692,21 +803,27 @@ def register(ctx) -> None:
     oidc_cfg = _oidc_subsection(oauth_section)
 
     issuer = _resolve_setting(
-        "NYXO_DASHBOARD_OIDC_ISSUER", oidc_cfg.get("issuer")
+        "HERMES_DASHBOARD_OIDC_ISSUER", oidc_cfg.get("issuer")
     )
     client_id = _resolve_setting(
-        "NYXO_DASHBOARD_OIDC_CLIENT_ID", oidc_cfg.get("client_id")
+        "HERMES_DASHBOARD_OIDC_CLIENT_ID", oidc_cfg.get("client_id")
     )
     scopes = (
-        _resolve_setting("NYXO_DASHBOARD_OIDC_SCOPES", oidc_cfg.get("scopes"))
+        _resolve_setting("HERMES_DASHBOARD_OIDC_SCOPES", oidc_cfg.get("scopes"))
         or _DEFAULT_SCOPES
+    )
+    # Optional — set only for a confidential client. A credential, so the
+    # canonical home is the env var / ~/.hermes/.env; config.yaml is supported
+    # for precedence symmetry. Empty ⇒ public client (unchanged behaviour).
+    client_secret = _resolve_setting(
+        "HERMES_DASHBOARD_OIDC_CLIENT_SECRET", oidc_cfg.get("client_secret")
     )
 
     if not issuer or not client_id:
         LAST_SKIP_REASON = (
             "Self-hosted OIDC dashboard auth is not configured. Set both an "
             "issuer and a client_id — either as env vars "
-            "(NYXO_DASHBOARD_OIDC_ISSUER + NYXO_DASHBOARD_OIDC_CLIENT_ID) "
+            "(HERMES_DASHBOARD_OIDC_ISSUER + HERMES_DASHBOARD_OIDC_CLIENT_ID) "
             "or under dashboard.oauth.self_hosted.{issuer,client_id} in "
             "config.yaml — or pass --insecure to skip the OAuth gate "
             "entirely. (issuer set: %s; client_id set: %s)"
@@ -717,7 +834,10 @@ def register(ctx) -> None:
 
     try:
         provider = SelfHostedOIDCProvider(
-            issuer=issuer, client_id=client_id, scopes=scopes
+            issuer=issuer,
+            client_id=client_id,
+            scopes=scopes,
+            client_secret=client_secret,
         )
     except (ValueError, ProviderError) as exc:
         LAST_SKIP_REASON = (
@@ -729,8 +849,10 @@ def register(ctx) -> None:
     ctx.register_dashboard_auth_provider(provider)
     logger.info(
         "dashboard-auth-self-hosted: registered provider "
-        "(issuer=%s, client_id=%s, scopes=%r)",
+        "(issuer=%s, client_id=%s, scopes=%r, confidential=%s)",
         issuer,
         client_id,
         scopes,
+        # Log only whether a secret is present, never the secret itself.
+        bool(client_secret),
     )

@@ -1,4 +1,4 @@
-import { speakText } from '@/nyxo'
+import { speakText } from '@/flash'
 import {
   $voicePlayback,
   setVoicePlaybackState,

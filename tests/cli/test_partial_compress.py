@@ -1,10 +1,10 @@
-"""Tests for nyxo_cli.partial_compress — the pure split/parse helpers
+"""Tests for flash_cli.partial_compress — the pure split/parse helpers
 behind ``/compress here [N]`` (boundary-aware "summarize up to here").
 
 Inspired by Claude Code's Rewind "Summarize up to here" action.
 """
 
-from nyxo_cli.partial_compress import (
+from flash_cli.partial_compress import (
     DEFAULT_KEEP_LAST,
     MAX_KEEP_LAST,
     parse_partial_compress_args,

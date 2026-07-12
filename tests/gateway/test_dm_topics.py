@@ -277,7 +277,7 @@ def test_persist_dm_topic_thread_id_writes_config(tmp_path):
         }
     }
 
-    config_file = tmp_path / ".nyxo" / "config.yaml"
+    config_file = tmp_path / ".flash" / "config.yaml"
     config_file.parent.mkdir(parents=True)
     with open(config_file, "w") as f:
         yaml.dump(config_data, f)
@@ -285,7 +285,7 @@ def test_persist_dm_topic_thread_id_writes_config(tmp_path):
     adapter = _make_adapter()
 
     with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"NYXO_HOME": str(tmp_path / ".nyxo")}):
+         patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".flash")}):
         adapter._persist_dm_topic_thread_id(111, "General", 999)
 
     with open(config_file) as f:
@@ -317,7 +317,7 @@ def test_persist_dm_topic_thread_id_skips_if_already_set(tmp_path):
         }
     }
 
-    config_file = tmp_path / ".nyxo" / "config.yaml"
+    config_file = tmp_path / ".flash" / "config.yaml"
     config_file.parent.mkdir(parents=True)
     with open(config_file, "w") as f:
         yaml.dump(config_data, f)
@@ -355,7 +355,7 @@ def test_persist_dm_topic_thread_id_replaces_existing_when_requested(tmp_path):
         }
     }
 
-    config_file = tmp_path / ".nyxo" / "config.yaml"
+    config_file = tmp_path / ".flash" / "config.yaml"
     config_file.parent.mkdir(parents=True)
     with open(config_file, "w") as f:
         yaml.dump(config_data, f)
@@ -363,7 +363,7 @@ def test_persist_dm_topic_thread_id_replaces_existing_when_requested(tmp_path):
     adapter = _make_adapter()
 
     with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"NYXO_HOME": str(tmp_path / ".nyxo")}):
+         patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".flash")}):
         adapter._persist_dm_topic_thread_id(111, "General", 999, replace_existing=True)
 
     with open(config_file) as f:
@@ -397,7 +397,7 @@ def test_persist_dm_topic_thread_id_preserves_config_on_write_failure(tmp_path):
         }
     }
 
-    config_file = tmp_path / ".nyxo" / "config.yaml"
+    config_file = tmp_path / ".flash" / "config.yaml"
     config_file.parent.mkdir(parents=True)
     original_text = yaml.dump(config_data)
     config_file.write_text(original_text, encoding="utf-8")
@@ -408,7 +408,7 @@ def test_persist_dm_topic_thread_id_preserves_config_on_write_failure(tmp_path):
         raise RuntimeError("boom")
 
     with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"NYXO_HOME": str(tmp_path / ".nyxo")}), \
+         patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".flash")}), \
          patch("yaml.dump", side_effect=fail_dump):
         adapter._persist_dm_topic_thread_id(111, "General", 999)
 
@@ -500,13 +500,13 @@ def test_get_dm_topic_info_hot_reloads_from_config(tmp_path):
             }
         }
     }
-    config_file = tmp_path / ".nyxo" / "config.yaml"
+    config_file = tmp_path / ".flash" / "config.yaml"
     config_file.parent.mkdir(parents=True)
     with open(config_file, "w") as f:
         yaml.dump(config_data, f)
 
     with patch.object(Path, "home", return_value=tmp_path), \
-         patch.dict(os.environ, {"NYXO_HOME": str(tmp_path / ".nyxo")}):
+         patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".flash")}):
         result = adapter._get_dm_topic_info("111", "555")
 
     assert result is not None
@@ -834,7 +834,7 @@ def test_group_topic_chat_id_int_string_coercion():
         {
             "chat_id": "-1001234567890",  # string, not int
             "topics": [
-                {"name": "Dev", "thread_id": "7", "skill": "nyxo-agent-dev"},
+                {"name": "Dev", "thread_id": "7", "skill": "flash-agent-dev"},
             ],
         }
     ])
@@ -849,8 +849,102 @@ def test_group_topic_chat_id_int_string_coercion():
     )
     event = adapter._build_message_event(msg, MessageType.TEXT)
 
-    assert event.auto_skill == "nyxo-agent-dev"
+    assert event.auto_skill == "flash-agent-dev"
     assert event.source.chat_topic == "Dev"
+
+
+def test_group_topic_mapping_shape_config():
+    """Operator-edited mapping shape {chat_id: [topics]} must resolve like the list shape."""
+    from gateway.platforms.base import MessageType
+
+    # Dict/mapping shape instead of the canonical list-of-entries shape.
+    adapter = _make_adapter(group_topics_config={
+        "-1001234567890": [
+            {"name": "Engineering", "thread_id": 5, "skill": "software-development"},
+            {"name": "Sales", "thread_id": 12, "skill": "sales-framework"},
+        ],
+    })
+
+    msg = _make_mock_message(
+        chat_id=-1001234567890,
+        chat_type=_ChatType.SUPERGROUP,
+        thread_id=12,
+        text="deal update",
+        is_topic_message=True,
+        is_forum=True,
+    )
+    event = adapter._build_message_event(msg, MessageType.TEXT)
+
+    assert event.auto_skill == "sales-framework"
+    assert event.source.chat_topic == "Sales"
+
+
+def test_group_topic_malformed_config_does_not_crash():
+    """Non-dict entries / non-list topics must be skipped, not raise AttributeError."""
+    from gateway.platforms.base import MessageType
+
+    # Junk list entries (str) are filtered out; a matching entry with a good
+    # topic still resolves; non-dict topic entries within it are skipped.
+    adapter = _make_adapter(group_topics_config=[
+        "not-a-dict",
+        {"chat_id": -1001234567890, "topics": ["also-not-a-dict",
+                                               {"name": "Good", "thread_id": 5}]},
+    ])
+
+    msg = _make_mock_message(
+        chat_id=-1001234567890,
+        chat_type=_ChatType.SUPERGROUP,
+        thread_id=5,
+        text="hi",
+        is_topic_message=True,
+        is_forum=True,
+    )
+    event = adapter._build_message_event(msg, MessageType.TEXT)
+
+    assert event.auto_skill is None
+    assert event.source.chat_topic == "Good"
+
+
+def test_group_topic_non_list_topics_does_not_crash():
+    """A matched entry whose topics is not a list must fall through, not raise."""
+    from gateway.platforms.base import MessageType
+
+    adapter = _make_adapter(group_topics_config=[
+        {"chat_id": -1001234567890, "topics": "oops-not-a-list"},
+    ])
+
+    msg = _make_mock_message(
+        chat_id=-1001234567890,
+        chat_type=_ChatType.SUPERGROUP,
+        thread_id=5,
+        text="hi",
+        is_topic_message=True,
+        is_forum=True,
+    )
+    event = adapter._build_message_event(msg, MessageType.TEXT)
+
+    assert event.auto_skill is None
+    assert event.source.chat_topic is None
+
+
+def test_group_topic_scalar_config_falls_through():
+    """A scalar (int/str) group_topics value must fall through cleanly, not raise."""
+    from gateway.platforms.base import MessageType
+
+    adapter = _make_adapter(group_topics_config=42)
+
+    msg = _make_mock_message(
+        chat_id=-1001234567890,
+        chat_type=_ChatType.SUPERGROUP,
+        thread_id=5,
+        text="hi",
+        is_topic_message=True,
+        is_forum=True,
+    )
+    event = adapter._build_message_event(msg, MessageType.TEXT)
+
+    assert event.auto_skill is None
+    assert event.source.chat_topic is None
 
 
 # ── _build_message_event: from_user=None fallback in DMs ──

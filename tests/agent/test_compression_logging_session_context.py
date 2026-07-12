@@ -2,8 +2,8 @@
 
 When ``compress_context`` rotates ``agent.session_id`` it updates the
 gateway/tools session context (``gateway.session_context.set_current_session_id``,
-which moves ``NYXO_SESSION_ID`` env + ContextVar). The ``[session_id]`` tag on
-log lines comes from a SEPARATE mechanism — ``nyxo_logging._session_context``
+which moves ``HERMES_SESSION_ID`` env + ContextVar). The ``[session_id]`` tag on
+log lines comes from a SEPARATE mechanism — ``flash_logging._session_context``
 (a threading.local read by the global LogRecord factory), set once per turn in
 ``conversation_loop.py``. Before the fix, the rotation block never updated it, so
 log lines emitted after a mid-turn compaction carried the STALE old id while the
@@ -17,8 +17,8 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import nyxo_logging
-from nyxo_state import SessionDB
+import flash_logging
+from flash_state import SessionDB
 
 
 def _build_agent_with_db(db: SessionDB, session_id: str):
@@ -50,6 +50,10 @@ def _build_agent_with_db(db: SessionDB, session_id: str):
     compressor._last_aux_model_failure_model = None
     compressor._last_aux_model_failure_error = None
     agent.context_compressor = compressor
+    # This test covers the ROTATION fallback (logging session-context follows
+    # the id rotation) — pin in_place=False so it keeps exercising rotation
+    # regardless of the global default (flipped to True in #38763).
+    agent.compression_in_place = False
     return agent
 
 
@@ -61,7 +65,7 @@ def test_logging_session_context_follows_compression_rotation(tmp_path: Path) ->
     agent = _build_agent_with_db(db, parent_sid)
 
     # conversation_loop.py pins the logging tag to the ORIGINAL id at turn start.
-    nyxo_logging.set_session_context(parent_sid)
+    flash_logging.set_session_context(parent_sid)
     try:
         messages = [{"role": "user", "content": f"m{i}"} for i in range(20)]
         agent._compress_context(messages, "sys", approx_tokens=120_000)
@@ -70,11 +74,11 @@ def test_logging_session_context_follows_compression_rotation(tmp_path: Path) ->
         assert agent.session_id != parent_sid
 
         # The logging context must now match the NEW id, not the stale one.
-        current = getattr(nyxo_logging._session_context, "session_id", None)
+        current = getattr(flash_logging._session_context, "session_id", None)
         assert current == agent.session_id, (
             "Logging session context did not follow the compaction rotation: "
             f"log tag still {current!r}, agent.session_id is {agent.session_id!r} "
             "(see #34089)."
         )
     finally:
-        nyxo_logging.clear_session_context()
+        flash_logging.clear_session_context()

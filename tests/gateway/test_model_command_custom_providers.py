@@ -27,9 +27,9 @@ def _make_event(text="/model"):
 
 @pytest.mark.asyncio
 async def test_handle_model_command_lists_saved_custom_provider(tmp_path, monkeypatch):
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "config.yaml").write_text(
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
         yaml.safe_dump(
             {
                 "model": {
@@ -52,7 +52,7 @@ async def test_handle_model_command_lists_saved_custom_provider(tmp_path, monkey
 
     import gateway.run as gateway_run
 
-    monkeypatch.setattr(gateway_run, "_nyxo_home", nyxo_home)
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
 
     result = await _make_runner()._handle_model_command(_make_event())
@@ -61,3 +61,48 @@ async def test_handle_model_command_lists_saved_custom_provider(tmp_path, monkey
     assert "Local (127.0.0.1:4141)" in result
     assert "custom:local-(127.0.0.1:4141)" in result
     assert "rotator-openrouter-coding" in result
+
+
+@pytest.mark.asyncio
+async def test_direct_model_switch_offloads_to_thread(tmp_path, monkeypatch):
+    """A direct `/model <name>` switch must route switch_model() through
+    asyncio.to_thread so the blocking models.dev HTTP fetch can't freeze the
+    gateway event loop (#20525)."""
+    import asyncio
+
+    from flash_cli.model_switch import ModelSwitchResult
+
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "config.yaml").write_text(
+        yaml.safe_dump(
+            {"model": {"default": "gpt-5.4", "provider": "openrouter"}}
+        ),
+        encoding="utf-8",
+    )
+
+    import gateway.run as gateway_run
+
+    monkeypatch.setattr(gateway_run, "_flash_home", flash_home)
+
+    # Fail the switch so the handler returns before _finish_switch (which needs
+    # full runner state) — we only care that the offload happened.
+    def _fake_switch(**kwargs):
+        return ModelSwitchResult(success=False, error_message="nope")
+
+    monkeypatch.setattr("flash_cli.model_switch.switch_model", _fake_switch)
+
+    offloaded = []
+    real_to_thread = asyncio.to_thread
+
+    async def _spy_to_thread(func, /, *args, **kwargs):
+        offloaded.append(getattr(func, "__name__", repr(func)))
+        return await real_to_thread(func, *args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "to_thread", _spy_to_thread)
+
+    result = await _make_runner()._handle_model_command(_make_event("/model gpt-5.4"))
+
+    # switch_model was offloaded to a worker thread, not run on the event loop.
+    assert "_fake_switch" in offloaded
+    assert result is not None and "nope" in result

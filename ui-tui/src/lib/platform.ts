@@ -88,7 +88,7 @@ export const DEFAULT_VOICE_RECORD_KEY: ParsedVoiceRecordKey = {
 /** Modifier aliases.
  *
  * ``meta`` / ``cmd`` / ``command`` are intentionally absent.
- * nyxo-ink sets ``key.meta`` for plain Alt/Option on every platform
+ * hermes-ink sets ``key.meta`` for plain Alt/Option on every platform
  * AND for Cmd on some legacy macOS terminals (Terminal.app without
  * kitty-protocol passthrough). Accepting any of those as a literal
  * modifier would produce a display/binding mismatch — a config like
@@ -102,7 +102,7 @@ export const DEFAULT_VOICE_RECORD_KEY: ParsedVoiceRecordKey = {
  *
  * Cross-runtime parity: the ``ctrl`` / ``control`` / ``alt`` / ``option`` /
  * ``opt`` spellings are normalized identically in the classic CLI
- * (``nyxo_cli/voice.py::normalize_voice_record_key_for_prompt_toolkit``)
+ * (``hermes_cli/voice.py::normalize_voice_record_key_for_prompt_toolkit``)
  * so one ``voice.record_key`` value binds the same shortcut in both
  * runtimes (Copilot round-9 review on #19835). The ``super`` /
  * ``win`` / ``windows`` spellings are TUI-only — prompt_toolkit has no
@@ -165,7 +165,7 @@ const _RESERVED_CTRL_CHARS = new Set(['c', 'd', 'l'])
 const _RESERVED_SUPER_CHARS = new Set(['c', 'd', 'l', 'v'])
 
 /** On macOS ``isActionMod`` accepts ``key.meta`` as the action
- * modifier — but nyxo-ink reports Alt as ``key.meta`` on many
+ * modifier — but hermes-ink reports Alt as ``key.meta`` on many
  * terminals. So on darwin a configured ``alt+c`` / ``alt+d`` / ``alt+l``
  * gets swallowed by ``isCopyShortcut`` / ``isAction`` before the voice
  * check runs. Block at parse time so /voice status doesn't advertise
@@ -189,22 +189,23 @@ interface RuntimeKeyEvent {
 /** Match an ink ``key`` event against a parsed named key. The ink runtime
  * sets one boolean per named key; ``space`` is a printable char so it
  * arrives as ``ch === ' '`` rather than a dedicated ``key.space`` flag. */
-const _matchesNamedKey = (
-  named: VoiceRecordKeyNamed,
-  key: RuntimeKeyEvent,
-  ch: string
-): boolean => {
+const _matchesNamedKey = (named: VoiceRecordKeyNamed, key: RuntimeKeyEvent, ch: string): boolean => {
   switch (named) {
     case 'backspace':
       return key.backspace === true
+
     case 'delete':
       return key.delete === true
+
     case 'enter':
       return key.return === true
+
     case 'escape':
       return key.escape === true
+
     case 'space':
       return ch === ' '
+
     case 'tab':
       return key.tab === true
   }
@@ -236,7 +237,10 @@ export const parseVoiceRecordKey = (raw: unknown): ParsedVoiceRecordKey => {
     return DEFAULT_VOICE_RECORD_KEY
   }
 
-  const parts = lower.split('+').map(p => p.trim()).filter(Boolean)
+  const parts = lower
+    .split('+')
+    .map(p => p.trim())
+    .filter(Boolean)
 
   if (!parts.length) {
     return DEFAULT_VOICE_RECORD_KEY
@@ -292,7 +296,7 @@ export const parseVoiceRecordKey = (raw: unknown): ParsedVoiceRecordKey => {
     return DEFAULT_VOICE_RECORD_KEY
   }
 
-  // On macOS nyxo-ink reports Alt as ``key.meta``, which ``isActionMod``
+  // On macOS hermes-ink reports Alt as ``key.meta``, which ``isActionMod``
   // accepts as the mac action modifier. So ``alt+c`` / ``alt+d`` / ``alt+l``
   // collide with copy / exit / clear in ``useInputHandlers()`` before the
   // voice check. Reject at parse time on darwin only — non-mac ``alt+<letter>``
@@ -325,11 +329,10 @@ export const parseVoiceRecordKey = (raw: unknown): ParsedVoiceRecordKey => {
 export const formatVoiceRecordKey = (parsed: ParsedVoiceRecordKey): string => {
   const modLabel =
     parsed.mod === 'super' ? (isMac ? 'Cmd' : 'Super') : parsed.mod[0].toUpperCase() + parsed.mod.slice(1)
+
   // Named tokens render in title case (Ctrl+Space, Ctrl+Enter); single
   // chars render upper-case to match the existing Ctrl+B convention.
-  const keyLabel = parsed.named
-    ? parsed.named[0].toUpperCase() + parsed.named.slice(1)
-    : parsed.ch.toUpperCase()
+  const keyLabel = parsed.named ? parsed.named[0].toUpperCase() + parsed.named.slice(1) : parsed.ch.toUpperCase()
 
   return `${modLabel}+${keyLabel}`
 }
@@ -377,11 +380,12 @@ export const isVoiceToggleKey = (
       // Ctrl+Alt+<key> or Cmd+Alt+<key> doesn't spuriously fire the
       // alt binding.
       //
-      // Bare Escape on nyxo-ink can arrive as ``key.meta=true`` on some
+      // Bare Escape on hermes-ink can arrive as ``key.meta=true`` on some
       // terminals, so a configured ``alt+escape`` must not match that shape;
       // require an explicit alt bit for escape chords (Copilot round-7
       // follow-up on #19835).
       return (key.alt === true || (key.meta && key.escape !== true)) && !key.ctrl && key.super !== true
+
     case 'ctrl':
       // Require the Ctrl bit AND a clear Alt/Super so a chord like
       // Ctrl+Alt+<key> / Ctrl+Cmd+<key> doesn't spuriously match
@@ -390,13 +394,14 @@ export const isVoiceToggleKey = (
       // The documented default (``ctrl+b``) additionally accepts the
       // explicit ``key.super`` bit on macOS for Cmd+B muscle memory —
       // but ONLY ``key.super`` (kitty-style), never ``key.meta``, since
-      // ``key.meta`` is nyxo-ink's Alt signal and accepting it would
+      // ``key.meta`` is hermes-ink's Alt signal and accepting it would
       // fire the binding on Alt+B.
       if (key.ctrl) {
         return !key.alt && !key.meta && key.super !== true
       }
 
       return _isDefaultVoiceKey(configured) && isMac && key.super === true && !key.alt && !key.meta
+
     case 'super':
       // Require the explicit ``key.super`` bit (kitty-style protocol)
       // AND clear Ctrl/Alt/Meta so Ctrl+Cmd+X or Alt+Cmd+X don't

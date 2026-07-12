@@ -120,6 +120,16 @@ class TestDefaults:
         assert status["threshold_tokens"] == 100000
         assert 0 < status["usage_percent"] <= 100
 
+    def test_default_get_status_clamps_post_compression_sentinel(self):
+        """After a compression, last_prompt_tokens is the -1 sentinel. get_status
+        must clamp it to 0 rather than export a raw -1 or a negative
+        usage_percent on the transitional turn."""
+        engine = StubEngine()
+        engine.last_prompt_tokens = -1
+        status = engine.get_status()
+        assert status["last_prompt_tokens"] == 0
+        assert status["usage_percent"] >= 0
+
     def test_on_session_reset(self):
         engine = StubEngine()
         engine.last_prompt_tokens = 999
@@ -206,7 +216,7 @@ class TestPluginContextEngineSlot:
     """Test register_context_engine on PluginContext."""
 
     def test_register_engine(self):
-        from nyxo_cli.plugins import PluginManager, PluginContext, PluginManifest
+        from flash_cli.plugins import PluginManager, PluginContext, PluginManifest
         mgr = PluginManager()
         manifest = PluginManifest(name="test-lcm")
         ctx = PluginContext(manifest, mgr)
@@ -218,7 +228,7 @@ class TestPluginContextEngineSlot:
         assert mgr._context_engine.name == "stub"
 
     def test_reject_second_engine(self):
-        from nyxo_cli.plugins import PluginManager, PluginContext, PluginManifest
+        from flash_cli.plugins import PluginManager, PluginContext, PluginManifest
         mgr = PluginManager()
         manifest = PluginManifest(name="test-lcm")
         ctx = PluginContext(manifest, mgr)
@@ -231,7 +241,7 @@ class TestPluginContextEngineSlot:
         assert mgr._context_engine is engine1
 
     def test_reject_non_engine(self):
-        from nyxo_cli.plugins import PluginManager, PluginContext, PluginManifest
+        from flash_cli.plugins import PluginManager, PluginContext, PluginManifest
         mgr = PluginManager()
         manifest = PluginManifest(name="test-bad")
         ctx = PluginContext(manifest, mgr)
@@ -240,8 +250,8 @@ class TestPluginContextEngineSlot:
         assert mgr._context_engine is None
 
     def test_get_plugin_context_engine(self):
-        from nyxo_cli.plugins import PluginManager, get_plugin_context_engine
-        import nyxo_cli.plugins as plugins_mod
+        from flash_cli.plugins import PluginManager, get_plugin_context_engine
+        import flash_cli.plugins as plugins_mod
 
         # Inject a test manager
         old_mgr = plugins_mod._plugin_manager
@@ -321,8 +331,8 @@ class TestInitAgentDoesNotMutatePluginSingleton:
     """
 
     def test_child_init_does_not_corrupt_parent_singleton(self, monkeypatch):
-        import nyxo_cli.plugins as plugins_mod
-        from nyxo_cli.plugins import PluginManager
+        import flash_cli.plugins as plugins_mod
+        from flash_cli.plugins import PluginManager
 
         # Register a "parent" engine as the global plugin singleton, sized for
         # a 1M-context model (DeepSeek-style), threshold 20% => 200K.
@@ -337,7 +347,7 @@ class TestInitAgentDoesNotMutatePluginSingleton:
             # singleton, deepcopy it, then mutate the copy via update_model with
             # a SMALLER child context (MiniMax-style 204800).
             import copy
-            from nyxo_cli.plugins import get_plugin_context_engine
+            from flash_cli.plugins import get_plugin_context_engine
 
             _candidate = get_plugin_context_engine()
             assert _candidate is singleton

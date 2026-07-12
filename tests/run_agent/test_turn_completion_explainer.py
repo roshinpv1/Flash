@@ -38,7 +38,7 @@ def _make_agent(max_iterations: int = 10, config: dict | None = None) -> AIAgent
     with (
         patch("run_agent.get_tool_definitions", return_value=[]),
         patch("run_agent.check_toolset_requirements", return_value={}),
-        patch("nyxo_cli.config.load_config", return_value=config or {}),
+        patch("flash_cli.config.load_config", return_value=config or {}),
         patch("run_agent.OpenAI"),
     ):
         agent = AIAgent(
@@ -112,15 +112,15 @@ def test_explanation_for_all_retries_exhausted():
 def test_explainer_enabled_by_default():
     agent = _make_agent()
     with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("NYXO_TURN_COMPLETION_EXPLAINER", None)
-        with patch("nyxo_cli.config.load_config", return_value={}):
+        os.environ.pop("HERMES_TURN_COMPLETION_EXPLAINER", None)
+        with patch("flash_cli.config.load_config", return_value={}):
             assert agent._turn_completion_explainer_enabled() is True
 
 
 def test_explainer_disabled_via_env():
     agent = _make_agent()
     with patch.dict(
-        os.environ, {"NYXO_TURN_COMPLETION_EXPLAINER": "0"}, clear=False
+        os.environ, {"HERMES_TURN_COMPLETION_EXPLAINER": "0"}, clear=False
     ):
         assert agent._turn_completion_explainer_enabled() is False
 
@@ -128,9 +128,9 @@ def test_explainer_disabled_via_env():
 def test_explainer_disabled_via_config():
     agent = _make_agent()
     with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("NYXO_TURN_COMPLETION_EXPLAINER", None)
+        os.environ.pop("HERMES_TURN_COMPLETION_EXPLAINER", None)
         with patch(
-            "nyxo_cli.config.load_config",
+            "flash_cli.config.load_config",
             return_value={"display": {"turn_completion_explainer": False}},
         ):
             assert agent._turn_completion_explainer_enabled() is False
@@ -160,6 +160,37 @@ def test_run_conversation_empty_exhausted_surfaces_explanation():
     assert result["final_response"] != "(empty)"
     assert result["final_response"].strip() != ""
     assert "No reply:" in result["final_response"]
+
+
+def test_run_conversation_partial_stream_recovery_surfaces_explanation():
+    """A long recovered partial stream still needs the visible footer.
+
+    Without this, the gateway marks the turn as previewed and suppresses
+    the final send, leaving messaging users with a fragment and no reason.
+    """
+    agent = _make_agent(max_iterations=10)
+    empty_stub = _mock_response(content=None, finish_reason="stop")
+    recovered = (
+        "I inspected the running gateway and found that the current turn "
+        "stopped after the provider stream timed out."
+    )
+
+    def _fake_api_call(_api_kwargs):
+        agent._current_streamed_assistant_text = recovered
+        return empty_stub
+
+    with (
+        patch.object(agent, "_interruptible_api_call", side_effect=_fake_api_call),
+        patch.object(agent, "_persist_session"),
+        patch.object(agent, "_save_trajectory"),
+        patch.object(agent, "_cleanup_task_resources"),
+    ):
+        result = agent.run_conversation("do something")
+
+    assert result["turn_exit_reason"] == "partial_stream_recovery"
+    assert result["final_response"].startswith(recovered)
+    assert "No reply:" in result["final_response"]
+    assert result["response_previewed"] is False
 
 
 def test_run_conversation_normal_reply_stays_quiet():

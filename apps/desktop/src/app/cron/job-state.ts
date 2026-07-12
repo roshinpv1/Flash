@@ -1,4 +1,4 @@
-import type { CronJob } from '@/types/nyxo'
+import type { CronJob } from '@/types/flash'
 
 // Status-pip color per cron job state. Single source for the sidebar section and
 // the Cron page so the two never drift. (Animation/size live at the call site.)

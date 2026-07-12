@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getNyxoConfigRecord, type NyxoConfigRecord, saveNyxoConfig } from '@/nyxo'
+import { getHermesConfigRecord, type HermesConfigRecord, saveHermesConfig } from '@/flash'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'
@@ -10,24 +10,24 @@ import type { Locale, Translations } from './types'
 export { LOCALE_META } from './languages'
 
 export interface I18nConfigClient {
-  getConfig: () => Promise<NyxoConfigRecord>
-  saveConfig: (config: NyxoConfigRecord) => Promise<{ ok: boolean }>
+  getConfig: () => Promise<HermesConfigRecord>
+  saveConfig: (config: HermesConfigRecord) => Promise<{ ok: boolean }>
 }
 
 const defaultConfigClient: I18nConfigClient = {
   getConfig: () => {
-    if (typeof window === 'undefined' || !window.nyxoDesktop?.api) {
+    if (typeof window === 'undefined' || !window.flashDesktop?.api) {
       return Promise.resolve({})
     }
 
-    return getNyxoConfigRecord()
+    return getHermesConfigRecord()
   },
   saveConfig: config => {
-    if (typeof window === 'undefined' || !window.nyxoDesktop?.api) {
+    if (typeof window === 'undefined' || !window.flashDesktop?.api) {
       return Promise.resolve({ ok: true })
     }
 
-    return saveNyxoConfig(config)
+    return saveHermesConfig(config)
   }
 }
 
@@ -35,11 +35,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export function getConfigDisplayLanguage(config: NyxoConfigRecord): unknown {
+export function getConfigDisplayLanguage(config: HermesConfigRecord): unknown {
   return isRecord(config.display) ? config.display.language : undefined
 }
 
-export function withConfigDisplayLanguage(config: NyxoConfigRecord, locale: Locale): NyxoConfigRecord {
+export function withConfigDisplayLanguage(config: HermesConfigRecord, locale: Locale): HermesConfigRecord {
   const display = isRecord(config.display) ? config.display : {}
 
   return {
@@ -71,7 +71,7 @@ const I18nContext = createContext<I18nContextValue>({
   isSavingLocale: false,
   locale: DEFAULT_LOCALE,
   saveError: null,
-  setLocale: async () => {},
+  setLocale: async () => { },
   t: TRANSLATIONS[DEFAULT_LOCALE]
 })
 

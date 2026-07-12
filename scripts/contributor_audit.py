@@ -41,24 +41,28 @@ IGNORED_PATTERNS = [
     re.compile(r"^Copilot$", re.IGNORECASE),
     re.compile(r"^Cursor(\s+Agent)?$", re.IGNORECASE),
     re.compile(r"^Codex$", re.IGNORECASE),
+    re.compile(r"^OpenAI Codex$", re.IGNORECASE),
+    re.compile(r"^CommandCode", re.IGNORECASE),
     re.compile(r"^github-advanced-security(\[bot\])?$", re.IGNORECASE),
     re.compile(r"^GitHub\s*Actions?$", re.IGNORECASE),
     re.compile(r"^github-actions(\[bot\])?$", re.IGNORECASE),
     re.compile(r"^dependabot", re.IGNORECASE),
     re.compile(r"^renovate", re.IGNORECASE),
-    re.compile(r"^Nyxo\s+(Agent|Audit)$", re.IGNORECASE),
+    re.compile(r"^Hermes\s+(Agent|Audit)$", re.IGNORECASE),
     re.compile(r"^Ubuntu$", re.IGNORECASE),
 ]
 
 IGNORED_EMAILS = {
     "noreply@anthropic.com",
     "noreply@github.com",
-    "noreply@nousresearch.com",
+    "noreply@flashorg.com",
     "cursoragent@cursor.com",
-    "nyxo@nousresearch.com",
-    "nyxo-audit@example.com",
-    "nyxo@habibilabs.dev",
+    "flash@flashorg.com",
+    "flash-audit@example.com",
+    "flash@habibilabs.dev",
     "omx@oh-my-codex.dev",
+    "codex@openai.com",
+    "noreply@commandcode.ai",
 }
 
 
@@ -100,7 +104,7 @@ def gh_pr_list():
         result = subprocess.run(
             [
                 "gh", "pr", "list",
-                "--repo", "NousResearch/nyxo-agent",
+                "--repo", "FlashOrg/flash-agent",
                 "--state", "merged",
                 "--json", "number,title,body,author,mergedAt",
                 "--limit", "300",

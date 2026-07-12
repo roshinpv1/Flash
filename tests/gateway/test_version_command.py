@@ -2,7 +2,7 @@
 
 import asyncio
 
-from nyxo_cli.banner import format_banner_version_label
+from flash_cli.banner import format_banner_version_label
 
 
 def test_gateway_version_command_returns_release_line():

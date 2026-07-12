@@ -12,7 +12,7 @@ import pytest
 import asyncio
 
 from tools.mcp_oauth import (
-    NyxoTokenStorage,
+    HermesTokenStorage,
     OAuthNonInteractiveError,
     build_oauth_auth,
     remove_oauth_tokens,
@@ -33,13 +33,13 @@ def _set_interactive_stdin(monkeypatch, *, is_tty: bool = True) -> None:
 
 
 # ---------------------------------------------------------------------------
-# NyxoTokenStorage
+# HermesTokenStorage
 # ---------------------------------------------------------------------------
 
-class TestNyxoTokenStorage:
+class TestHermesTokenStorage:
     def test_roundtrip_tokens(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("test-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("test-server")
 
         import asyncio
 
@@ -70,8 +70,8 @@ class TestNyxoTokenStorage:
         0o644 = world-readable) before tightening to owner-only. Mirrors
         the fix shipped for ``agent/google_oauth.py`` in #19673.
         """
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("perm-test-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("perm-test-server")
 
         import asyncio
         mock_token = MagicMock()
@@ -93,15 +93,15 @@ class TestNyxoTokenStorage:
         )
 
     def test_roundtrip_client_info(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("test-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("test-server")
         import asyncio
 
         assert asyncio.run(storage.get_client_info()) is None
 
         mock_client = MagicMock()
         mock_client.model_dump.return_value = {
-            "client_id": "nyxo-123",
+            "client_id": "hermes-123",
             "client_secret": "secret",
         }
         asyncio.run(storage.set_client_info(mock_client))
@@ -110,8 +110,8 @@ class TestNyxoTokenStorage:
         assert client_path.exists()
 
     def test_remove_cleans_up(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("test-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("test-server")
 
         # Create files
         d = tmp_path / "mcp-tokens"
@@ -124,8 +124,8 @@ class TestNyxoTokenStorage:
         assert not (d / "test-server.client.json").exists()
 
     def test_has_cached_tokens(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("my-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("my-server")
 
         assert not storage.has_cached_tokens()
 
@@ -136,8 +136,8 @@ class TestNyxoTokenStorage:
         assert storage.has_cached_tokens()
 
     def test_corrupt_tokens_returns_none(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("bad-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("bad-server")
 
         d = tmp_path / "mcp-tokens"
         d.mkdir(parents=True)
@@ -147,8 +147,8 @@ class TestNyxoTokenStorage:
         assert asyncio.run(storage.get_tokens()) is None
 
     def test_corrupt_client_info_returns_none(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("bad-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("bad-server")
 
         d = tmp_path / "mcp-tokens"
         d.mkdir(parents=True)
@@ -169,7 +169,7 @@ class TestBuildOAuthAuth:
         except ImportError:
             pytest.skip("MCP SDK auth not available")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _set_interactive_stdin(monkeypatch)
         auth = build_oauth_auth("test", "https://example.com/mcp")
         assert isinstance(auth, OAuthClientProvider)
@@ -186,7 +186,7 @@ class TestBuildOAuthAuth:
         except ImportError:
             pytest.skip("MCP SDK auth not available")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _set_interactive_stdin(monkeypatch)
         build_oauth_auth("slack", "https://slack.example.com/mcp", {
             "client_id": "my-app-id",
@@ -206,7 +206,7 @@ class TestBuildOAuthAuth:
         except ImportError:
             pytest.skip("MCP SDK auth not available")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _set_interactive_stdin(monkeypatch)
         provider = build_oauth_auth("scoped", "https://example.com/mcp", {
             "scope": "read write admin",
@@ -262,6 +262,7 @@ class TestRedirectHandlerSshHint:
     def test_ssh_hint_shown_on_ssh_session(self, monkeypatch, capsys):
         import tools.mcp_oauth as mco
         monkeypatch.setattr(mco, "_oauth_port", 49200)
+        monkeypatch.setattr(mco, "_is_interactive", lambda: True)
         monkeypatch.setenv("SSH_CLIENT", "1.2.3.4 1234 22")
         monkeypatch.delenv("SSH_TTY", raising=False)
         monkeypatch.setattr(mco, "_can_open_browser", lambda: False)
@@ -276,6 +277,7 @@ class TestRedirectHandlerSshHint:
     def test_ssh_hint_shown_via_ssh_tty(self, monkeypatch, capsys):
         import tools.mcp_oauth as mco
         monkeypatch.setattr(mco, "_oauth_port", 49201)
+        monkeypatch.setattr(mco, "_is_interactive", lambda: True)
         monkeypatch.delenv("SSH_CLIENT", raising=False)
         monkeypatch.setenv("SSH_TTY", "/dev/pts/1")
         monkeypatch.setattr(mco, "_can_open_browser", lambda: False)
@@ -289,6 +291,7 @@ class TestRedirectHandlerSshHint:
     def test_no_ssh_hint_on_local_session(self, monkeypatch, capsys):
         import tools.mcp_oauth as mco
         monkeypatch.setattr(mco, "_oauth_port", 49202)
+        monkeypatch.setattr(mco, "_is_interactive", lambda: True)
         monkeypatch.delenv("SSH_CLIENT", raising=False)
         monkeypatch.delenv("SSH_TTY", raising=False)
         monkeypatch.setattr(mco, "_can_open_browser", lambda: True)
@@ -302,6 +305,7 @@ class TestRedirectHandlerSshHint:
     def test_no_ssh_hint_when_port_not_set(self, monkeypatch, capsys):
         import tools.mcp_oauth as mco
         monkeypatch.setattr(mco, "_oauth_port", None)
+        monkeypatch.setattr(mco, "_is_interactive", lambda: True)
         monkeypatch.setenv("SSH_CLIENT", "1.2.3.4 1234 22")
         monkeypatch.setattr(mco, "_can_open_browser", lambda: False)
 
@@ -319,28 +323,28 @@ class TestPathTraversal:
     """Verify server_name is sanitized to prevent path traversal."""
 
     def test_path_traversal_blocked(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("../../.ssh/config")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("../../.ssh/config")
         path = storage._tokens_path()
         # Should stay within mcp-tokens directory
         assert "mcp-tokens" in str(path)
         assert ".ssh" not in str(path.resolve())
 
     def test_dots_and_slashes_sanitized(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("../../../etc/passwd")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("../../../etc/passwd")
         path = storage._tokens_path()
         resolved = path.resolve()
         assert resolved.is_relative_to((tmp_path / "mcp-tokens").resolve())
 
     def test_normal_name_unchanged(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("my-mcp-server")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("my-mcp-server")
         assert "my-mcp-server.json" in str(storage._tokens_path())
 
     def test_special_chars_sanitized(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
-        storage = NyxoTokenStorage("server@host:8080/path")
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("server@host:8080/path")
         path = storage._tokens_path()
         assert "@" not in path.name
         assert ":" not in path.name
@@ -411,7 +415,7 @@ class TestOAuthPortSharing:
         except ImportError:
             pytest.skip("MCP SDK auth not available")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         _set_interactive_stdin(monkeypatch)
         build_oauth_auth("test-port", "https://example.com/mcp")
         assert mod._oauth_port is not None
@@ -425,7 +429,7 @@ class TestOAuthPortSharing:
 
 class TestRemoveOAuthTokens:
     def test_removes_files(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         d = tmp_path / "mcp-tokens"
         d.mkdir()
         (d / "myserver.json").write_text("{}")
@@ -437,7 +441,7 @@ class TestRemoveOAuthTokens:
         assert not (d / "myserver.client.json").exists()
 
     def test_no_error_when_files_missing(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         remove_oauth_tokens("nonexistent")  # should not raise
 
 
@@ -466,16 +470,80 @@ class TestIsInteractive:
         monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
         assert _is_interactive() is False
 
+    def test_suppress_interactive_oauth_disables_stdin_prompts(self, monkeypatch):
+        import tools.mcp_oauth as mod
+
+        mock_stdin = MagicMock()
+        mock_stdin.isatty.return_value = True
+        monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
+
+        assert _is_interactive() is True
+        with mod.suppress_interactive_oauth():
+            assert _is_interactive() is False
+        assert _is_interactive() is True
+
+    def test_suppression_propagates_across_run_coroutine_threadsafe(self, monkeypatch):
+        """#35927 core: suppression set on the discovery thread MUST reach the
+        coroutine asyncio runs on a *different* (event-loop) thread — that is
+        where the OAuth callback / _is_interactive() actually executes via
+        run_coroutine_threadsafe. A threading.local would NOT propagate here
+        (the original fix's defect); a ContextVar does."""
+        import asyncio
+        import threading
+        import tools.mcp_oauth as mod
+
+        mock_stdin = MagicMock()
+        mock_stdin.isatty.return_value = True
+        monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
+
+        loop = asyncio.new_event_loop()
+        loop_thread = threading.Thread(target=loop.run_forever, daemon=True)
+        loop_thread.start()
+        result = {}
+        try:
+            async def _probe_on_loop_thread():
+                # runs on the loop thread, NOT the one that set suppression
+                return (threading.current_thread() is not discovery_thread,
+                        _is_interactive())
+
+            discovery_thread = None
+
+            def _discovery():
+                nonlocal discovery_thread
+                discovery_thread = threading.current_thread()
+                with mod.suppress_interactive_oauth():
+                    fut = asyncio.run_coroutine_threadsafe(
+                        _probe_on_loop_thread(), loop
+                    )
+                    result["cross_thread"], result["interactive"] = fut.result(timeout=5)
+
+            dt = threading.Thread(target=_discovery)
+            dt.start()
+            dt.join()
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+
+        assert result["cross_thread"] is True, "probe must run on the loop thread"
+        # The whole point: suppression must hold on the loop thread.
+        assert result["interactive"] is False
+
 
 class TestWaitForCallbackNoBlocking:
     """_wait_for_callback() must never call input() — it raises instead."""
 
-    def test_raises_on_timeout_instead_of_input(self):
-        """When no auth code arrives, raises OAuthNonInteractiveError."""
+    def test_raises_on_timeout_instead_of_input(self, monkeypatch):
+        """Interactive session: when no auth code arrives, raises on timeout.
+
+        Marked interactive so the fail-fast non-interactive guard (#57836)
+        does not short-circuit — this test exercises the timeout path.
+        """
         import tools.mcp_oauth as mod
         import asyncio
 
         mod._oauth_port = _find_free_port()
+        monkeypatch.setattr(mod, "_is_interactive", lambda: True)
+        # EOF on the paste reader so only the HTTP-listener timeout drives it.
+        monkeypatch.setattr("sys.stdin", MagicMock(readline=lambda: ""))
 
         async def instant_sleep(_seconds):
             pass
@@ -493,7 +561,7 @@ class TestBuildOAuthAuthNonInteractive:
         """Without cached tokens, non-interactive mode skips browser auth."""
         pytest.importorskip("mcp.client.auth")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         mock_stdin = MagicMock()
         mock_stdin.isatty.return_value = False
         monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
@@ -505,7 +573,7 @@ class TestBuildOAuthAuthNonInteractive:
         """With cached tokens, non-interactive mode logs no 'no cached tokens' warning."""
         pytest.importorskip("mcp.client.auth")
 
-        monkeypatch.setenv("NYXO_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         mock_stdin = MagicMock()
         mock_stdin.isatty.return_value = False
         monkeypatch.setattr("tools.mcp_oauth.sys.stdin", mock_stdin)
@@ -524,6 +592,116 @@ class TestBuildOAuthAuthNonInteractive:
 
         assert auth is not None
         assert "no cached tokens found" not in caplog.text.lower()
+
+
+class TestNonInteractiveFailFastAtCallbackBoundary:
+    """#57836: a cached-but-unusable token (expired/revoked, refresh rejected)
+    makes the MCP SDK fall through to the authorization-code flow even though
+    build_oauth_auth's token-file guard passed. In a non-interactive context
+    (systemd gateway, cron, background discovery) that flow must fail fast at
+    the redirect/callback boundary — never launch a browser flow or bind a
+    callback listener, and never block for the full timeout — so gateway
+    startup is not gated on an unusable optional MCP server, and retries do not
+    collide on the callback port ('Address already in use').
+    """
+
+    def test_wait_for_callback_rejects_before_binding_when_noninteractive(self, monkeypatch):
+        """No listener bound and no poll loop entered when non-interactive."""
+        import tools.mcp_oauth as mod
+        import asyncio
+
+        mod._oauth_port = _find_free_port()
+        monkeypatch.setattr(mod, "_is_interactive", lambda: False)
+
+        # Binding the callback listener or entering the poll loop is the bug.
+        fake_server = MagicMock(side_effect=AssertionError("must not bind callback listener"))
+        monkeypatch.setattr(mod, "HTTPServer", fake_server)
+
+        async def no_sleep(_seconds):
+            raise AssertionError("must not wait for the callback timeout")
+        monkeypatch.setattr(mod.asyncio, "sleep", no_sleep)
+
+        with pytest.raises(OAuthNonInteractiveError, match="interactive session"):
+            asyncio.run(mod._wait_for_callback())
+        fake_server.assert_not_called()
+
+    def test_wait_for_callback_fail_fast_holds_even_with_cached_token_file(self, tmp_path, monkeypatch):
+        """Guard does not depend on token-file existence.
+
+        A stale token file on disk passes build_oauth_auth's guard, so the
+        callback boundary is the only place that can reject the flow.
+        """
+        import tools.mcp_oauth as mod
+        import asyncio
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        d = tmp_path / "mcp-tokens"
+        d.mkdir(parents=True)
+        (d / "example.json").write_text(
+            json.dumps({"access_token": "stale", "token_type": "Bearer"})
+        )
+
+        mod._oauth_port = _find_free_port()
+        monkeypatch.setattr(mod, "_is_interactive", lambda: False)
+        monkeypatch.setattr(
+            mod, "HTTPServer", MagicMock(side_effect=AssertionError("must not bind"))
+        )
+
+        with pytest.raises(OAuthNonInteractiveError):
+            asyncio.run(mod._wait_for_callback())
+
+    def test_redirect_handler_rejects_and_does_not_open_browser(self, monkeypatch, capsys):
+        """Non-interactive redirect must not print an auth URL or open a browser."""
+        import tools.mcp_oauth as mod
+        import asyncio
+
+        monkeypatch.setattr(mod, "_is_interactive", lambda: False)
+        monkeypatch.setattr(
+            "webbrowser.open", MagicMock(side_effect=AssertionError("must not open browser"))
+        )
+
+        with pytest.raises(OAuthNonInteractiveError, match="browser authorization"):
+            asyncio.run(mod._redirect_handler("https://idp.example.com/authorize?x=1"))
+
+        err = capsys.readouterr().err
+        assert "https://idp.example.com/authorize" not in err
+
+    def test_boundary_errors_point_at_hermes_mcp_login(self, monkeypatch):
+        """Both boundaries emit an actionable next step."""
+        import tools.mcp_oauth as mod
+        import asyncio
+
+        monkeypatch.setattr(mod, "_is_interactive", lambda: False)
+        with pytest.raises(OAuthNonInteractiveError, match="hermes mcp login"):
+            asyncio.run(mod._redirect_handler("https://idp.example.com/authorize"))
+
+        mod._oauth_port = _find_free_port()
+        with pytest.raises(OAuthNonInteractiveError, match="hermes mcp login"):
+            asyncio.run(mod._wait_for_callback())
+
+    def test_guard_does_not_fire_on_interactive_redirect(self, monkeypatch, capsys):
+        """Positive control: the fail-fast guard is scoped to the auth-code path.
+
+        #57836 regression coverage asks that valid/refreshable OAuth keeps
+        working non-interactively — a good token never reaches these handlers,
+        so the guard must be inert once a real flow is in progress. Assert the
+        interactive path still prints the URL and does not raise, proving the
+        guard does not over-fire and swallow legitimate authorization.
+        """
+        import tools.mcp_oauth as mod
+        import asyncio
+
+        monkeypatch.setattr(mod, "_is_interactive", lambda: True)
+        # Local (non-SSH) interactive session with no browser available, so the
+        # handler falls through to the manual-URL print without opening a tab.
+        monkeypatch.delenv("SSH_CLIENT", raising=False)
+        monkeypatch.delenv("SSH_TTY", raising=False)
+        monkeypatch.setattr(mod, "_can_open_browser", lambda: False)
+
+        asyncio.run(mod._redirect_handler("https://idp.example.com/authorize?x=9"))
+
+        err = capsys.readouterr().err
+        assert "https://idp.example.com/authorize?x=9" in err
 
 
 # ---------------------------------------------------------------------------
@@ -595,7 +773,7 @@ def test_build_oauth_auth_preserves_server_url_path():
     breaking RFC 9728 protected-resource validation against servers whose PRM
     advertises a path-scoped resource (Notion). The MCP SDK strips the path
     itself for authorization-server discovery via
-    ``OAuthContext.get_authorization_base_url``; Nyxo must not pre-strip.
+    ``OAuthContext.get_authorization_base_url``; Hermes must not pre-strip.
     """
     from tools import mcp_oauth
 
@@ -609,7 +787,7 @@ def test_build_oauth_auth_preserves_server_url_path():
          patch.object(mcp_oauth, "OAuthClientProvider", _FakeProvider), \
          patch.object(mcp_oauth, "_is_interactive", return_value=True), \
          patch.object(mcp_oauth, "_maybe_preregister_client"), \
-         patch.object(mcp_oauth, "NyxoTokenStorage") as mock_storage_cls:
+         patch.object(mcp_oauth, "HermesTokenStorage") as mock_storage_cls:
         mock_storage_cls.return_value = MagicMock(has_cached_tokens=lambda: True)
         build_oauth_auth(
             server_name="notion",
@@ -753,6 +931,26 @@ class TestWaitForCallbackPasteIntegration:
         err = capsys.readouterr().err
         assert "paste the redirect URL" not in err
 
+    def test_paste_prompt_NOT_shown_when_interactivity_suppressed(self, monkeypatch, capsys):
+        """Background MCP discovery must not race the CLI/TUI stdin reader."""
+        import tools.mcp_oauth as mod
+
+        mod._oauth_port = _find_free_port()
+        mock_stdin = MagicMock()
+        mock_stdin.isatty.return_value = True
+        monkeypatch.setattr(mod.sys, "stdin", mock_stdin)
+
+        async def instant_sleep(_):
+            pass
+
+        with patch.object(mod.asyncio, "sleep", instant_sleep):
+            with mod.suppress_interactive_oauth():
+                with pytest.raises(OAuthNonInteractiveError):
+                    asyncio.run(_wait_for_callback())
+        err = capsys.readouterr().err
+        assert "paste the redirect URL" not in err
+        mock_stdin.readline.assert_not_called()
+
 
 class TestPasteCallbackSkipToken:
     """User can type `skip` (or similar) at the paste prompt to bail out."""
@@ -775,7 +973,7 @@ class TestPasteCallbackSkipToken:
         _paste_callback_reader(result)
         err = capsys.readouterr().err
         assert "OAuth skipped" in err
-        assert "nyxo mcp login" in err
+        assert "hermes mcp login" in err
 
     def test_skip_does_not_overwrite_http_winner(self, monkeypatch):
         """If HTTP listener already wrote a code, `skip` must not stomp it."""
@@ -827,3 +1025,34 @@ class TestWaitForCallbackSkipIntegration:
                 asyncio.run(_wait_for_callback())
         err = capsys.readouterr().err
         assert "skip" in err.lower()
+
+
+# ---------------------------------------------------------------------------
+# poison_client_registration (GH#36767)
+# ---------------------------------------------------------------------------
+
+class TestPoisonClientRegistration:
+    def test_poison_backs_up_and_removes_client_and_meta(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("srv")
+        d = tmp_path / "mcp-tokens"
+        d.mkdir(parents=True)
+        (d / "srv.json").write_text('{"access_token": "keep-me"}')
+        (d / "srv.client.json").write_text('{"client_id": "dead"}')
+        (d / "srv.meta.json").write_text('{"token_endpoint": "https://idp/token"}')
+
+        removed = storage.poison_client_registration()
+
+        assert removed is True
+        # Client + metadata gone, forcing re-registration on the next flow.
+        assert not (d / "srv.client.json").exists()
+        assert not (d / "srv.meta.json").exists()
+        # Backup of the client file kept for recovery.
+        assert (d / "srv.client.json.bak").read_text() == '{"client_id": "dead"}'
+        # Tokens are intentionally preserved.
+        assert (d / "srv.json").read_text() == '{"access_token": "keep-me"}'
+
+    def test_poison_noop_when_no_client_file(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        storage = HermesTokenStorage("srv")
+        assert storage.poison_client_registration() is False

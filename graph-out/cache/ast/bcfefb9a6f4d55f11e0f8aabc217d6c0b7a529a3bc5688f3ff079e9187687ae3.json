@@ -1,0 +1,1215 @@
+{
+    "nodes": [
+        {
+            "id": "users_roshinpv_documents_my_projects_flash_contributing_md",
+            "label": "CONTRIBUTING.md",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L1"
+        },
+        {
+            "id": "flash_contributing_contributing_to_hermes_agent",
+            "label": "Contributing to Hermes Agent",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L1"
+        },
+        {
+            "id": "flash_contributing_contribution_priorities",
+            "label": "Contribution Priorities",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L7"
+        },
+        {
+            "id": "flash_contributing_before_you_start_search_first",
+            "label": "Before You Start: Search First",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L21"
+        },
+        {
+            "id": "flash_contributing_codeblock_1",
+            "label": "code:bash (gh search issues --repo FlashOrg/hermes-agent \"<your terms>\")",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L26"
+        },
+        {
+            "id": "flash_contributing_should_it_be_a_skill_or_a_tool",
+            "label": "Should it be a Skill or a Tool?",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L39"
+        },
+        {
+            "id": "flash_contributing_make_it_a_skill_when",
+            "label": "Make it a Skill when:",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L43"
+        },
+        {
+            "id": "flash_contributing_make_it_a_tool_when",
+            "label": "Make it a Tool when:",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L50"
+        },
+        {
+            "id": "flash_contributing_should_the_skill_be_bundled",
+            "label": "Should the Skill be bundled?",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L57"
+        },
+        {
+            "id": "flash_contributing_memory_providers_ship_as_a_standalone_plugin",
+            "label": "Memory Providers: Ship as a Standalone Plugin",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L70"
+        },
+        {
+            "id": "flash_contributing_third_party_product_integrations_ship_as_a_standalone_plugin",
+            "label": "Third-Party Product Integrations: Ship as a Standalone Plugin",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L88"
+        },
+        {
+            "id": "flash_contributing_development_setup",
+            "label": "Development Setup",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L105"
+        },
+        {
+            "id": "flash_contributing_prerequisites",
+            "label": "Prerequisites",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L107"
+        },
+        {
+            "id": "flash_contributing_install_with_the_standard_installer",
+            "label": "Install with the standard installer",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L116"
+        },
+        {
+            "id": "flash_contributing_codeblock_2",
+            "label": "code:bash (curl -fsSL https://hermes-agent.flashorg.com/install.sh )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L126"
+        },
+        {
+            "id": "flash_contributing_codeblock_3",
+            "label": "code:bash (git checkout -b fix/description)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L139"
+        },
+        {
+            "id": "flash_contributing_manual_clone_fallback",
+            "label": "Manual clone fallback",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L144"
+        },
+        {
+            "id": "flash_contributing_codeblock_4",
+            "label": "code:bash (git clone https://github.com/FlashOrg/hermes-agent.git)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L158"
+        },
+        {
+            "id": "flash_contributing_configure_for_development",
+            "label": "Configure for development",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L174"
+        },
+        {
+            "id": "flash_contributing_codeblock_5",
+            "label": "code:bash (mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills})",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L176"
+        },
+        {
+            "id": "flash_contributing_run",
+            "label": "Run",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L185"
+        },
+        {
+            "id": "flash_contributing_codeblock_6",
+            "label": "code:bash (# The standard installer already put `hermes` on PATH.)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L187"
+        },
+        {
+            "id": "flash_contributing_codeblock_7",
+            "label": "code:bash (mkdir -p ~/.local/bin)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L196"
+        },
+        {
+            "id": "flash_contributing_run_tests",
+            "label": "Run tests",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L201"
+        },
+        {
+            "id": "flash_contributing_codeblock_8",
+            "label": "code:bash (# Preferred \u2014 matches CI (hermetic env, 4 xdist workers); se)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L203"
+        },
+        {
+            "id": "flash_contributing_project_structure",
+            "label": "Project Structure",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L214"
+        },
+        {
+            "id": "flash_contributing_codeblock_9",
+            "label": "code:block9 (hermes-agent/)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L216"
+        },
+        {
+            "id": "flash_contributing_user_configuration_stored_in_hermes",
+            "label": "User configuration (stored in `~/.hermes/`)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L283"
+        },
+        {
+            "id": "flash_contributing_architecture_overview",
+            "label": "Architecture Overview",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L299"
+        },
+        {
+            "id": "flash_contributing_core_loop",
+            "label": "Core Loop",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L301"
+        },
+        {
+            "id": "flash_contributing_codeblock_10",
+            "label": "code:block10 (User message \u2192 AIAgent._run_agent_loop())",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L303"
+        },
+        {
+            "id": "flash_contributing_key_design_patterns",
+            "label": "Key Design Patterns",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L318"
+        },
+        {
+            "id": "flash_contributing_code_style",
+            "label": "Code Style",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L329"
+        },
+        {
+            "id": "flash_contributing_adding_a_new_tool",
+            "label": "Adding a New Tool",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L338"
+        },
+        {
+            "id": "flash_contributing_codeblock_11",
+            "label": "code:python (\"\"\"my_tool \u2014 Brief description of what this tool does.\"\"\")",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L344"
+        },
+        {
+            "id": "flash_contributing_adding_a_skill",
+            "label": "Adding a Skill",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L403"
+        },
+        {
+            "id": "flash_contributing_codeblock_12",
+            "label": "code:block12 (skills/)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L407"
+        },
+        {
+            "id": "flash_contributing_skill_md_format",
+            "label": "SKILL.md format",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L422"
+        },
+        {
+            "id": "flash_contributing_codeblock_13",
+            "label": "code:markdown (---)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L424"
+        },
+        {
+            "id": "flash_contributing_platform_specific_skills",
+            "label": "Platform-specific skills",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L476"
+        },
+        {
+            "id": "flash_contributing_codeblock_14",
+            "label": "code:yaml (platforms: [macos]            # macOS only (e.g., iMessage, )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L480"
+        },
+        {
+            "id": "flash_contributing_conditional_skill_activation",
+            "label": "Conditional skill activation",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L488"
+        },
+        {
+            "id": "flash_contributing_codeblock_15",
+            "label": "code:yaml (metadata:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L494"
+        },
+        {
+            "id": "flash_contributing_codeblock_16",
+            "label": "code:yaml (# DuckDuckGo search \u2014 shown when Firecrawl (web toolset) is )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L511"
+        },
+        {
+            "id": "flash_contributing_skill_setup_metadata",
+            "label": "Skill setup metadata",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L530"
+        },
+        {
+            "id": "flash_contributing_codeblock_17",
+            "label": "code:yaml (required_environment_variables:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L534"
+        },
+        {
+            "id": "flash_contributing_codeblock_18",
+            "label": "code:yaml (prerequisites:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L546"
+        },
+        {
+            "id": "flash_contributing_skill_authoring_standards_hardline",
+            "label": "Skill authoring standards (HARDLINE)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L564"
+        },
+        {
+            "id": "flash_contributing_codeblock_19",
+            "label": "code:python (import re, pathlib)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L569"
+        },
+        {
+            "id": "flash_contributing_skill_guidelines",
+            "label": "Skill guidelines",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L616"
+        },
+        {
+            "id": "flash_contributing_adding_a_skin_theme",
+            "label": "Adding a Skin / Theme",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L625"
+        },
+        {
+            "id": "flash_contributing_codeblock_20",
+            "label": "code:yaml (name: mytheme)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L633"
+        },
+        {
+            "id": "flash_contributing_cross_platform_compatibility",
+            "label": "Cross-Platform Compatibility",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L675"
+        },
+        {
+            "id": "flash_contributing_critical_rules",
+            "label": "Critical rules",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L684"
+        },
+        {
+            "id": "flash_contributing_codeblock_21",
+            "label": "code:python (import psutil)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L698"
+        },
+        {
+            "id": "flash_contributing_codeblock_22",
+            "label": "code:python (try:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L728"
+        },
+        {
+            "id": "flash_contributing_codeblock_23",
+            "label": "code:python (try:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L742"
+        },
+        {
+            "id": "flash_contributing_codeblock_24",
+            "label": "code:python (if platform.system() != \"Windows\":)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L755"
+        },
+        {
+            "id": "flash_contributing_codeblock_25",
+            "label": "code:python (import psutil)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L764"
+        },
+        {
+            "id": "flash_contributing_testing_cross_platform",
+            "label": "Testing cross-platform",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L846"
+        },
+        {
+            "id": "flash_contributing_security_considerations",
+            "label": "Security Considerations",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L863"
+        },
+        {
+            "id": "flash_contributing_existing_protections",
+            "label": "Existing protections",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L867"
+        },
+        {
+            "id": "flash_contributing_when_contributing_security_sensitive_code",
+            "label": "When contributing security-sensitive code",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L879"
+        },
+        {
+            "id": "flash_contributing_dependency_pinning_policy_supply_chain_hardening",
+            "label": "Dependency pinning policy (supply chain hardening)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L889"
+        },
+        {
+            "id": "flash_contributing_codeblock_26",
+            "label": "code:toml (# \u2705 Correct \u2014 post-1.0)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L908"
+        },
+        {
+            "id": "flash_contributing_pull_request_process",
+            "label": "Pull Request Process",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L932"
+        },
+        {
+            "id": "flash_contributing_branch_naming",
+            "label": "Branch naming",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L934"
+        },
+        {
+            "id": "flash_contributing_codeblock_27",
+            "label": "code:block27 (fix/description        # Bug fixes)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L936"
+        },
+        {
+            "id": "flash_contributing_before_submitting",
+            "label": "Before submitting",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L944"
+        },
+        {
+            "id": "flash_contributing_pr_description",
+            "label": "PR description",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L951"
+        },
+        {
+            "id": "flash_contributing_commit_messages",
+            "label": "Commit messages",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L959"
+        },
+        {
+            "id": "flash_contributing_codeblock_28",
+            "label": "code:block28 (<type>(<scope>): <description>)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L963"
+        },
+        {
+            "id": "flash_contributing_codeblock_29",
+            "label": "code:block29 (fix(cli): prevent crash in save_config_value when model is a)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L979"
+        },
+        {
+            "id": "flash_contributing_reporting_issues",
+            "label": "Reporting Issues",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L988"
+        },
+        {
+            "id": "flash_contributing_community",
+            "label": "Community",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L998"
+        },
+        {
+            "id": "flash_contributing_license",
+            "label": "License",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L1006"
+        }
+    ],
+    "edges": [
+        {
+            "source": "users_roshinpv_documents_my_projects_flash_contributing_md",
+            "target": "flash_contributing_contributing_to_hermes_agent",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L1",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_contribution_priorities",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L7",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_before_you_start_search_first",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L21",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_before_you_start_search_first",
+            "target": "flash_contributing_codeblock_1",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L26",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_should_it_be_a_skill_or_a_tool",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L39",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_should_it_be_a_skill_or_a_tool",
+            "target": "flash_contributing_make_it_a_skill_when",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L43",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_should_it_be_a_skill_or_a_tool",
+            "target": "flash_contributing_make_it_a_tool_when",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L50",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_should_it_be_a_skill_or_a_tool",
+            "target": "flash_contributing_should_the_skill_be_bundled",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L57",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_memory_providers_ship_as_a_standalone_plugin",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L70",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_third_party_product_integrations_ship_as_a_standalone_plugin",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L88",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_development_setup",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L105",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_prerequisites",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L107",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_install_with_the_standard_installer",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L116",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_install_with_the_standard_installer",
+            "target": "flash_contributing_codeblock_2",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L126",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_install_with_the_standard_installer",
+            "target": "flash_contributing_codeblock_3",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L139",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_manual_clone_fallback",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L144",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_manual_clone_fallback",
+            "target": "flash_contributing_codeblock_4",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L158",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_configure_for_development",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L174",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_configure_for_development",
+            "target": "flash_contributing_codeblock_5",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L176",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_run",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L185",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_run",
+            "target": "flash_contributing_codeblock_6",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L187",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_run",
+            "target": "flash_contributing_codeblock_7",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L196",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_development_setup",
+            "target": "flash_contributing_run_tests",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L201",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_run_tests",
+            "target": "flash_contributing_codeblock_8",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L203",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_project_structure",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L214",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_project_structure",
+            "target": "flash_contributing_codeblock_9",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L216",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_project_structure",
+            "target": "flash_contributing_user_configuration_stored_in_hermes",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L283",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_architecture_overview",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L299",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_architecture_overview",
+            "target": "flash_contributing_core_loop",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L301",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_core_loop",
+            "target": "flash_contributing_codeblock_10",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L303",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_architecture_overview",
+            "target": "flash_contributing_key_design_patterns",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L318",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_code_style",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L329",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_adding_a_new_tool",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L338",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_new_tool",
+            "target": "flash_contributing_codeblock_11",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L344",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_adding_a_skill",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L403",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_codeblock_12",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L407",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_skill_md_format",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L422",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_skill_md_format",
+            "target": "flash_contributing_codeblock_13",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L424",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_platform_specific_skills",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L476",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_platform_specific_skills",
+            "target": "flash_contributing_codeblock_14",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L480",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_conditional_skill_activation",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L488",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_conditional_skill_activation",
+            "target": "flash_contributing_codeblock_15",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L494",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_conditional_skill_activation",
+            "target": "flash_contributing_codeblock_16",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L511",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_skill_setup_metadata",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L530",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_skill_setup_metadata",
+            "target": "flash_contributing_codeblock_17",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L534",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_skill_setup_metadata",
+            "target": "flash_contributing_codeblock_18",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L546",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_skill_authoring_standards_hardline",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L564",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_skill_authoring_standards_hardline",
+            "target": "flash_contributing_codeblock_19",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L569",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skill",
+            "target": "flash_contributing_skill_guidelines",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L616",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_adding_a_skin_theme",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L625",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_adding_a_skin_theme",
+            "target": "flash_contributing_codeblock_20",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L633",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_cross_platform_compatibility",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L675",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_cross_platform_compatibility",
+            "target": "flash_contributing_critical_rules",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L684",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_critical_rules",
+            "target": "flash_contributing_codeblock_21",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L698",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_critical_rules",
+            "target": "flash_contributing_codeblock_22",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L728",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_critical_rules",
+            "target": "flash_contributing_codeblock_23",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L742",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_critical_rules",
+            "target": "flash_contributing_codeblock_24",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L755",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_critical_rules",
+            "target": "flash_contributing_codeblock_25",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L764",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_cross_platform_compatibility",
+            "target": "flash_contributing_testing_cross_platform",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L846",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_security_considerations",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L863",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_security_considerations",
+            "target": "flash_contributing_existing_protections",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L867",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_security_considerations",
+            "target": "flash_contributing_when_contributing_security_sensitive_code",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L879",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_security_considerations",
+            "target": "flash_contributing_dependency_pinning_policy_supply_chain_hardening",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L889",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_dependency_pinning_policy_supply_chain_hardening",
+            "target": "flash_contributing_codeblock_26",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L908",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_pull_request_process",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L932",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_pull_request_process",
+            "target": "flash_contributing_branch_naming",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L934",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_branch_naming",
+            "target": "flash_contributing_codeblock_27",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L936",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_pull_request_process",
+            "target": "flash_contributing_before_submitting",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L944",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_pull_request_process",
+            "target": "flash_contributing_pr_description",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L951",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_pull_request_process",
+            "target": "flash_contributing_commit_messages",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L959",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_commit_messages",
+            "target": "flash_contributing_codeblock_28",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L963",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_commit_messages",
+            "target": "flash_contributing_codeblock_29",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L979",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_reporting_issues",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L988",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_community",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L998",
+            "weight": 1.0
+        },
+        {
+            "source": "flash_contributing_contributing_to_hermes_agent",
+            "target": "flash_contributing_license",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/CONTRIBUTING.md",
+            "source_location": "L1006",
+            "weight": 1.0
+        }
+    ],
+    "input_tokens": 0,
+    "output_tokens": 0
+}

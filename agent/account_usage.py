@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any, Optional
 import httpx
 
 from agent.anthropic_adapter import _is_oauth_token, resolve_anthropic_token
-from nyxo_cli.auth import _read_codex_tokens, resolve_codex_runtime_credentials
-from nyxo_cli.runtime_provider import resolve_runtime_provider
+from flash_cli.auth import AuthError, _read_codex_tokens, resolve_codex_runtime_credentials
+from flash_cli.runtime_provider import resolve_runtime_provider
 
 if TYPE_CHECKING:
     from typing import TypeGuard
@@ -145,7 +145,7 @@ def build_nous_credits_snapshot(account_info) -> Optional[AccountUsageSnapshot]:
     account info to show (fail-open: caller just shows nothing).
     """
     try:
-        from nyxo_cli.nous_account import nous_portal_topup_url
+        from flash_cli.nous_account import nous_portal_topup_url
 
         if account_info is None or not getattr(account_info, "logged_in", False):
             return None
@@ -239,7 +239,7 @@ def nous_credits_lines(*, markdown: bool = False, timeout: float = 10.0) -> list
     the same block regardless of session API-call count or resume state. Fail-open:
     any auth/portal hiccup or timeout returns [] (the caller shows nothing).
 
-    Dev override: when NYXO_DEV_CREDITS_FIXTURE selects a fixture state, /usage
+    Dev override: when HERMES_DEV_CREDITS_FIXTURE selects a fixture state, /usage
     renders from that fixture instead of the real portal (so the block + gauge are
     testable without a live account). Throwaway scaffolding.
     """
@@ -255,7 +255,7 @@ def nous_credits_lines(*, markdown: bool = False, timeout: float = 10.0) -> list
         return render_account_usage_lines(snapshot, markdown=markdown)
 
     try:
-        from nyxo_cli.auth import get_provider_auth_state
+        from flash_cli.auth import get_provider_auth_state
 
         tok = (get_provider_auth_state("nous") or {}).get("access_token")
         if not (isinstance(tok, str) and tok.strip()):
@@ -265,7 +265,7 @@ def nous_credits_lines(*, markdown: bool = False, timeout: float = 10.0) -> list
     try:
         import concurrent.futures
 
-        from nyxo_cli.nous_account import get_nous_portal_account_info
+        from flash_cli.nous_account import get_nous_portal_account_info
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
             account = pool.submit(
@@ -284,7 +284,7 @@ def _snapshot_from_credits_state(state) -> Optional[AccountUsageSnapshot]:
     """Map a header-shaped CreditsState (e.g. a dev fixture) to the /usage snapshot.
 
     Renders the same magnitudes + monthly-grant % window the portal path produces,
-    so NYXO_DEV_CREDITS_FIXTURE can exercise /usage without a live account. The
+    so HERMES_DEV_CREDITS_FIXTURE can exercise /usage without a live account. The
     *_usd strings are mock display values here (not server balance to compute on);
     the % comes from CreditsState.used_fraction (micros math). Fail-open → None.
     """
@@ -325,7 +325,7 @@ def _snapshot_from_credits_state(state) -> Optional[AccountUsageSnapshot]:
         if not windows and not details:
             return None
 
-        details.append("(dev fixture — NYXO_DEV_CREDITS_FIXTURE)")
+        details.append("(dev fixture — HERMES_DEV_CREDITS_FIXTURE)")
         return AccountUsageSnapshot(
             provider="nous",
             source="dev-fixture",
@@ -365,7 +365,7 @@ def build_credits_view(*, markdown: bool = False, timeout: float = 10.0) -> Cred
     """
     not_logged_in = CreditsView(logged_in=False)
     try:
-        from nyxo_cli.auth import get_provider_auth_state
+        from flash_cli.auth import get_provider_auth_state
 
         tok = (get_provider_auth_state("nous") or {}).get("access_token")
         if not (isinstance(tok, str) and tok.strip()):
@@ -376,7 +376,7 @@ def build_credits_view(*, markdown: bool = False, timeout: float = 10.0) -> Cred
     try:
         import concurrent.futures
 
-        from nyxo_cli.nous_account import (
+        from flash_cli.nous_account import (
             get_nous_portal_account_info,
             nous_portal_topup_url,
         )
@@ -436,20 +436,78 @@ def _resolve_codex_usage_url(base_url: str) -> str:
     return normalized + "/api/codex/usage"
 
 
-def _fetch_codex_account_usage() -> Optional[AccountUsageSnapshot]:
-    creds = resolve_codex_runtime_credentials(refresh_if_expiring=True)
-    token_data = _read_codex_tokens()
-    tokens = token_data.get("tokens") or {}
-    account_id = str(tokens.get("account_id", "") or "").strip() or None
+def _resolve_codex_usage_credentials(
+    base_url: Optional[str],
+    api_key: Optional[str],
+) -> tuple[str, str, Optional[str]]:
+    """Resolve Codex quota credentials from the native runtime path.
+
+    Prefer explicit live-agent credentials, then the legacy singleton OAuth
+    state, then the credential pool.  Hermes's native OAuth setup now stores
+    device-code logins in the pool, so quota diagnostics must not depend only
+    on the older singleton store.
+    """
+    explicit_key = str(api_key or "").strip()
+    if explicit_key:
+        return explicit_key, str(base_url or "").strip(), None
+
+    # Tier 2: the native runtime resolver. It ALREADY falls back to the
+    # credential pool when the singleton is empty (see
+    # ``resolve_codex_runtime_credentials`` — issue #32992), so in a pool-only
+    # setup this returns a usable ``source="credential_pool"`` token.
+    #
+    # Only ``AuthError`` ("no creds" / rate-limited) is caught so tier 3 can
+    # run: a broad ``except Exception`` would (a) mask a transient refresh /
+    # network failure and silently hand back a DIFFERENT pool account's usage,
+    # and (b) hide genuine programming errors. A refresh/network error must
+    # propagate — the outer ``fetch_account_usage`` guard fails open (shows
+    # nothing this turn) rather than reporting the wrong account.
+    #
+    # The ``account_id`` (for the ``ChatGPT-Account-Id`` header) is read
+    # best-effort: a partial/missing singleton token store must not sink an
+    # otherwise-usable resolver credential and force a header-less pool fallback.
+    try:
+        creds = resolve_codex_runtime_credentials(refresh_if_expiring=True)
+        account_id: Optional[str] = None
+        try:
+            token_data = _read_codex_tokens()
+            tokens = token_data.get("tokens") or {}
+            account_id = str(tokens.get("account_id", "") or "").strip() or None
+        except AuthError:
+            # Pool-only creds carry no singleton account_id; header is optional.
+            logger.debug("codex ▸ /usage account_id read failed (best-effort)", exc_info=True)
+        return creds["api_key"], str(creds.get("base_url", "") or "").strip(), account_id
+    except AuthError:
+        logger.debug("codex ▸ /usage runtime resolver returned no creds; trying pool", exc_info=True)
+
+    # Tier 3: direct pool select. Reached only when the resolver itself raises
+    # AuthError (e.g. singleton missing AND its own pool read found nothing at
+    # resolve time, but a pool entry is usable now). Pool credentials have no
+    # account_id concept, so the ChatGPT-Account-Id header is intentionally
+    # omitted here.
+    from agent.credential_pool import load_pool
+
+    pool = load_pool("openai-codex")
+    entry = pool.select()
+    if entry is None:
+        raise RuntimeError("No available openai-codex credential in credential pool")
+    return entry.runtime_api_key, str(entry.runtime_base_url or base_url or "").strip(), None
+
+
+def _fetch_codex_account_usage(
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
+) -> Optional[AccountUsageSnapshot]:
+    token, resolved_base_url, account_id = _resolve_codex_usage_credentials(base_url, api_key)
     headers = {
-        "Authorization": f"Bearer {creds['api_key']}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/json",
         "User-Agent": "codex-cli",
     }
     if account_id:
         headers["ChatGPT-Account-Id"] = account_id
     with httpx.Client(timeout=15.0) as client:
-        response = client.get(_resolve_codex_usage_url(creds.get("base_url", "")), headers=headers)
+        response = client.get(_resolve_codex_usage_url(resolved_base_url), headers=headers)
         response.raise_for_status()
     payload = response.json() or {}
     rate_limit = payload.get("rate_limit") or {}
@@ -628,7 +686,7 @@ def fetch_account_usage(
         return None
     try:
         if normalized == "openai-codex":
-            return _fetch_codex_account_usage()
+            return _fetch_codex_account_usage(base_url=base_url, api_key=api_key)
         if normalized == "anthropic":
             return _fetch_anthropic_account_usage()
         if normalized == "openrouter":

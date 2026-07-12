@@ -255,7 +255,7 @@ def test_init_feasibility_check_uses_aux_context_override_from_config():
     mock_client.api_key = "sk-custom"
 
     with (
-        patch("nyxo_cli.config.load_config", return_value=cfg),
+        patch("flash_cli.config.load_config", return_value=cfg),
         patch("run_agent.get_tool_definitions", return_value=[]),
         patch("run_agent.check_toolset_requirements", return_value={}),
         patch("run_agent.OpenAI"),
@@ -304,6 +304,39 @@ def test_warns_when_no_auxiliary_provider(mock_get_client):
     assert len(messages) == 1
     assert "No auxiliary LLM provider" in messages[0]
     assert agent._compression_warning is not None
+
+
+def test_no_unavailable_warning_when_configured_fallback_chain_resolves():
+    """Primary compression provider can be down if configured fallback works."""
+    agent = _make_agent(main_context=200_000, threshold_percent=0.50)
+    fallback_client = MagicMock()
+    fallback_client.base_url = "https://chatgpt.com/backend-api/codex"
+    fallback_client.api_key = "codex-oauth-token"
+
+    messages = []
+    agent._emit_status = lambda msg: messages.append(msg)
+
+    with patch(
+        "agent.auxiliary_client._resolve_task_provider_model",
+        return_value=("ollama-cloud", "deepseek-v4-flash:cloud", None, None, None),
+    ), patch(
+        "agent.auxiliary_client.get_text_auxiliary_client",
+        return_value=(None, None),
+    ), patch(
+        "agent.auxiliary_client._try_configured_fallback_for_unavailable_client",
+        return_value=(fallback_client, "gpt-5.4-mini", "fallback_chain[0](openai-codex)"),
+    ) as mock_fallback, patch(
+        "agent.model_metadata.get_model_context_length",
+        return_value=200_000,
+    ) as mock_ctx_len:
+        agent._check_compression_model_feasibility()
+
+    assert messages == []
+    assert agent._compression_warning is None
+    mock_fallback.assert_called_once_with("compression", "ollama-cloud")
+    mock_ctx_len.assert_called_once()
+    assert mock_ctx_len.call_args.args == ("gpt-5.4-mini",)
+    assert mock_ctx_len.call_args.kwargs["provider"] == "openai-codex"
 
 
 def test_skips_check_when_compression_disabled():

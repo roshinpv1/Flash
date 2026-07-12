@@ -2,7 +2,7 @@
 
 Connects to a self-hosted (or cloud) Mattermost instance via its REST API
 (v4) and WebSocket for real-time events.  No external Mattermost library
-required — uses aiohttp which is already a Nyxo dependency.
+required — uses aiohttp which is already a Hermes dependency.
 
 Environment variables:
     MATTERMOST_URL              Server URL (e.g. https://mm.example.com)
@@ -117,6 +117,9 @@ class MattermostAdapter(BasePlatformAdapter):
     async def _api_get(self, path: str) -> Dict[str, Any]:
         """GET /api/v4/{path}."""
         import aiohttp
+        if ".." in path:
+            logger.error("MM API path traversal blocked: %s", path)
+            return {}
         url = f"{self._base_url}/api/v4/{path.lstrip('/')}"
         try:
             async with self._session.get(url, headers=self._headers(), timeout=aiohttp.ClientTimeout(total=30)) as resp:
@@ -134,6 +137,9 @@ class MattermostAdapter(BasePlatformAdapter):
     ) -> Dict[str, Any]:
         """POST /api/v4/{path} with JSON body."""
         import aiohttp
+        if ".." in path:
+            logger.error("MM API path traversal blocked: %s", path)
+            return {}
         url = f"{self._base_url}/api/v4/{path.lstrip('/')}"
         self._last_post_status = None
         self._last_post_error = ""
@@ -213,6 +219,9 @@ class MattermostAdapter(BasePlatformAdapter):
     ) -> Dict[str, Any]:
         """PUT /api/v4/{path} with JSON body."""
         import aiohttp
+        if ".." in path:
+            logger.error("MM API path traversal blocked: %s", path)
+            return {}
         url = f"{self._base_url}/api/v4/{path.lstrip('/')}"
         try:
             async with self._session.put(
@@ -256,7 +265,7 @@ class MattermostAdapter(BasePlatformAdapter):
     # Required overrides
     # ------------------------------------------------------------------
 
-    async def connect(self) -> bool:
+    async def connect(self, *, is_reconnect: bool = False) -> bool:
         """Connect to Mattermost and start the WebSocket listener."""
         import aiohttp
 
@@ -869,6 +878,8 @@ class MattermostAdapter(BasePlatformAdapter):
         # Determine message type.
         file_ids = post.get("file_ids") or []
         msg_type = MessageType.TEXT
+        if message_text[:1].isspace() and message_text.lstrip().startswith("/"):
+            message_text = message_text.lstrip()
         if message_text.startswith("/"):
             msg_type = MessageType.COMMAND
 
@@ -1104,11 +1115,11 @@ def interactive_setup() -> None:
     helpers so the plugin's import surface stays small, prompts for the
     server URL + bot token, captures an allowlist, and offers to set a
     home channel.  Replaces the central
-    ``nyxo_cli/setup.py::_setup_mattermost`` function this migration
+    ``hermes_cli/setup.py::_setup_mattermost`` function this migration
     removes.
     """
-    from nyxo_cli.config import get_env_value, save_env_value
-    from nyxo_cli.cli_output import (
+    from hermes_cli.config import get_env_value, save_env_value
+    from hermes_cli.cli_output import (
         prompt,
         prompt_yes_no,
         print_header,
@@ -1149,13 +1160,13 @@ def interactive_setup() -> None:
         print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Nyxo delivers cron job results and notifications.")
+    print_info("📬 Home Channel: where Hermes delivers cron job results and notifications.")
     print_info("   To get a channel ID: click channel name → View Info → copy the ID")
     print_info("   You can also set this later by typing /set-home in a Mattermost channel.")
     home_channel = prompt("Home channel ID (leave empty to set later with /set-home)")
     if home_channel:
         save_env_value("MATTERMOST_HOME_CHANNEL", home_channel)
-    print_info("   Open config in your editor:  nyxo config edit")
+    print_info("   Open config in your editor:  hermes config edit")
 
 
 # ---------------------------------------------------------------------------
@@ -1208,12 +1219,12 @@ def _is_connected(config) -> bool:
     """Mattermost is considered connected when BOTH MATTERMOST_TOKEN and
     MATTERMOST_URL are set.
 
-    Looks up via ``nyxo_cli.gateway.get_env_value`` at call time (not via
+    Looks up via ``hermes_cli.gateway.get_env_value`` at call time (not via
     the plugin's own bound import) so tests that patch
     ``gateway_mod.get_env_value`` can suppress ambient env vars.  Matches
     what the legacy connected-platforms check did before this migration.
     """
-    import nyxo_cli.gateway as gateway_mod
+    import hermes_cli.gateway as gateway_mod
     return bool(
         (gateway_mod.get_env_value("MATTERMOST_TOKEN") or "").strip()
         and (gateway_mod.get_env_value("MATTERMOST_URL") or "").strip()
@@ -1231,7 +1242,7 @@ def _build_adapter(config):
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the Nyxo plugin system."""
+    """Plugin entry point — called by the Hermes plugin system."""
     ctx.register_platform(
         name="mattermost",
         label="Mattermost",
@@ -1241,7 +1252,7 @@ def register(ctx) -> None:
         required_env=["MATTERMOST_URL", "MATTERMOST_TOKEN"],
         install_hint="pip install aiohttp",
         # Interactive setup wizard — replaces the central
-        # nyxo_cli/setup.py::_setup_mattermost function.
+        # hermes_cli/setup.py::_setup_mattermost function.
         setup_fn=interactive_setup,
         # YAML→env config bridge — owns the translation of
         # ``config.yaml`` ``mattermost:`` keys (require_mention,

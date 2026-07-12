@@ -133,9 +133,9 @@ class TestValidateToolset:
     def test_mcp_alias_uses_live_registry(self, monkeypatch):
         reg = ToolRegistry()
         reg.register(
-            name="mcp_dynserver_ping",
+            name="mcp__dynserver__ping",
             toolset="mcp-dynserver",
-            schema=_make_schema("mcp_dynserver_ping", "Ping"),
+            schema=_make_schema("mcp__dynserver__ping", "Ping"),
             handler=_dummy_handler,
         )
         reg.register_toolset_alias("dynserver", "mcp-dynserver")
@@ -144,7 +144,7 @@ class TestValidateToolset:
 
         assert validate_toolset("dynserver") is True
         assert validate_toolset("mcp-dynserver") is True
-        assert "mcp_dynserver_ping" in resolve_toolset("dynserver")
+        assert "mcp__dynserver__ping" in resolve_toolset("dynserver")
 
 
 class TestGetToolsetInfo:
@@ -211,14 +211,14 @@ class TestToolsetConsistency:
             for inc in ts["includes"]:
                 assert inc in TOOLSETS, f"{name} includes unknown toolset '{inc}'"
 
-    def test_nyxo_platforms_share_core_tools(self):
-        """All nyxo-* platform toolsets share the same core tools.
+    def test_hermes_platforms_share_core_tools(self):
+        """All hermes-* platform toolsets share the same core tools.
 
         Platform-specific additions (e.g. ``discord`` / ``discord_admin``
-        on nyxo-discord, gated on DISCORD_BOT_TOKEN) are allowed on top —
+        on hermes-discord, gated on DISCORD_BOT_TOKEN) are allowed on top —
         the invariant is that the core set is identical across platforms.
         """
-        platforms = ["nyxo-cli", "nyxo-telegram", "nyxo-discord", "nyxo-whatsapp", "nyxo-slack", "nyxo-signal", "nyxo-homeassistant"]
+        platforms = ["hermes-cli", "hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-homeassistant"]
         tool_sets = [set(TOOLSETS[p]["tools"]) for p in platforms]
         # All platforms must contain the shared core; platform-specific
         # extras are OK (subset check, not equality).
@@ -248,8 +248,46 @@ class TestPluginToolsets:
 
 
 class TestDefaultPlatformWebSearchCoverage:
-    def test_nyxo_whatsapp_toolset_includes_web_search(self):
-        assert "web_search" in resolve_toolset("nyxo-whatsapp")
+    def test_hermes_whatsapp_toolset_includes_web_search(self):
+        assert "web_search" in resolve_toolset("hermes-whatsapp")
 
-    def test_nyxo_api_server_toolset_includes_web_search(self):
-        assert "web_search" in resolve_toolset("nyxo-api-server")
+    def test_hermes_api_server_toolset_includes_web_search(self):
+        assert "web_search" in resolve_toolset("hermes-api-server")
+
+
+class TestResolveToolsetIncludeRegistry:
+    """include_registry flag exposes the static (pre-registry-merge) view used
+    by platform reverse-mapping. Regression harness for issue #49622."""
+
+    def test_include_registry_false_excludes_registry_tools(self):
+        from tools.registry import discover_builtin_tools
+        discover_builtin_tools()  # registers read_terminal into 'terminal'
+
+        merged = set(resolve_toolset("terminal"))
+        static = set(resolve_toolset("terminal", include_registry=False))
+
+        assert static == {"terminal", "process"}, static
+        # read_terminal is registered into 'terminal' but is desktop-only and
+        # not part of the static definition — it must only appear in the merged view.
+        assert "read_terminal" in merged
+        assert "read_terminal" not in static
+
+    def test_get_toolset_include_registry_false_is_static(self):
+        ts = get_toolset("delegation", include_registry=False)
+        assert ts is not None
+        assert ts["tools"] == ["delegate_task"]
+
+    def test_static_view_threads_through_includes(self):
+        # 'debugging' has direct tools [terminal, process] and includes [web, file]
+        static = set(resolve_toolset("debugging", include_registry=False))
+        assert {"terminal", "process"} <= static
+        assert "web_search" in static
+        assert "read_file" in static
+
+    def test_all_alias_accepts_include_registry(self):
+        merged = set(resolve_toolset("all"))
+        static = set(resolve_toolset("all", include_registry=False))
+        assert static <= merged
+
+    def test_registry_only_toolset_static_view_is_empty(self):
+        assert resolve_toolset("__definitely_not_a_real_toolset__", include_registry=False) == []

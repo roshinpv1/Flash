@@ -1,6 +1,6 @@
-"""CLI entry point for the nyxo-agent ACP adapter.
+"""CLI entry point for the flash-agent ACP adapter.
 
-Loads environment variables from ``~/.nyxo/.env``, configures logging
+Loads environment variables from ``~/.flash/.env``, configures logging
 to write to stderr (so stdout is reserved for ACP JSON-RPC transport),
 and starts the ACP agent server.
 
@@ -8,33 +8,33 @@ Usage::
 
     python -m acp_adapter.entry
     # or
-    nyxo acp
+    flash acp
     # or
-    nyxo-acp
+    flash-acp
 """
 
-# IMPORTANT: nyxo_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See nyxo_bootstrap.py for full rationale.
+# IMPORTANT: flash_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See flash_bootstrap.py for full rationale.
 try:
-    import nyxo_bootstrap  # noqa: F401
+    import flash_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Graceful fallback when nyxo_bootstrap isn't registered in the venv
-    # yet — happens during partial ``nyxo update`` where git-reset landed
+    # Graceful fallback when flash_bootstrap isn't registered in the venv
+    # yet — happens during partial ``flash update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
     pass
 else:
     # Stop a ``utils/``/``proxy/``/``ui/`` package in the launch directory from
-    # shadowing Nyxo's own modules — ``nyxo acp`` can be started from any
+    # shadowing Hermes's own modules — ``flash acp`` can be started from any
     # cwd, including a project that has same-named packages on its path.
-    nyxo_bootstrap.harden_import_path()
+    flash_bootstrap.harden_import_path()
 
 import argparse
 import asyncio
 import logging
 import sys
 from pathlib import Path
-from nyxo_constants import get_nyxo_home
+from flash_constants import get_flash_home
 
 
 # Methods clients send as periodic liveness probes. They are not part of the
@@ -99,26 +99,26 @@ def _setup_logging() -> None:
 
 
 def _load_env() -> None:
-    """Load .env from NYXO_HOME (default ``~/.nyxo``)."""
-    from nyxo_cli.env_loader import load_nyxo_dotenv
+    """Load .env from HERMES_HOME (default ``~/.flash``)."""
+    from flash_cli.env_loader import load_flash_dotenv
 
-    nyxo_home = get_nyxo_home()
-    loaded = load_nyxo_dotenv(nyxo_home=nyxo_home)
+    flash_home = get_flash_home()
+    loaded = load_flash_dotenv(flash_home=flash_home)
     if loaded:
         for env_file in loaded:
             logging.getLogger(__name__).info("Loaded env from %s", env_file)
     else:
         logging.getLogger(__name__).info(
-            "No .env found at %s, using system env", nyxo_home / ".env"
+            "No .env found at %s, using system env", flash_home / ".env"
         )
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="nyxo-acp",
-        description="Run Nyxo Agent as an ACP stdio server.",
+        prog="flash-acp",
+        description="Run Hermes Agent as an ACP stdio server.",
     )
-    parser.add_argument("--version", action="store_true", help="Print Nyxo version and exit")
+    parser.add_argument("--version", action="store_true", help="Print Hermes version and exit")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -127,12 +127,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--setup",
         action="store_true",
-        help="Run interactive Nyxo provider/model setup for ACP terminal auth",
+        help="Run interactive Hermes provider/model setup for ACP terminal auth",
     )
     parser.add_argument(
         "--setup-browser",
         action="store_true",
-        help="Install agent-browser + Playwright Chromium into ~/.nyxo/node/ "
+        help="Install agent-browser + Playwright Chromium into ~/.flash/node/ "
              "for browser tool support. Idempotent.",
     )
     parser.add_argument(
@@ -147,25 +147,25 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def _print_version() -> None:
-    from nyxo_cli import __version__ as nyxo_version
+    from flash_cli import __version__ as flash_version
 
-    print(nyxo_version)
+    print(flash_version)
 
 
 def _run_check() -> None:
     import acp  # noqa: F401
-    from acp_adapter.server import NyxoACPAgent  # noqa: F401
+    from acp_adapter.server import HermesACPAgent  # noqa: F401
 
-    print("Nyxo ACP check OK")
+    print("Hermes ACP check OK")
 
 
 def _run_setup() -> None:
-    from nyxo_cli.main import main as nyxo_main
+    from flash_cli.main import main as flash_main
 
     old_argv = sys.argv[:]
     try:
-        sys.argv = [old_argv[0] if old_argv else "nyxo", "model"]
-        nyxo_main()
+        sys.argv = [old_argv[0] if old_argv else "flash", "model"]
+        flash_main()
     finally:
         sys.argv = old_argv
 
@@ -190,11 +190,11 @@ def _run_setup_browser(assume_yes: bool = False) -> int:
     """Bootstrap agent-browser + Chromium.
 
     Routes through dep_ensure -> install.{sh,ps1} --ensure, sharing code
-    with ``nyxo postinstall`` and the runtime lazy installer.
+    with ``flash postinstall`` and the runtime lazy installer.
 
     Returns 0 on success, 1 on failure.
     """
-    from nyxo_cli.dep_ensure import ensure_dependency
+    from flash_cli.dep_ensure import ensure_dependency
 
     try:
         node_ok = ensure_dependency("node", interactive=not assume_yes)
@@ -236,7 +236,7 @@ def main(argv: list[str] | None = None) -> None:
     _load_env()
 
     logger = logging.getLogger(__name__)
-    logger.info("Starting nyxo-agent ACP adapter")
+    logger.info("Starting flash-agent ACP adapter")
 
     # Ensure the project root is on sys.path so ``from run_agent import AIAgent`` works
     project_root = str(Path(__file__).resolve().parent.parent)
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> None:
         sys.path.insert(0, project_root)
 
     import acp
-    from .server import NyxoACPAgent
+    from .server import HermesACPAgent
 
     # MCP tool discovery from config.yaml — run before asyncio.run() so
     # it's safe to use blocking waits.  (ACP also registers per-session
@@ -257,7 +257,7 @@ def main(argv: list[str] | None = None) -> None:
     except Exception:
         logger.debug("MCP tool discovery failed at ACP startup", exc_info=True)
 
-    agent = NyxoACPAgent()
+    agent = HermesACPAgent()
     try:
         asyncio.run(acp.run_agent(agent, use_unstable_protocol=True))
     except KeyboardInterrupt:

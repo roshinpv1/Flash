@@ -11,20 +11,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 @pytest.fixture
 def cron_env(tmp_path, monkeypatch):
-    """Isolated cron environment with temp NYXO_HOME."""
-    nyxo_home = tmp_path / ".nyxo"
-    nyxo_home.mkdir()
-    (nyxo_home / "cron").mkdir()
-    (nyxo_home / "cron" / "output").mkdir()
-    monkeypatch.setenv("NYXO_HOME", str(nyxo_home))
+    """Isolated cron environment with temp HERMES_HOME."""
+    flash_home = tmp_path / ".flash"
+    flash_home.mkdir()
+    (flash_home / "cron").mkdir()
+    (flash_home / "cron" / "output").mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     import cron.jobs as jobs_mod
-    monkeypatch.setattr(jobs_mod, "NYXO_DIR", nyxo_home)
-    monkeypatch.setattr(jobs_mod, "CRON_DIR", nyxo_home / "cron")
-    monkeypatch.setattr(jobs_mod, "JOBS_FILE", nyxo_home / "cron" / "jobs.json")
-    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", nyxo_home / "cron" / "output")
+    monkeypatch.setattr(jobs_mod, "HERMES_DIR", flash_home)
+    monkeypatch.setattr(jobs_mod, "CRON_DIR", flash_home / "cron")
+    monkeypatch.setattr(jobs_mod, "JOBS_FILE", flash_home / "cron" / "jobs.json")
+    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", flash_home / "cron" / "output")
 
-    return nyxo_home
+    return flash_home
 
 
 class TestJobContextFromField:
