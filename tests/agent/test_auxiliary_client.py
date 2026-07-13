@@ -63,7 +63,7 @@ def _clean_env(monkeypatch):
     """Strip provider env vars so each test starts clean."""
     for key in (
         "OPENROUTER_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_KEY",
-        "OPENAI_MODEL", "LLM_MODEL", "NOUS_INFERENCE_BASE_URL",
+        "OPENAI_MODEL", "LLM_MODEL", "FLASH_INFERENCE_BASE_URL",
         "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -343,7 +343,7 @@ class TestBuildCallKwargsMaxTokens:
         assert kwargs["max_tokens"] == 4096
 
 
-class TestNousTagsScoping:
+class TestFlashTagsScoping:
     def test_tags_injected_when_provider_is_flash(self, monkeypatch):
         import agent.auxiliary_client as aux
 
@@ -749,7 +749,7 @@ class TestResolveProviderClientUniversalModelFallback:
     ``(None, None)`` on an empty model — both lack a catalog default
     because their accepted-model lists drift on the backend.  That
     silent failure caused ``_resolve_auto`` to drop to its Step-2
-    fallback chain (OpenRouter / Nous / etc.), so aux tasks billed
+    fallback chain (OpenRouter / Flash/ etc.), so aux tasks billed
     against the wrong subscription.
     """
 
@@ -1487,7 +1487,7 @@ class TestAuxiliaryPoolAwareness:
         assert fresh_client.chat.completions.create.call_count == 1
 
     def test_call_llm_refreshes_flash_after_free_tier_block_when_account_paid(self):
-        from flash_cli.flash_account import NousPortalAccountInfo
+        from flash_cli.flash_account import FlashPortalAccountInfo
 
         class _Payment404(Exception):
             status_code = 404
@@ -1510,7 +1510,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._resolve_flash_runtime_api", return_value=("fresh-agent-key", "https://inference-api.flashorg.com/v1")),
             patch(
                 "flash_cli.flash_account.get_flash_portal_account_info",
-                return_value=NousPortalAccountInfo(
+                return_value=FlashPortalAccountInfo(
                     logged_in=True,
                     source="account_api",
                     fresh=True,
@@ -1558,7 +1558,7 @@ class TestAuxiliaryPoolAwareness:
 
     @pytest.mark.asyncio
     async def test_async_call_llm_refreshes_flash_after_free_tier_block_when_account_paid(self):
-        from flash_cli.flash_account import NousPortalAccountInfo
+        from flash_cli.flash_account import FlashPortalAccountInfo
 
         class _Payment404(Exception):
             status_code = 404
@@ -1581,7 +1581,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._resolve_flash_runtime_api", return_value=("fresh-agent-key", "https://inference-api.flashorg.com/v1")),
             patch(
                 "flash_cli.flash_account.get_flash_portal_account_info",
-                return_value=NousPortalAccountInfo(
+                return_value=FlashPortalAccountInfo(
                     logged_in=True,
                     source="account_api",
                     fresh=True,
@@ -1751,7 +1751,7 @@ class TestIsModelNotFoundError:
 
     def test_flash_openrouter_catalog_404(self):
         """The exact incident error: a Portal-recommended model dropped from
-        the Nous → OpenRouter catalog."""
+        the Flash→ OpenRouter catalog."""
         exc = Exception(
             "Model 'gpt-5.4-mini' not found. The requested model does not "
             "exist in our configuration or OpenRouter catalog."
@@ -1857,7 +1857,7 @@ class TestIsModelIncompatibleError:
         assert _is_model_incompatible_error(exc) is False
 
 
-class TestRefreshNousRecommendedModel:
+class TestRefreshFlashRecommendedModel:
     """_refresh_flash_recommended_model picks a fresh model after a stale 404."""
 
     def test_returns_fresh_portal_recommendation(self, monkeypatch):
@@ -1910,7 +1910,7 @@ class TestIsRateLimitError:
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_resets_in_message(self):
-        """Nous-style 429: 'resets in 3508s'."""
+        """Flash-style 429: 'resets in 3508s'."""
         exc = Exception("Hold up for a bit, you've exceeded the rate limit on your API key")
         exc.status_code = 429
         assert _is_rate_limit_error(exc) is True
@@ -2030,7 +2030,7 @@ class TestTryPaymentFallback:
     def test_codex_not_in_fallback_chain(self):
         """Codex is deliberately NOT a fallback rung (shifting model allow-list).
 
-        When OR/Nous/custom/api-key all fail, payment-fallback returns None —
+        When OR/Flash/custom/api-key all fail, payment-fallback returns None —
         Codex is never tried with a guessed model.
         """
         with patch("agent.auxiliary_client._try_openrouter", return_value=(None, None)), \
@@ -4921,7 +4921,7 @@ def test_pool_runtime_base_url_uses_flash_env_override(monkeypatch):
         inference_base_url="https://inference-api.flashorg.com/v1",
         base_url="https://inference-api.flashorg.com/v1",
     )
-    monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", "https://ai.wildebeest-newton.ts.net/v1")
+    monkeypatch.setenv("FLASH_INFERENCE_BASE_URL", "https://ai.wildebeest-newton.ts.net/v1")
 
     assert _pool_runtime_base_url(entry) == "https://ai.wildebeest-newton.ts.net/v1"
 

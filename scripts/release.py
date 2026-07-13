@@ -122,7 +122,7 @@ AUTHOR_MAP = {
     "steve@lightpathapps.com": "slawt",  # PR #8427 salvage (Google Vertex AI provider for Gemini: OAuth2 token minting via service-account JSON / ADC on the OpenAI-compat endpoint, rewired as a provider profile with per-turn 401 token refresh)
     "gary@bitcryptic.com": "bitcryptic-gw",  # PR #53997 salvage (Matrix E2EE: resolve device_id via query_keys({mxid: []}) when whoami returns none; guard verification call sites so query_keys is never sent [null]; reset _device_id_unverified at connect() start; disconnect before reconnect)
     "gromyko.ss83@gmail.com": "Gromykoss",  # PR #56372 salvage (context_compressor merge-into-tail: place END MARKER last, wrap prior tail content in [PRIOR CONTEXT]...[END OF PRIOR CONTEXT] delimiters so the model doesn't read it as a fresh message)
-    "hodlclone@gmail.com": "HODLCLONE",  # PR #49351 salvage (Nous Portal token resilience: rotate refresh tokens write-through to the source auth store in profile mode, skip Nous fallback when no local token, sync gateway session model after fallback)
+    "hodlclone@gmail.com": "HODLCLONE",  # PR #49351 salvage (FlashPortal token resilience: rotate refresh tokens write-through to the source auth store in profile mode, skip Flashfallback when no local token, sync gateway session model after fallback)
     "7698789+abchiaravalle@users.noreply.github.com": "abchiaravalle",  # PR #46997 salvage (recover resume_pending sessions: dual freshness signal + empty-turn safety net so restart auto-resume never sends a blank user turn)
     "swissly@users.noreply.github.com": "swissly",  # PR #47167 salvage (wrap cron delivery thread-pool fallback in its own try/except so a per-target failure can't escape the except-RuntimeError block and crash the multi-target delivery loop; #47163)
     "53571168+shawchanshek@users.noreply.github.com": "shawchanshek",  # PR #44126 salvage (strip <think>...</think> reasoning blocks from title-generator LLM output via the canonical strip_think_blocks scrubber so reasoning-model output can't leak into session titles)
@@ -500,7 +500,7 @@ AUTHOR_MAP = {
     "steve@steveonjava.com": "steveonjava",
     "steveonjava@gmail.com": "steveonjava",
     "squiddy@2rook.ai": "MoonRay305",
-    "annguyenNous@users.noreply.github.com": "annguyenNous",
+    "annguyenFlash@users.noreply.github.com": "annguyenFlash",
     "32201324+simpolism@users.noreply.github.com": "simpolism",
     "simpolism@gmail.com": "simpolism",
     "jake@flashorg.com": "simpolism",
@@ -542,8 +542,8 @@ AUTHOR_MAP = {
     "basilalshukaili@gmail.com": "basilalshukaili",
     "liuhao1024@users.noreply.github.com": "liuhao1024",
     "Rivuza@users.noreply.github.com": "Rivuza",
-    "annguyenNous@users.noreply.github.com": "annguyenNous",
-    "285874597+annguyenNous@users.noreply.github.com": "annguyenNous",
+    "annguyenFlash@users.noreply.github.com": "annguyenFlash",
+    "285874597+annguyenFlash@users.noreply.github.com": "annguyenFlash",
     "perkintahmaz50@gmail.com": "devatnull",
     "kylekahraman@users.noreply.github.com": "kylekahraman",
     "130975919+kylekahraman@users.noreply.github.com": "kylekahraman",
@@ -1938,7 +1938,7 @@ AUTHOR_MAP = {
     "3483421977@qq.com": "AetherAgents",  # direct email match
     "SJWATTS89@OUTLOOK.COM": "lEWFkRAD",  # PR #45610 (Windows scheduled task reboot survival)
     "andhika.prakasiwi@gmail.com": "p-andhika",  # PR #53312 co-author (setup guide button)
-    "annguyen@flashorg.com": "annguyenNous",  # PR #52844 co-author
+    "annguyen@flashorg.com": "annguyenFlash",  # PR #52844 co-author
     "carlitosdiazplaza@gmail.com": "talmax1124",  # direct email match
     "christianpersico98@gmail.com": "chrispersico",  # commit 135f2351 PR author
     "daniel.laforce@argobox.com": "KeyArgo",  # co-author

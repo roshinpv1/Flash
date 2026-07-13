@@ -14,9 +14,9 @@ from agent.rate_limit_tracker import (
 )
 
 
-# ── Sample headers from Nous inference API ──────────────────────────────
+# ── Sample headers from Flashinference API ──────────────────────────────
 
-NOUS_HEADERS = {
+FLASH_HEADERS = {
     "x-ratelimit-limit-requests": "800",
     "x-ratelimit-limit-requests-1h": "33600",
     "x-ratelimit-limit-tokens": "8000000",
@@ -34,7 +34,7 @@ NOUS_HEADERS = {
 
 class TestParseHeaders:
     def test_basic_parsing(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
+        state = parse_rate_limit_headers(FLASH_HEADERS, provider="flash")
         assert state is not None
         assert state.provider == "flash"
         assert state.has_data
@@ -151,9 +151,9 @@ class TestFormatting:
         assert "No rate limit data" in result
 
     def test_format_display_with_data(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
+        state = parse_rate_limit_headers(FLASH_HEADERS, provider="flash")
         result = format_rate_limit_display(state)
-        assert "Nous" in result
+        assert "Flash" in result
         assert "Requests/min" in result
         assert "Requests/hr" in result
         assert "Tokens/min" in result
@@ -162,7 +162,7 @@ class TestFormatting:
 
     def test_format_display_warning_on_high_usage(self):
         headers = {
-            **NOUS_HEADERS,
+            **FLASH_HEADERS,
             "x-ratelimit-remaining-requests": "50",  # 750/800 used = 93.75%
         }
         state = parse_rate_limit_headers(headers)
@@ -170,7 +170,7 @@ class TestFormatting:
         assert "⚠" in result
 
     def test_format_compact(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
+        state = parse_rate_limit_headers(FLASH_HEADERS, provider="flash")
         result = format_rate_limit_compact(state)
         assert "RPM:" in result
         assert "RPH:" in result
@@ -191,7 +191,7 @@ class TestAgentIntegration:
         """Simulate the header capture path without a real API call."""
         # Use a mock httpx-like response
         class MockResponse:
-            headers = NOUS_HEADERS
+            headers = FLASH_HEADERS
 
         # Import AIAgent minimally
 

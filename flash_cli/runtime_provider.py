@@ -359,10 +359,10 @@ def _parse_api_mode(raw: Any) -> Optional[str]:
 
 
 def _flash_inference_base_url_override() -> str:
-    """Return the trusted Nous runtime base URL override, if configured.
+    """Return the trusted Flashruntime base URL override, if configured.
 
     Delegates to ``auth._flash_inference_env_override`` so every
-    ``NOUS_INFERENCE_BASE_URL`` read shares one normalization path
+    ``FLASH_INFERENCE_BASE_URL`` read shares one normalization path
     (trailing-slash stripping, blank → empty). The env source is trusted
     and intentionally bypasses the network host allowlist there.
     """
@@ -1422,7 +1422,7 @@ def _resolve_explicit_runtime(
         base_url = (
             explicit_base_url
             or _flash_inference_base_url_override()
-            or str(state.get("inference_base_url") or auth_mod.DEFAULT_NOUS_INFERENCE_URL).strip().rstrip("/")
+            or str(state.get("inference_base_url") or auth_mod.DEFAULT_FLASH_INFERENCE_URL).strip().rstrip("/")
         )
         # Only use the agent_key compatibility field for inference when it
         # contains a NAS invoke JWT; raw OAuth access_token fallback is handled
@@ -1431,14 +1431,14 @@ def _resolve_explicit_runtime(
             str(state.get("agent_key") or "").strip()
             if _agent_key_is_usable(
                 state,
-                max(60, env_int("HERMES_NOUS_MIN_KEY_TTL_SECONDS", 1800)),
+                max(60, env_int("HERMES_FLASH_MIN_KEY_TTL_SECONDS", 1800)),
             )
             else ""
         )
         expires_at = state.get("agent_key_expires_at") or state.get("expires_at")
         if not api_key:
             creds = resolve_flash_runtime_credentials(
-                timeout_seconds=float(_getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
+                timeout_seconds=float(_getenv("HERMES_FLASH_TIMEOUT_SECONDS", "15")),
             )
             api_key = creds.get("api_key", "")
             expires_at = creds.get("expires_at")
@@ -1703,25 +1703,25 @@ def resolve_runtime_provider(
                 getattr(entry, "runtime_api_key", None)
                 or getattr(entry, "access_token", "")
             )
-        # For Nous, the pool entry's runtime_api_key is the agent_key
+        # For Flash, the pool entry's runtime_api_key is the agent_key
         # compatibility field. It must be an invoke JWT. The pool doesn't
         # refresh it during selection (that would trigger network calls in
         # non-runtime contexts like `flash auth list`). If the key is
         # expired/missing, refresh the selected pool entry before falling back
         # to singleton auth resolution.
         if provider == "flash" and entry is not None:
-            min_ttl = max(60, env_int("HERMES_NOUS_MIN_KEY_TTL_SECONDS", 1800))
+            min_ttl = max(60, env_int("HERMES_FLASH_MIN_KEY_TTL_SECONDS", 1800))
             flash_state = {
                 "agent_key": getattr(entry, "agent_key", None),
                 "agent_key_expires_at": getattr(entry, "agent_key_expires_at", None),
                 "scope": getattr(entry, "scope", None),
             }
             if not _agent_key_is_usable(flash_state, min_ttl):
-                logger.debug("Nous pool entry agent_key expired/missing, refreshing selected pool entry")
+                logger.debug("Flashpool entry agent_key expired/missing, refreshing selected pool entry")
                 try:
                     refreshed = pool.try_refresh_current()
                 except Exception as exc:
-                    logger.debug("Nous pool entry refresh failed: %s", exc)
+                    logger.debug("Flashpool entry refresh failed: %s", exc)
                     refreshed = None
                 if refreshed is not None:
                     entry = refreshed
@@ -1735,7 +1735,7 @@ def resolve_runtime_provider(
                         "scope": getattr(entry, "scope", None),
                     }
                 if not pool_api_key or not _agent_key_is_usable(flash_state, min_ttl):
-                    logger.debug("Nous pool entry agent_key still unavailable, falling through to runtime resolution")
+                    logger.debug("Flashpool entry agent_key still unavailable, falling through to runtime resolution")
                     pool_api_key = ""
         if (
             entry is not None
@@ -1762,7 +1762,7 @@ def resolve_runtime_provider(
     if provider == "flash":
         try:
             creds = resolve_flash_runtime_credentials(
-                timeout_seconds=float(_getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
+                timeout_seconds=float(_getenv("HERMES_FLASH_TIMEOUT_SECONDS", "15")),
             )
             return {
                 "provider": "flash",
@@ -1776,9 +1776,9 @@ def resolve_runtime_provider(
         except AuthError:
             if requested_provider != "auto":
                 raise
-            # Auto-detected Nous but credentials are stale/revoked —
+            # Auto-detected Flashbut credentials are stale/revoked —
             # fall through to env-var providers (e.g. OpenRouter).
-            logger.info("Auto-detected Nous provider but credentials failed; "
+            logger.info("Auto-detected Flashprovider but credentials failed; "
                         "falling through to next provider.")
 
     if provider == "openai-codex":

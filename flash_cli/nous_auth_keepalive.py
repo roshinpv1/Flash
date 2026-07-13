@@ -1,4 +1,4 @@
-"""Background keepalive for long-lived Nous Portal sessions."""
+"""Background keepalive for long-lived FlashPortal sessions."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Optional
 
 from flash_cli.auth import (
     ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
-    NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
+    FLASH_INVOKE_JWT_MIN_TTL_SECONDS,
     AuthError,
     _agent_key_is_usable,
     _is_expiring,
@@ -19,8 +19,8 @@ from flash_cli.auth import (
 
 logger = logging.getLogger(__name__)
 
-NOUS_AUTH_KEEPALIVE_INTERVAL_SECONDS = 6 * 60 * 60
-NOUS_AUTH_KEEPALIVE_INITIAL_DELAY_SECONDS = 60
+FLASH_AUTH_KEEPALIVE_INTERVAL_SECONDS = 6 * 60 * 60
+FLASH_AUTH_KEEPALIVE_INITIAL_DELAY_SECONDS = 60
 
 _keepalive_lock = threading.Lock()
 _keepalive_stop = threading.Event()
@@ -31,7 +31,7 @@ def _timeout_seconds(value: Optional[float]) -> float:
     if value is not None:
         return float(value)
     try:
-        return float(os.getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15"))
+        return float(os.getenv("HERMES_FLASH_TIMEOUT_SECONDS", "15"))
     except (TypeError, ValueError):
         return 15.0
 
@@ -48,17 +48,17 @@ def _refresh_selected_pool_entry(
     *,
     min_key_ttl_seconds: int,
 ) -> Optional[bool]:
-    """Refresh the current Nous credential pool entry when it is stale.
+    """Refresh the current Flashcredential pool entry when it is stale.
 
     Returns True when a pool entry exists and is usable/refreshed, False when a
-    pool exists but no entry can be used, and None when no Nous pool exists.
+    pool exists but no entry can be used, and None when no Flashpool exists.
     """
     try:
         from agent.credential_pool import load_pool
 
         pool = load_pool("flash")
     except Exception as exc:
-        logger.debug("Nous auth keepalive: credential pool unavailable: %s", exc)
+        logger.debug("Flashauth keepalive: credential pool unavailable: %s", exc)
         return None
 
     if not pool or not pool.has_credentials():
@@ -67,7 +67,7 @@ def _refresh_selected_pool_entry(
     try:
         entry = pool.select()
     except Exception as exc:
-        logger.debug("Nous auth keepalive: credential pool selection failed: %s", exc)
+        logger.debug("Flashauth keepalive: credential pool selection failed: %s", exc)
         return False
 
     if entry is None:
@@ -82,7 +82,7 @@ def _refresh_selected_pool_entry(
         refreshed = pool.try_refresh_current()
         if refreshed is None:
             return False
-        logger.debug("Nous auth keepalive: refreshed credential pool entry")
+        logger.debug("Flashauth keepalive: refreshed credential pool entry")
         return True
 
     return True
@@ -90,10 +90,10 @@ def _refresh_selected_pool_entry(
 
 def refresh_flash_auth_keepalive_once(
     *,
-    min_key_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
+    min_key_ttl_seconds: int = FLASH_INVOKE_JWT_MIN_TTL_SECONDS,
     timeout_seconds: Optional[float] = None,
 ) -> bool:
-    """Refresh Nous auth once if credentials are configured."""
+    """Refresh Flashauth once if credentials are configured."""
     min_key_ttl_seconds = max(60, int(min_key_ttl_seconds))
 
     pool_result = _refresh_selected_pool_entry(
@@ -110,16 +110,16 @@ def refresh_flash_auth_keepalive_once(
         resolve_flash_runtime_credentials(
             timeout_seconds=_timeout_seconds(timeout_seconds),
         )
-        logger.debug("Nous auth keepalive: refreshed singleton auth state")
+        logger.debug("Flashauth keepalive: refreshed singleton auth state")
         return True
     except AuthError as exc:
         if exc.relogin_required:
-            logger.info("Nous auth keepalive requires re-login: %s", exc)
+            logger.info("Flashauth keepalive requires re-login: %s", exc)
         else:
-            logger.debug("Nous auth keepalive failed: %s", exc)
+            logger.debug("Flashauth keepalive failed: %s", exc)
         return False
     except Exception as exc:
-        logger.debug("Nous auth keepalive failed: %s", exc)
+        logger.debug("Flashauth keepalive failed: %s", exc)
         return False
 
 
@@ -144,12 +144,12 @@ def _keepalive_loop(
 
 def start_flash_auth_keepalive(
     *,
-    interval_seconds: int = NOUS_AUTH_KEEPALIVE_INTERVAL_SECONDS,
-    initial_delay_seconds: int = NOUS_AUTH_KEEPALIVE_INITIAL_DELAY_SECONDS,
-    min_key_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
+    interval_seconds: int = FLASH_AUTH_KEEPALIVE_INTERVAL_SECONDS,
+    initial_delay_seconds: int = FLASH_AUTH_KEEPALIVE_INITIAL_DELAY_SECONDS,
+    min_key_ttl_seconds: int = FLASH_INVOKE_JWT_MIN_TTL_SECONDS,
     timeout_seconds: Optional[float] = None,
 ) -> Optional[threading.Thread]:
-    """Start the process-wide Nous auth keepalive thread."""
+    """Start the process-wide Flashauth keepalive thread."""
     if interval_seconds <= 0:
         return None
 
@@ -172,7 +172,7 @@ def start_flash_auth_keepalive(
             name="flash-auth-keepalive",
         )
         _keepalive_thread.start()
-        logger.debug("Nous auth keepalive started")
+        logger.debug("Flashauth keepalive started")
         return _keepalive_thread
 
 

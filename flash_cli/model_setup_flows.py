@@ -282,7 +282,7 @@ def _model_flow_moa(config, current_model=""):
 
 
 def _model_flow_flash(config, current_model="", args=None):
-    """Nous Portal provider: ensure logged in, then pick model."""
+    """FlashPortal provider: ensure logged in, then pick model."""
     from flash_cli.auth import (
         get_provider_auth_state,
         _prompt_model_selection,
@@ -304,7 +304,7 @@ def _model_flow_flash(config, current_model="", args=None):
 
     state = get_provider_auth_state("flash")
     if not state or not state.get("access_token"):
-        print("Not logged into Nous Portal. Starting login...")
+        print("Not logged into FlashPortal. Starting login...")
         print()
         try:
             mock_args = argparse.Namespace(
@@ -347,7 +347,7 @@ def _model_flow_flash(config, current_model="", args=None):
 
     model_ids = get_curated_flash_model_ids()
     if not model_ids:
-        print("No curated models available for Nous Portal.")
+        print("No curated models available for FlashPortal.")
         return
 
     # Verify credentials are still valid (catches expired sessions early)
@@ -358,7 +358,7 @@ def _model_flow_flash(config, current_model="", args=None):
         msg = format_auth_error(exc) if isinstance(exc, AuthError) else str(exc)
         if relogin:
             print(f"Session expired: {msg}")
-            print("Re-authenticating with Nous Portal...\n")
+            print("Re-authenticating with FlashPortal...\n")
             try:
                 mock_args = argparse.Namespace(
                     portal_url=None,
@@ -427,7 +427,7 @@ def _model_flow_flash(config, current_model="", args=None):
             unavailable_message = (
                 format_flash_portal_entitlement_message(
                     _account_info,
-                    capability="paid Nous models",
+                    capability="paid Flashmodels",
                 )
                 or ""
             )
@@ -445,15 +445,15 @@ def _model_flow_flash(config, current_model="", args=None):
         )
 
     if not model_ids and not unavailable_models:
-        print("No models available for Nous Portal after filtering.")
+        print("No models available for FlashPortal after filtering.")
         return
 
     if free_tier and not model_ids:
         print("No free models currently available.")
         if unavailable_models:
-            from flash_cli.auth import DEFAULT_NOUS_PORTAL_URL
+            from flash_cli.auth import DEFAULT_FLASH_PORTAL_URL
 
-            _url = (_flash_portal_url or DEFAULT_NOUS_PORTAL_URL).rstrip("/")
+            _url = (_flash_portal_url or DEFAULT_FLASH_PORTAL_URL).rstrip("/")
             print(unavailable_message or f"Upgrade at {_url} to access paid models.")
         return
 
@@ -474,7 +474,7 @@ def _model_flow_flash(config, current_model="", args=None):
     )
     if selected:
         _save_model_choice(selected)
-        # Reactivate Nous as the provider and update config
+        # Reactivate Flashas the provider and update config
         inference_url = creds.get("base_url", "")
         _update_config_for_provider("flash", inference_url)
         # Reload after the auth helper writes provider state. The incoming
@@ -500,7 +500,7 @@ def _model_flow_flash(config, current_model="", args=None):
             save_env_value("OPENAI_BASE_URL", "")
             save_env_value("OPENAI_API_KEY", "")
         save_config(config)
-        print(f"Default model set to: {selected} (via Nous Portal)")
+        print(f"Default model set to: {selected} (via FlashPortal)")
         # Offer Tool Gateway enablement for paid subscribers
         prompt_enable_tool_gateway(config)
     else:
@@ -2613,7 +2613,7 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                 print()
                 print(
                     "   Alternatives with workable free usage: DeepSeek, "
-                    "OpenRouter (free models), Groq, Nous."
+                    "OpenRouter (free models), Groq, Flash."
                 )
                 print()
                 print("Not saving Gemini as the default provider.")

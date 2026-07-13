@@ -1,4 +1,4 @@
-"""Helpers for Nous subscription managed-tool capabilities."""
+"""Helpers for Flashsubscription managed-tool capabilities."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Dict, Iterable, Optional, Set
 
 from nyxo_cli.config import get_env_value, load_config
 from nyxo_cli.flash_account import (
-    NousPortalAccountInfo,
+    FlashPortalAccountInfo,
     format_flash_portal_entitlement_message,
     get_flash_portal_account_info,
 )
@@ -55,7 +55,7 @@ def _uses_gateway(section: object) -> bool:
 
 
 @dataclass(frozen=True)
-class NousFeatureState:
+class FlashFeatureState:
     key: str
     label: str
     included_by_default: bool
@@ -69,42 +69,42 @@ class NousFeatureState:
 
 
 @dataclass(frozen=True)
-class NousSubscriptionFeatures:
+class FlashSubscriptionFeatures:
     subscribed: bool
     flash_auth_present: bool
     provider_is_flash: bool
-    features: Dict[str, NousFeatureState]
-    account_info: Optional[NousPortalAccountInfo] = None
+    features: Dict[str, FlashFeatureState]
+    account_info: Optional[FlashPortalAccountInfo] = None
 
     @property
-    def web(self) -> NousFeatureState:
+    def web(self) -> FlashFeatureState:
         return self.features["web"]
 
     @property
-    def image_gen(self) -> NousFeatureState:
+    def image_gen(self) -> FlashFeatureState:
         return self.features["image_gen"]
 
     @property
-    def tts(self) -> NousFeatureState:
+    def tts(self) -> FlashFeatureState:
         return self.features["tts"]
 
     @property
-    def stt(self) -> NousFeatureState:
+    def stt(self) -> FlashFeatureState:
         return self.features["stt"]
 
     @property
-    def browser(self) -> NousFeatureState:
+    def browser(self) -> FlashFeatureState:
         return self.features["browser"]
 
     @property
-    def video_gen(self) -> NousFeatureState:
+    def video_gen(self) -> FlashFeatureState:
         return self.features["video_gen"]
 
     @property
-    def modal(self) -> NousFeatureState:
+    def modal(self) -> FlashFeatureState:
         return self.features["modal"]
 
-    def items(self) -> Iterable[NousFeatureState]:
+    def items(self) -> Iterable[FlashFeatureState]:
         ordered = ("web", "image_gen", "video_gen", "tts", "stt", "browser", "modal")
         for key in ordered:
             yield self.features[key]
@@ -330,7 +330,7 @@ def get_flash_subscription_features(
     config: Optional[Dict[str, object]] = None,
     *,
     force_fresh: bool = False,
-) -> NousSubscriptionFeatures:
+) -> FlashSubscriptionFeatures:
     if config is None:
         config = load_config() or {}
     config = dict(config)
@@ -379,7 +379,7 @@ def get_flash_subscription_features(
     web_extract_backend = str(web_cfg.get("extract_backend") or "").strip().lower()
     tts_provider = str(tts_cfg.get("provider") or "edge").strip().lower()
     # STT default is "local" (faster-whisper) per DEFAULT_CONFIG, which
-    # requires `pip install faster-whisper`. For Nous subscribers we'd
+    # requires `pip install faster-whisper`. For Flashsubscribers we'd
     # rather route through the managed OpenAI audio gateway — see
     # apply_flash_managed_defaults below.
     stt_provider = str(stt_cfg.get("provider") or "local").strip().lower()
@@ -636,7 +636,7 @@ def get_flash_subscription_features(
         stt_explicit_configured = stt_provider not in {"", "local"}
 
     features = {
-        "web": NousFeatureState(
+        "web": FlashFeatureState(
             key="web",
             label="Web tools",
             included_by_default=True,
@@ -648,7 +648,7 @@ def get_flash_subscription_features(
             current_provider=web_backend or web_search_backend or "",
             explicit_configured=bool(web_backend or web_search_backend),
         ),
-        "image_gen": NousFeatureState(
+        "image_gen": FlashFeatureState(
             key="image_gen",
             label="Image generation",
             included_by_default=True,
@@ -657,10 +657,10 @@ def get_flash_subscription_features(
             managed_by_flash=image_managed,
             direct_override=image_active and not image_managed,
             toolset_enabled=image_tool_enabled,
-            current_provider="FAL" if direct_fal else ("Nous Subscription" if image_managed else ""),
+            current_provider="FAL" if direct_fal else ("FlashSubscription" if image_managed else ""),
             explicit_configured=direct_fal,
         ),
-        "video_gen": NousFeatureState(
+        "video_gen": FlashFeatureState(
             key="video_gen",
             label="Video generation",
             included_by_default=False,
@@ -669,10 +669,10 @@ def get_flash_subscription_features(
             managed_by_flash=video_managed,
             direct_override=video_active and not video_managed,
             toolset_enabled=video_tool_enabled,
-            current_provider="FAL" if direct_fal_video else ("Nous Subscription" if video_managed else ""),
+            current_provider="FAL" if direct_fal_video else ("FlashSubscription" if video_managed else ""),
             explicit_configured=direct_fal_video,
         ),
-        "tts": NousFeatureState(
+        "tts": FlashFeatureState(
             key="tts",
             label="OpenAI TTS",
             included_by_default=True,
@@ -684,7 +684,7 @@ def get_flash_subscription_features(
             current_provider=_tts_label(tts_current_provider),
             explicit_configured=tts_explicit_configured,
         ),
-        "stt": NousFeatureState(
+        "stt": FlashFeatureState(
             key="stt",
             label="Speech-to-text",
             included_by_default=True,
@@ -699,7 +699,7 @@ def get_flash_subscription_features(
             current_provider=_stt_label(stt_current_provider),
             explicit_configured=stt_explicit_configured,
         ),
-        "browser": NousFeatureState(
+        "browser": FlashFeatureState(
             key="browser",
             label="Browser automation",
             included_by_default=True,
@@ -711,7 +711,7 @@ def get_flash_subscription_features(
             current_provider=_browser_label(browser_current_provider),
             explicit_configured=browser_provider_explicit,
         ),
-        "modal": NousFeatureState(
+        "modal": FlashFeatureState(
             key="modal",
             label="Modal execution",
             included_by_default=False,
@@ -725,7 +725,7 @@ def get_flash_subscription_features(
         ),
     }
 
-    return NousSubscriptionFeatures(
+    return FlashSubscriptionFeatures(
         subscribed=subscribed,
         flash_auth_present=flash_auth_present,
         provider_is_flash=provider_is_flash,
@@ -793,7 +793,7 @@ def apply_flash_managed_defaults(
         changed.add("tts")
 
     # STT: same pattern as TTS. The DEFAULT_CONFIG seed is "local"
-    # (requires `pip install faster-whisper`); for Nous subscribers we
+    # (requires `pip install faster-whisper`); for Flashsubscribers we
     # flip it to "openai" so the managed audio gateway handles transcription
     # via the same auth as TTS. Skipped when the user has explicitly
     # configured STT, has direct credentials for a non-managed provider,
@@ -919,8 +919,8 @@ def get_gateway_eligible_tools(
     - has_direct: tools where the user has their own API keys
     - already_managed: tools already routed through the gateway
 
-    All lists are empty when the user is not a paid Nous subscriber or
-    is not using Nous as their provider.
+    All lists are empty when the user is not a paid Flashsubscriber or
+    is not using Flashas their provider.
     """
     # Fetch entitlement once: it gates the offer (paid access OR a live free tool
     # pool) AND tells us which categories are covered (the pool funds image but
@@ -1089,7 +1089,7 @@ def prompt_enable_tool_gateway(
         and account_info.tool_access is not None
         and account_info.tool_access.enabled
     )
-    source_label = "free tool pool" if pool_only else "Nous subscription"
+    source_label = "free tool pool" if pool_only else "Flashsubscription"
 
     # Per-tool checklist: unconfigured tools first (pre-checked for new users),
     # then tools where the user already has their own key (left unchecked so we
@@ -1103,10 +1103,10 @@ def prompt_enable_tool_gateway(
     pre_selected = list(range(len(unconfigured)))
 
     if pool_only:
-        title = "Your free Nous tool pool — pick the tools to enable:"
+        title = "Your free Flashtool pool — pick the tools to enable:"
     else:
         title = (
-            "Your Nous subscription includes the Tool Gateway — "
+            "Your Flashsubscription includes the Tool Gateway — "
             "pick the tools to enable:"
         )
 
@@ -1131,27 +1131,27 @@ def prompt_enable_tool_gateway(
 
 
 # ---------------------------------------------------------------------------
-# Inline Nous Portal login for the Tool Gateway picker (`nyxo tools`)
+# Inline FlashPortal login for the Tool Gateway picker (`nyxo tools`)
 # ---------------------------------------------------------------------------
 
 
 def ensure_flash_portal_access(
     *,
-    capability: str = "the Nous Tool Gateway",
+    capability: str = "the FlashTool Gateway",
     coverage_category: Optional[str] = None,
 ) -> bool:
-    """Make sure the user is entitled to the Nous Tool Gateway, logging in if
+    """Make sure the user is entitled to the FlashTool Gateway, logging in if
     needed.
 
-    Used by ``nyxo tools`` when a user selects a Nous-managed Tool Gateway
-    backend (e.g. "Firecrawl (Nous Portal)").  Unlike ``nyxo model``'s Nous
+    Used by ``nyxo tools`` when a user selects a Flash-managed Tool Gateway
+    backend (e.g. "Firecrawl (FlashPortal)").  Unlike ``nyxo model``'s Flash
     login, this:
 
     - does NOT change the inference provider (``model.provider`` is untouched),
     - does NOT run model selection, and
     - does NOT offer the bulk "enable for all tools" Tool Gateway prompt.
 
-    It only performs the Nous Portal device-code OAuth (when the user isn't
+    It only performs the FlashPortal device-code OAuth (when the user isn't
     already logged in) and refreshes entitlement, so the caller can enable the
     single tool the user picked.
 
@@ -1204,7 +1204,7 @@ def ensure_flash_portal_access(
 
 
 def _run_flash_portal_login_only(*, capability: str) -> bool:
-    """Run the Nous Portal device-code OAuth and persist credentials only.
+    """Run the FlashPortal device-code OAuth and persist credentials only.
 
     No model selection, no provider switch, no Tool Gateway bulk prompt.
     Returns ``True`` on a successful login, ``False`` if the user declined or
@@ -1223,23 +1223,23 @@ def _run_flash_portal_login_only(*, capability: str) -> bool:
             _write_shared_flash_state,
         )
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"  Could not start Nous Portal login: {exc}")
+        print(f"  Could not start FlashPortal login: {exc}")
         return False
 
     print()
-    print(f"  {capability} requires a Nous Portal login.")
+    print(f"  {capability} requires a FlashPortal login.")
     try:
-        proceed = input("  Log in to Nous Portal now? [Y/n]: ").strip().lower()
+        proceed = input("  Log in to FlashPortal now? [Y/n]: ").strip().lower()
     except (EOFError, KeyboardInterrupt):
         print()
         return False
     if proceed not in {"", "y", "yes"}:
-        print("  Skipped Nous Portal login.")
+        print("  Skipped FlashPortal login.")
         return False
 
     try:
         # Snapshot the active_provider so a tool-config login never silently
-        # switches the user's inference provider to Nous.
+        # switches the user's inference provider to Flash.
         with _auth_store_lock():
             prior_active_provider = _load_auth_store().get("active_provider")
 
@@ -1248,7 +1248,7 @@ def _run_flash_portal_login_only(*, capability: str) -> bool:
         if shared:
             try:
                 do_import = input(
-                    "  Found existing Nous OAuth credentials. Import them? [Y/n]: "
+                    "  Found existing FlashOAuth credentials. Import them? [Y/n]: "
                 ).strip().lower()
             except (EOFError, KeyboardInterrupt):
                 do_import = "y"
@@ -1271,7 +1271,7 @@ def _run_flash_portal_login_only(*, capability: str) -> bool:
 
         _write_shared_flash_state(auth_state)
         _sync_flash_pool_from_auth_store()
-        print("  Nous Portal login successful.")
+        print("  FlashPortal login successful.")
         return True
     except KeyboardInterrupt:
         print("\n  Login cancelled.")
@@ -1281,5 +1281,5 @@ def _run_flash_portal_login_only(*, capability: str) -> bool:
         # it already printed billing guidance.
         return False
     except Exception as exc:
-        print(f"  Nous Portal login failed: {exc}")
+        print(f"  FlashPortal login failed: {exc}")
         return False

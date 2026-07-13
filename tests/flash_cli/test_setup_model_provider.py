@@ -8,7 +8,7 @@ that the setup wizard correctly syncs config from disk after the call.
 from __future__ import annotations
 
 from flash_cli.config import load_config, save_config, save_env_value
-from flash_cli.flash_subscription import NousFeatureState, NousSubscriptionFeatures
+from flash_cli.flash_subscription import FlashFeatureState, FlashSubscriptionFeatures
 from flash_cli.setup import _print_setup_summary, setup_model_provider
 
 
@@ -294,17 +294,17 @@ def test_setup_summary_shows_camofox_when_browser_feature_is_camofox(tmp_path, m
     _clear_provider_env(monkeypatch)
     monkeypatch.setattr(
         "flash_cli.setup.get_flash_subscription_features",
-        lambda config: NousSubscriptionFeatures(
+        lambda config: FlashSubscriptionFeatures(
             subscribed=False,
             flash_auth_present=False,
             provider_is_flash=False,
             features={
-                "web": NousFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
-                "image_gen": NousFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
-                "video_gen": NousFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
-                "tts": NousFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
-                "browser": NousFeatureState("browser", "Browser automation", True, True, True, False, True, True, "Camofox"),
-                "modal": NousFeatureState("modal", "Modal execution", False, False, False, False, False, True, "local"),
+                "web": FlashFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
+                "image_gen": FlashFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
+                "video_gen": FlashFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
+                "tts": FlashFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
+                "browser": FlashFeatureState("browser", "Browser automation", True, True, True, False, True, True, "Camofox"),
+                "modal": FlashFeatureState("modal", "Modal execution", False, False, False, False, False, True, "local"),
             },
         ),
     )
@@ -322,17 +322,17 @@ def test_setup_summary_does_not_mark_incomplete_browserbase_as_available(tmp_pat
     monkeypatch.setenv("BROWSERBASE_API_KEY", "bb-key")
     monkeypatch.setattr(
         "flash_cli.setup.get_flash_subscription_features",
-        lambda config: NousSubscriptionFeatures(
+        lambda config: FlashSubscriptionFeatures(
             subscribed=False,
             flash_auth_present=False,
             provider_is_flash=False,
             features={
-                "web": NousFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
-                "image_gen": NousFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
-                "video_gen": NousFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
-                "tts": NousFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
-                "browser": NousFeatureState("browser", "Browser automation", True, False, False, False, False, True, "Browserbase"),
-                "modal": NousFeatureState("modal", "Modal execution", False, False, False, False, False, True, "local"),
+                "web": FlashFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
+                "image_gen": FlashFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
+                "video_gen": FlashFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
+                "tts": FlashFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
+                "browser": FlashFeatureState("browser", "Browser automation", True, False, False, False, False, True, "Browserbase"),
+                "modal": FlashFeatureState("modal", "Modal execution", False, False, False, False, False, True, "local"),
             },
         ),
     )

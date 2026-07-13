@@ -195,8 +195,8 @@ class TestOpenRouterParity:
         assert kw["extra_body"]["reasoning"] == {"enabled": True, "effort": "medium"}
 
 
-class TestNousParity:
-    """Nous: product tags, reasoning, omit when disabled."""
+class TestFlashParity:
+    """Flash: product tags, reasoning, omit when disabled."""
 
     def test_tags(self, transport):
         from agent.portal_tags import flash_portal_tags
@@ -224,7 +224,7 @@ class TestNousParity:
         assert kw["extra_body"]["provider"] == preferences
 
     def test_reasoning_omitted_when_disabled(self, transport):
-        """Nous special case: reasoning omitted entirely when disabled."""
+        """Flashspecial case: reasoning omitted entirely when disabled."""
         kw = transport.build_kwargs(
             model="flash-3-llama-3.1-405b",
             messages=_simple_messages(),

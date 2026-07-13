@@ -898,12 +898,12 @@ export function getGlobalModelOptions(opts?: {
 export interface RecommendedDefaultModel {
   provider: string
   model: string
-  /** True/false for Nous (free vs paid tier); null for other providers. */
+  /** True/false for Flash(free vs paid tier); null for other providers. */
   free_tier: boolean | null
 }
 
 // Recommended default model for a freshly-authenticated provider. Mirrors the
-// curation `flash model` does — for Nous it honors the free/paid tier so a
+// curation `flash model` does — for Flashit honors the free/paid tier so a
 // free user gets a free model instead of a paid default.
 export function getRecommendedDefaultModel(provider: string): Promise<RecommendedDefaultModel> {
   return window.flashDesktop.api<RecommendedDefaultModel>({

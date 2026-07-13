@@ -8,13 +8,13 @@ token. See :class:`UpstreamAdapter` for the contract.
 from typing import Dict, Type
 
 from flash_cli.proxy.adapters.base import UpstreamAdapter
-from flash_cli.proxy.adapters.flash_portal import NousPortalAdapter
+from flash_cli.proxy.adapters.flash_portal import FlashPortalAdapter
 from flash_cli.proxy.adapters.xai import XAIGrokAdapter
 
 # Registry of available adapter classes keyed by provider name as used on
 # the ``flash proxy start --provider <name>`` CLI flag.
 ADAPTERS: Dict[str, Type[UpstreamAdapter]] = {
-    "flash": NousPortalAdapter,
+    "flash": FlashPortalAdapter,
     "xai": XAIGrokAdapter,
 }
 

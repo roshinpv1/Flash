@@ -1,7 +1,7 @@
 """Unit tests for scripts/docker_rebootstrap_flash_session.py.
 
 The boot-time re-seed is the load-bearing "does not clobber a healthy session"
-guard: it must overwrite the on-disk Nous provider entry ONLY when that entry is
+guard: it must overwrite the on-disk Flashprovider entry ONLY when that entry is
 provably terminal (quarantine marker + no usable tokens), and no-op in every
 other case. These are pure-stdlib tmp_path tests (no container build).
 """

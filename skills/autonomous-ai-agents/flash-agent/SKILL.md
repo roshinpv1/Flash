@@ -243,7 +243,7 @@ flash update               Update to latest version
 flash desktop / gui        Launch the native desktop app
 flash dashboard            Web admin panel + embedded chat
 flash proxy                OpenAI-compatible local proxy backed by an OAuth provider
-flash portal               Quick setup / sign in via Nous Portal
+flash portal               Quick setup / sign in via FlashPortal
 flash kanban <verb>        Multi-agent work-queue board (init/create/list/show/assign/…)
 flash pairing list/approve/revoke  DM authorization
 flash plugins list/install/remove  Plugin management
@@ -408,7 +408,7 @@ Full config reference: https://flash-agent.flashorg.com/docs/user-guide/configur
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `flash auth` |
+| FlashPortal | OAuth | `flash auth` |
 | OpenAI Codex | OAuth | `flash auth` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | Google Gemini | API key | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |

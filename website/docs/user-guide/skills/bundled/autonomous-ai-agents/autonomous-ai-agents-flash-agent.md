@@ -398,7 +398,7 @@ Full config reference: https://flash-agent.flashorg.com/docs/user-guide/configur
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `flash auth` |
+| FlashPortal | OAuth | `flash auth` |
 | OpenAI Codex | OAuth | `flash auth` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | Google Gemini | API key | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |

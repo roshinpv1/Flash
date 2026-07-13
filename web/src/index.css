@@ -45,7 +45,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Flash Agent — Nous DS with the LENS_0 (Flash teal) palette applied
+/* Flash Agent — FlashDS with the LENS_0 (Flash teal) palette applied
    statically as the default dashboard theme. */
 /* ------------------------------------------------------------------ */
 
@@ -149,7 +149,7 @@ samp,
   }
 }
 
-/* Nousnet's flash-agent layout bumps `small` and `code` to readable
+/* Flashnet's flash-agent layout bumps `small` and `code` to readable
    dashboard sizes. Keep in sync. */
 small {
   font-size: 1.0625rem;
@@ -160,10 +160,10 @@ code {
 }
 
 /* Shadcn-compat tokens.
-   The dashboard's page code predates the Nous DS and uses shadcn-style
+   The dashboard's page code predates the FlashDS and uses shadcn-style
    utility classes (bg-card, text-muted-foreground, border-border, etc.)
    extensively. Rather than rewrite every call site, we expose those
-   tokens on top of the Nous palette so classes continue to resolve. */
+   tokens on top of the Flashpalette so classes continue to resolve. */
 @theme inline {
   /* Remap foreground to midground so `text-foreground` / `bg-foreground`
      stay visible — in LENS_0, `--foreground` itself has alpha 0. */

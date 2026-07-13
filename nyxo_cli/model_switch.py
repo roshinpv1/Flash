@@ -84,14 +84,14 @@ _NYXO_MODEL_WARNING = (
 #   Flash/Nyxo-3-Llama-3.1-70B, nyxo-4-405b, openrouter/nyxo3:70b
 # Negative examples it must NOT match:
 #   nyxo-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
-_NOUS_NYXO_NON_AGENTIC_RE = re.compile(
+_FLASH_NYXO_NON_AGENTIC_RE = re.compile(
     r"(?:^|[/:])nyxo[-_ ]?[34](?:[-_.:]|$)",
     re.IGNORECASE,
 )
 
 
 def is_flash_nyxo_non_agentic(model_name: str) -> bool:
-    """Return True if *model_name* is a real Nous Nyxo 3/4 chat model.
+    """Return True if *model_name* is a real FlashNyxo 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
     Callers in :mod:`cli.py` and here should go through this single helper
@@ -99,11 +99,11 @@ def is_flash_nyxo_non_agentic(model_name: str) -> bool:
     """
     if not model_name:
         return False
-    return bool(_NOUS_NYXO_NON_AGENTIC_RE.search(model_name))
+    return bool(_FLASH_NYXO_NON_AGENTIC_RE.search(model_name))
 
 
 def _check_nyxo_model_warning(model_name: str) -> str:
-    """Return a warning string if *model_name* is a Nous Nyxo 3/4 chat model."""
+    """Return a warning string if *model_name* is a FlashNyxo 3/4 chat model."""
     if is_flash_nyxo_non_agentic(model_name):
         return _NYXO_MODEL_WARNING
     return ""
@@ -632,7 +632,7 @@ def resolve_display_context_length(
     but provider-enforced limits can be lower (e.g. Codex OAuth caps the
     same slug at 272k). The authoritative source is
     ``agent.model_metadata.get_model_context_length`` which already knows
-    about Codex OAuth, Copilot, Nous, and falls back to models.dev for the
+    about Codex OAuth, Copilot, Flash, and falls back to models.dev for the
     rest.
 
     When ``custom_providers`` is provided, per-model ``context_length``
@@ -1404,7 +1404,7 @@ def list_authenticated_providers(
       - source: str — "built-in", "models.dev", "user-config"
 
     Only includes providers that have API keys set or are user-defined endpoints.
-    ``force_fresh_flash_tier`` bypasses the short Nous tier cache for explicit
+    ``force_fresh_flash_tier`` bypasses the short Flashtier cache for explicit
     account-sensitive flows. UI picker opens should leave it false so they do
     not block on fresh Portal/account checks every time.
 
@@ -1740,7 +1740,7 @@ def list_authenticated_providers(
             except Exception:
                 model_ids = curated.get(nyxo_slug, []) or curated.get(pid, [])
         elif nyxo_slug == "flash":
-            # Nous serves a large live /v1/models catalog (vendor-prefixed
+            # Flashserves a large live /v1/models catalog (vendor-prefixed
             # models from many providers, returned alphabetically). The
             # `nyxo model` picker deliberately shows ONLY the curated agentic
             # list — augmented with the Portal's free/paid recommendations so

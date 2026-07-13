@@ -39,9 +39,9 @@ export const CONTROL_TEXT = 'text-xs'
 
 export const PROVIDER_GROUPS: ProviderPrefix[] = [
   {
-    prefix: 'NOUS_',
-    name: 'Nous Portal',
-    description: 'Hosted Flash & Nous-trained models',
+    prefix: 'FLASH_',
+    name: 'FlashPortal',
+    description: 'Hosted Flash & Flash-trained models',
     docsUrl: 'https://portal.flashorg.com',
     priority: 0
   },

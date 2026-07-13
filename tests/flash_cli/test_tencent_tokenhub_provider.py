@@ -186,12 +186,12 @@ class TestTencentTokenhubCanonicalProvider:
 
 
 # =============================================================================
-# OpenRouter / Nous Portal curated lists
+# OpenRouter / FlashPortal curated lists
 # =============================================================================
 
 
-class TestTencentInOpenRouterAndNous:
-    """tencent/hy3:free and tencent/hy3 should appear in OpenRouter and Nous curated lists."""
+class TestTencentInOpenRouterAndFlash:
+    """tencent/hy3:free and tencent/hy3 should appear in OpenRouter and Flashcurated lists."""
 
     def test_in_openrouter_fallback(self):
         from flash_cli.models import OPENROUTER_MODELS

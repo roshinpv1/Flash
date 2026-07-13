@@ -417,7 +417,7 @@ class TestBuildApiKwargsKimiNoTemperatureOverride:
         assert "temperature" not in kwargs
 
 
-class TestBuildApiKwargsNousPortal:
+class TestBuildApiKwargsFlashPortal:
     def test_includes_flash_product_tags(self, monkeypatch):
         from agent.portal_tags import flash_portal_tags
         agent = _make_agent(
@@ -939,7 +939,7 @@ class TestChatMessagesToResponsesInputMessageItems:
         assert items == [{"role": "assistant", "content": "fallback text"}]
 
 
-# ── Chat completions response handling (OpenRouter/Nous) ─────────────────────
+# ── Chat completions response handling (OpenRouter/Flash) ─────────────────────
 
 class TestBuildAssistantMessage:
     """Verify _build_assistant_message works for all provider response formats."""
@@ -1042,7 +1042,7 @@ class TestAuxiliaryClientProviderPriority:
         assert model == "google/gemini-3-flash-preview"
 
     def test_custom_endpoint_when_no_flash(self, monkeypatch):
-        """Custom endpoint is used when no OpenRouter/Nous keys are available.
+        """Custom endpoint is used when no OpenRouter/Flashkeys are available.
 
         Since the March 2026 config refactor, OPENAI_BASE_URL env var is no
         longer consulted — base_url comes from config.yaml via

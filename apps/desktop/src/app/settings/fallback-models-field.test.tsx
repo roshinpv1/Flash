@@ -20,7 +20,7 @@ beforeEach(() => {
     providers: [
       { name: 'GitHub Copilot', slug: 'copilot', models: ['gpt-5-mini', 'gpt-5.4-mini'] },
       { name: 'OpenAI Codex', slug: 'openai-codex', models: ['gpt-5.4-mini'] },
-      { name: 'Nous', slug: 'flash', models: ['flash-4'] }
+      { name: 'Flash', slug: 'flash', models: ['flash-4'] }
     ]
   })
 })

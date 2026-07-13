@@ -104,7 +104,7 @@ def test_resolve_runtime_provider_flash_pool_uses_env_base_url_override(monkeypa
         def select(self):
             return entry
 
-    monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", "https://ai.wildebeest-newton.ts.net/v1")
+    monkeypatch.setenv("FLASH_INFERENCE_BASE_URL", "https://ai.wildebeest-newton.ts.net/v1")
     monkeypatch.setattr(rp, "resolve_provider", lambda *a, **k: "flash")
     monkeypatch.setattr(rp, "_agent_key_is_usable", lambda *a, **k: True)
     monkeypatch.setattr(rp, "load_pool", lambda provider: _Pool())
@@ -1880,7 +1880,7 @@ def test_custom_provider_no_key_gets_placeholder(monkeypatch):
 
 
 def test_auto_detected_flash_auth_failure_falls_through_to_openrouter(monkeypatch):
-    """When auto-detect picks Nous but credentials are revoked, fall through to OpenRouter."""
+    """When auto-detect picks Flashbut credentials are revoked, fall through to OpenRouter."""
     from flash_cli.auth import AuthError
 
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
@@ -1895,7 +1895,7 @@ def test_auto_detected_flash_auth_failure_falls_through_to_openrouter(monkeypatc
     monkeypatch.setattr(rp, "load_pool", lambda p: type("P", (), {
         "has_credentials": lambda self: False,
     })())
-    # Nous credential resolution fails with revoked token
+    # Flashcredential resolution fails with revoked token
     monkeypatch.setattr(
         rp, "resolve_flash_runtime_credentials",
         lambda **kw: (_ for _ in ()).throw(
@@ -1938,7 +1938,7 @@ def test_auto_detected_codex_auth_failure_falls_through_to_openrouter(monkeypatc
 
 
 def test_explicit_flash_auth_failure_still_raises(monkeypatch):
-    """When user explicitly requests Nous and auth fails, the error should propagate."""
+    """When user explicitly requests Flashand auth fails, the error should propagate."""
     from flash_cli.auth import AuthError
     import pytest
 

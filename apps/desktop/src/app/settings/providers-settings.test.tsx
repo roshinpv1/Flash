@@ -28,7 +28,7 @@ function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> =
     docs_url: '',
     flow: 'device_code',
     id,
-    name: id === 'flash' ? 'Nous Portal' : 'MiniMax',
+    name: id === 'flash' ? 'FlashPortal' : 'MiniMax',
     status: {
       logged_in: loggedIn
     },
@@ -81,7 +81,7 @@ describe('ProvidersSettings', () => {
   it('disconnects a connected provider account and refreshes the accounts list', async () => {
     await renderProvidersSettings()
 
-    const remove = await screen.findByRole('button', { name: 'Remove Nous Portal' })
+    const remove = await screen.findByRole('button', { name: 'Remove FlashPortal' })
     fireEvent.click(remove)
 
     await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('flash'))
@@ -91,7 +91,7 @@ describe('ProvidersSettings', () => {
   it('keeps provider selection separate from account removal', async () => {
     await renderProvidersSettings()
 
-    fireEvent.click(await screen.findByText('Nous Portal'))
+    fireEvent.click(await screen.findByText('FlashPortal'))
 
     expect(startManualProviderOAuth).toHaveBeenCalledWith('flash')
     expect(disconnectOAuthProvider).not.toHaveBeenCalled()

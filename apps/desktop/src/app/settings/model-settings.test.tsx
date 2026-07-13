@@ -44,7 +44,7 @@ beforeEach(() => {
   getGlobalModelOptions.mockResolvedValue({
     providers: [
       {
-        name: 'Nous',
+        name: 'Flash',
         slug: 'flash',
         models: ['flash-4', 'flash-4-mini'],
         authenticated: true,
@@ -86,8 +86,8 @@ describe('ModelSettings', () => {
     const triggers = await screen.findAllByRole('combobox')
     fireEvent.click(triggers[0])
 
-    // "Nous" shows in both the trigger and the open list.
-    expect((await screen.findAllByText('Nous')).length).toBeGreaterThan(0)
+    // "Flash" shows in both the trigger and the open list.
+    expect((await screen.findAllByText('Flash')).length).toBeGreaterThan(0)
     expect(screen.queryByText(/DeepSeek/)).toBeNull()
   })
 
@@ -109,7 +109,7 @@ describe('ModelSettings', () => {
     getGlobalModelOptions.mockResolvedValueOnce({
       providers: [
         {
-          name: 'Nous',
+          name: 'Flash',
           slug: 'flash',
           models: ['flash-4'],
           authenticated: true,

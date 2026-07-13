@@ -1,4 +1,4 @@
-"""Tests for agent.portal_tags — Nous Portal request tag contract."""
+"""Tests for agent.portal_tags — FlashPortal request tag contract."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ def test_flash_client_tag_includes_current_version():
 
 
 def test_flash_client_tag_format():
-    """The client tag has the exact shape Nous Portal expects."""
+    """The client tag has the exact shape FlashPortal expects."""
     from agent.portal_tags import flash_client_tag
 
     tag = flash_client_tag()
@@ -23,7 +23,7 @@ def test_flash_client_tag_format():
 
 
 def test_flash_portal_tags_contains_product_and_client():
-    """Every Nous Portal request gets BOTH the product tag and the version tag."""
+    """Every FlashPortal request gets BOTH the product tag and the version tag."""
     from agent.portal_tags import flash_client_tag, flash_portal_tags
 
     tags = flash_portal_tags()
@@ -43,15 +43,15 @@ def test_flash_portal_tags_returns_fresh_list():
 
 
 def test_auxiliary_client_flash_extra_body_uses_helper():
-    """auxiliary_client.NOUS_EXTRA_BODY must match the canonical helper output."""
-    from agent.auxiliary_client import NOUS_EXTRA_BODY
+    """auxiliary_client.FLASH_EXTRA_BODY must match the canonical helper output."""
+    from agent.auxiliary_client import FLASH_EXTRA_BODY
     from agent.portal_tags import flash_portal_tags
 
-    assert NOUS_EXTRA_BODY == {"tags": flash_portal_tags()}
+    assert FLASH_EXTRA_BODY == {"tags": flash_portal_tags()}
 
 
 def test_flash_provider_profile_uses_helper():
-    """The Nous provider profile (main agent loop) must use the canonical tags."""
+    """The Flashprovider profile (main agent loop) must use the canonical tags."""
     from agent.portal_tags import flash_portal_tags
     from providers import get_provider_profile
 

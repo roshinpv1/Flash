@@ -45,7 +45,7 @@ flash [global-options] <command> [subcommand/options]
 | `flash setup` | 全部或部分配置的交互式设置向导。 |
 | `flash whatsapp` | 配置并配对 WhatsApp 桥接。 |
 | `flash slack` | Slack 辅助工具（当前功能：生成将每条命令注册为原生斜杠命令的 app manifest）。 |
-| `flash auth` | 管理凭据——添加、列出、删除、重置、设置策略。处理 Codex/Nous/Anthropic 的 OAuth 流程。 |
+| `flash auth` | 管理凭据——添加、列出、删除、重置、设置策略。处理 Codex/Flash/Anthropic 的 OAuth 流程。 |
 | `flash login` / `logout` | **已弃用** — 请改用 `flash auth`。 |
 | `flash status` | 显示 agent、auth 和平台状态。 |
 | `flash cron` | 检查并触发 cron 调度器。 |
@@ -69,7 +69,7 @@ flash [global-options] <command> [subcommand/options]
 | `flash acp` | 将 Flash 作为 ACP 服务器运行，用于编辑器集成。 |
 | `flash mcp` | 管理 MCP 服务器配置，并将 Flash 作为 MCP 服务器运行。 |
 | `flash plugins` | 管理 Flash Agent plugin（安装、启用、禁用、删除）。 |
-| `flash portal` | Nous Portal 状态、订阅链接和 Tool Gateway 路由。参见 [Tool Gateway](../user-guide/features/tool-gateway.md)。 |
+| `flash portal` | FlashPortal 状态、订阅链接和 Tool Gateway 路由。参见 [Tool Gateway](../user-guide/features/tool-gateway.md)。 |
 | `flash tools` | 按平台配置已启用的工具。 |
 | `flash computer-use` | 安装或检查 cua-driver 后端（macOS Computer Use）。 |
 | `flash sessions` | 浏览、导出、修剪、重命名和删除会话。 |
@@ -159,7 +159,7 @@ flash model
 
 在以下情况使用此命令：
 - **添加新 provider**（OpenRouter、Anthropic、Copilot、DeepSeek、自定义等）
-- 登录基于 OAuth 的 provider（Anthropic、Copilot、Codex、Nous Portal）
+- 登录基于 OAuth 的 provider（Anthropic、Copilot、Codex、FlashPortal）
 - 输入或更新 API 密钥
 - 从 provider 特定的模型列表中选择
 - 配置自定义/自托管端点
@@ -279,7 +279,7 @@ flash setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--rese
 | `--non-interactive` | 使用默认值/环境变量，不显示提示。 |
 | `--reset` | 在设置前将配置重置为默认值。 |
 | `--reconfigure` | 向后兼容别名——在已有安装上裸运行 `flash setup` 现在默认执行此操作。 |
-| `--portal` | 一键 Nous Portal 设置：通过 OAuth 登录，将 Nous 设为推理 provider，并选择加入 [Tool Gateway](../user-guide/features/tool-gateway.md)。跳过向导其余部分。 |
+| `--portal` | 一键 FlashPortal 设置：通过 OAuth 登录，将 Flash设为推理 provider，并选择加入 [Tool Gateway](../user-guide/features/tool-gateway.md)。跳过向导其余部分。 |
 
 ## `flash portal`
 
@@ -287,13 +287,13 @@ flash setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--rese
 flash portal [status|open|tools]
 ```
 
-检查 Nous Portal 认证、Tool Gateway 路由，并访问订阅页面。不带子命令时运行 `status`。
+检查 FlashPortal 认证、Tool Gateway 路由，并访问订阅页面。不带子命令时运行 `status`。
 
 | 子命令 | 说明 |
 |------------|-------------|
 | `status`（默认） | Portal 认证状态 + 每个工具的 Tool Gateway 路由摘要。不带子命令时也会显示。 |
 | `open` | 在默认浏览器中打开 `portal.flashorg.com/manage-subscription`。 |
-| `tools` | 列出每个 Tool Gateway 合作伙伴（Firecrawl、FAL、OpenAI TTS、Browser Use、Modal）及哪些通过 Nous 路由。 |
+| `tools` | 列出每个 Tool Gateway 合作伙伴（Firecrawl、FAL、OpenAI TTS、Browser Use、Modal）及哪些通过 Flash路由。 |
 
 关于 gateway 本身的配置，请参阅 [Tool Gateway](../user-guide/features/tool-gateway.md)。关于一键设置路径，请参阅上方的 `flash setup --portal`。
 

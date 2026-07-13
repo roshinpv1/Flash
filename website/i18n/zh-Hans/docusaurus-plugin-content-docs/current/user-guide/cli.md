@@ -25,7 +25,7 @@ flash chat -q "Hello"
 flash chat --model "anthropic/claude-sonnet-4"
 
 # 使用指定提供商
-flash chat --provider flash        # 使用 Nous Portal
+flash chat --provider flash        # 使用 FlashPortal
 flash chat --provider openrouter  # 强制使用 OpenRouter
 
 # 使用指定工具集

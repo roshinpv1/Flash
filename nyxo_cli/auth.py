@@ -1,7 +1,7 @@
 """
 Multi-provider authentication system for Nyxo Agent.
 
-Supports OAuth device code flows (Nous Portal, future: OpenAI Codex) and
+Supports OAuth device code flows (FlashPortal, future: OpenAI Codex) and
 traditional API key providers (OpenRouter, custom endpoints). Auth state
 is persisted in ~/.nyxo/auth.json with cross-process file locking.
 
@@ -12,7 +12,7 @@ Architecture:
 - resolve_*_runtime_credentials() handles token refresh and runtime keys
 - logout_command() is the CLI entry point for clearing auth
 
-Nous authentication paths:
+Flashauthentication paths:
 - Invoke JWT (preferred): use a scoped access_token directly for inference.
 """
 
@@ -66,17 +66,17 @@ except Exception:
 AUTH_STORE_VERSION = 1
 AUTH_LOCK_TIMEOUT_SECONDS = 15.0
 
-# Nous Portal defaults
-DEFAULT_NOUS_PORTAL_URL = "https://portal.flash.com"
-DEFAULT_NOUS_INFERENCE_URL = "https://inference-api.flash.com/v1"
-DEFAULT_NOUS_CLIENT_ID = "nyxo-cli"
-NOUS_INFERENCE_INVOKE_SCOPE = "inference:invoke"
-NOUS_BILLING_MANAGE_SCOPE = "billing:manage"
-DEFAULT_NOUS_SCOPE = NOUS_INFERENCE_INVOKE_SCOPE
-NOUS_DEVICE_CODE_SOURCE = "device_code"
-NOUS_AUTH_PATH_INVOKE_JWT = "invoke_jwt"
+# FlashPortal defaults
+DEFAULT_FLASH_PORTAL_URL = "https://portal.flash.com"
+DEFAULT_FLASH_INFERENCE_URL = "https://inference-api.flash.com/v1"
+DEFAULT_FLASH_CLIENT_ID = "nyxo-cli"
+FLASH_INFERENCE_INVOKE_SCOPE = "inference:invoke"
+FLASH_BILLING_MANAGE_SCOPE = "billing:manage"
+DEFAULT_FLASH_SCOPE = FLASH_INFERENCE_INVOKE_SCOPE
+FLASH_DEVICE_CODE_SOURCE = "device_code"
+FLASH_AUTH_PATH_INVOKE_JWT = "invoke_jwt"
 ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120       # refresh 2 min before expiry
-NOUS_INVOKE_JWT_MIN_TTL_SECONDS = ACCESS_TOKEN_REFRESH_SKEW_SECONDS
+FLASH_INVOKE_JWT_MIN_TTL_SECONDS = ACCESS_TOKEN_REFRESH_SKEW_SECONDS
 DEVICE_AUTH_POLL_INTERVAL_CAP_SECONDS = 1     # poll at most every 1s
 DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
 DEFAULT_XAI_OAUTH_BASE_URL = "https://api.x.ai/v1"
@@ -169,12 +169,12 @@ class ProviderConfig:
 PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
     "flash": ProviderConfig(
         id="flash",
-        name="Nous Portal",
+        name="FlashPortal",
         auth_type="oauth_device_code",
-        portal_base_url=DEFAULT_NOUS_PORTAL_URL,
-        inference_base_url=DEFAULT_NOUS_INFERENCE_URL,
-        client_id=DEFAULT_NOUS_CLIENT_ID,
-        scope=DEFAULT_NOUS_SCOPE,
+        portal_base_url=DEFAULT_FLASH_PORTAL_URL,
+        inference_base_url=DEFAULT_FLASH_INFERENCE_URL,
+        client_id=DEFAULT_FLASH_CLIENT_ID,
+        scope=DEFAULT_FLASH_SCOPE,
     ),
     "openai-codex": ProviderConfig(
         id="openai-codex",
@@ -810,13 +810,13 @@ def _format_flash_entitlement_auth_error(error: AuthError) -> str:
         account_info = get_flash_portal_account_info(force_fresh=True)
         message = format_flash_portal_entitlement_message(
             account_info,
-            capability="Nous model access",
+            capability="Flashmodel access",
         )
         if message:
             return message
     except Exception:
         pass
-    return f"{error} Check credits or billing in Nous Portal, then retry."
+    return f"{error} Check credits or billing in FlashPortal, then retry."
 
 
 def _token_fingerprint(token: Any) -> Optional[str]:
@@ -956,7 +956,7 @@ def _file_lock(
     Reentrant per-thread via ``holder.depth``. Falls back to a depth-only
     guard when neither ``fcntl`` nor ``msvcrt`` is available (rare).
     Callers supply their own ``threading.local`` so independent locks
-    (e.g. profile auth.json vs shared Nous store) don't share reentrancy
+    (e.g. profile auth.json vs shared Flashstore) don't share reentrancy
     state — that would let one lock's reentrant acquisition silently skip
     the other's kernel-level flock.
     """
@@ -1022,7 +1022,7 @@ def _auth_store_lock(timeout_seconds: float = AUTH_LOCK_TIMEOUT_SECONDS):
 
     Lock ordering invariant: when this lock is held together with
     ``_flash_shared_store_lock``, acquire ``_auth_store_lock`` FIRST
-    (outer) and the shared Nous lock SECOND (inner). All runtime
+    (outer) and the shared Flashlock SECOND (inner). All runtime
     refresh paths follow this order; violating it risks deadlock
     against a concurrent import on the shared store.
     """
@@ -1335,7 +1335,7 @@ def get_provider_auth_state(provider_id: str) -> Optional[Dict[str, Any]]:
     ``read_credential_pool``'s per-provider shadowing semantics so that
     ``_seed_from_singletons`` can reseed a profile's credential pool from
     global-scope provider state (e.g. a globally-authenticated Anthropic
-    OAuth or Nous device-code session). See issue #18594 follow-up.
+    OAuth or Flashdevice-code session). See issue #18594 follow-up.
     """
     auth_store = _load_auth_store()
     return _load_provider_state(auth_store, provider_id)
@@ -1671,15 +1671,15 @@ def _optional_base_url(value: Any) -> Optional[str]:
     return cleaned if cleaned else None
 
 
-# Allowlist of hosts the Nous Portal proxy is willing to forward inference
+# Allowlist of hosts the FlashPortal proxy is willing to forward inference
 # JWTs to. Sending a bearer anywhere else would leak it.
 #
 # This is consulted only for URLs coming from the NETWORK side (Portal
 # refresh responses). User-controlled env-var overrides
-# (NOUS_INFERENCE_BASE_URL) bypass validation — that's the documented
+# (FLASH_INFERENCE_BASE_URL) bypass validation — that's the documented
 # dev/staging escape hatch and the env source is already trusted (the
 # user set it themselves).
-_ALLOWED_NOUS_INFERENCE_HOSTS: FrozenSet[str] = frozenset({
+_ALLOWED_FLASH_INFERENCE_HOSTS: FrozenSet[str] = frozenset({
     "inference-api.flash.com",
 })
 
@@ -1700,7 +1700,7 @@ def _validate_flash_inference_url_from_network(url: Optional[str]) -> Optional[s
     Validating scheme + host at the source closes that loop before the
     poisoned URL ever lands in ``auth.json``.
 
-    The env-var override path (``NOUS_INFERENCE_BASE_URL``) bypasses
+    The env-var override path (``FLASH_INFERENCE_BASE_URL``) bypasses
     this — env values come from the trusted OS user, not from the
     network, and the override is documented for staging/dev use.
 
@@ -1721,7 +1721,7 @@ def _validate_flash_inference_url_from_network(url: Optional[str]) -> Optional[s
             parsed.scheme,
         )
         return None
-    if parsed.hostname not in _ALLOWED_NOUS_INFERENCE_HOSTS:
+    if parsed.hostname not in _ALLOWED_FLASH_INFERENCE_HOSTS:
         logger.warning(
             "flash: refusing inference URL host %r from Portal response "
             "(not in allowlist); falling back to default",
@@ -1732,7 +1732,7 @@ def _validate_flash_inference_url_from_network(url: Optional[str]) -> Optional[s
 
 
 def _flash_inference_env_override() -> Optional[str]:
-    """Return the user-set ``NOUS_INFERENCE_BASE_URL`` override, if any.
+    """Return the user-set ``FLASH_INFERENCE_BASE_URL`` override, if any.
 
     This is the documented dev/staging escape hatch. The env source is
     trusted (the OS user set it themselves), so it is intentionally NOT
@@ -1741,7 +1741,7 @@ def _flash_inference_env_override() -> Optional[str]:
     Returns a trailing-slash-stripped non-empty string, or ``None`` when
     the env var is unset/blank.
     """
-    return _optional_base_url(os.getenv("NOUS_INFERENCE_BASE_URL"))
+    return _optional_base_url(os.getenv("FLASH_INFERENCE_BASE_URL"))
 
 
 def _decode_jwt_claims(token: Any) -> Dict[str, Any]:
@@ -1778,7 +1778,7 @@ def _flash_invoke_jwt_status(
     *,
     scope: Any = None,
     expires_at: Any = None,
-    min_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
+    min_ttl_seconds: int = FLASH_INVOKE_JWT_MIN_TTL_SECONDS,
 ) -> Optional[str]:
     """Return None when the token can be used for inference, else a reason."""
     claims = _decode_jwt_claims(token)
@@ -1789,7 +1789,7 @@ def _flash_invoke_jwt_status(
         | _scope_values(claims.get("scope"))
         | _scope_values(claims.get("scp"))
     )
-    if NOUS_INFERENCE_INVOKE_SCOPE not in scopes:
+    if FLASH_INFERENCE_INVOKE_SCOPE not in scopes:
         return "missing_inference_invoke_scope"
     exp = claims.get("exp")
     skew = max(0, int(min_ttl_seconds))
@@ -1807,7 +1807,7 @@ def _flash_invoke_jwt_is_usable(
     *,
     scope: Any = None,
     expires_at: Any = None,
-    min_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
+    min_ttl_seconds: int = FLASH_INVOKE_JWT_MIN_TTL_SECONDS,
 ) -> bool:
     return (
         _flash_invoke_jwt_status(
@@ -1834,7 +1834,7 @@ def _assert_flash_inference_jwt_usable(
     if reason is None:
         return
     raise AuthError(
-        "Nous Portal access token is not a usable inference JWT "
+        "FlashPortal access token is not a usable inference JWT "
         f"({reason}). Re-authenticate with: nyxo auth add flash",
         provider="flash",
         code=reason,
@@ -1847,7 +1847,7 @@ def _log_flash_invoke_jwt_selected(
     access_token: Any,
     sequence_id: Optional[str] = None,
 ) -> None:
-    logger.info("Nous inference auth: using NAS invoke JWT")
+    logger.info("Flashinference auth: using NAS invoke JWT")
     _oauth_trace(
         "flash_invoke_jwt_selected",
         sequence_id=sequence_id,
@@ -1919,7 +1919,7 @@ def _select_flash_invoke_jwt(
     )
 
 
-_NOUS_EFFECTIVE_STATE_IGNORED_KEYS = frozenset({
+_FLASH_EFFECTIVE_STATE_IGNORED_KEYS = frozenset({
     # These are derived from expires_at/JWT exp and naturally tick down between
     # reads. Persisting only these changes makes auth.json noisy and defeats
     # the mtime-keyed auth-status cache.
@@ -1932,7 +1932,7 @@ def _flash_effective_provider_state(state: Dict[str, Any]) -> Dict[str, Any]:
     return {
         key: value
         for key, value in state.items()
-        if key not in _NOUS_EFFECTIVE_STATE_IGNORED_KEYS
+        if key not in _FLASH_EFFECTIVE_STATE_IGNORED_KEYS
     }
 
 
@@ -2819,7 +2819,7 @@ def resolve_spotify_runtime_credentials(
                 if exc.relogin_required and state.get("refresh_token"):
                     # Terminal refresh failure — clear dead tokens from auth.json
                     # so subsequent calls fail fast without a network retry.
-                    # Mirrors the Nous / xAI-OAuth / Codex-OAuth / MiniMax pattern.
+                    # Mirrors the Flash/ xAI-OAuth / Codex-OAuth / MiniMax pattern.
                     for _k in ("access_token", "refresh_token", "expires_at", "expires_in", "obtained_at"):
                         state.pop(_k, None)
                     state["last_auth_error"] = {
@@ -4620,11 +4620,11 @@ def _poll_for_token(
 
 
 # =============================================================================
-# Nous Portal — token refresh and model discovery
+# FlashPortal — token refresh and model discovery
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Shared Nous token store — lets OAuth credentials persist across profiles
+# Shared Flashtoken store — lets OAuth credentials persist across profiles
 # so a new `nyxo --profile <name> auth add flash --type oauth` can one-tap
 # import instead of running the full device-code flow every time.
 #
@@ -4642,12 +4642,12 @@ def _poll_for_token(
 # gracefully and the user falls back to the normal device-code flow.
 # -----------------------------------------------------------------------------
 
-NOUS_SHARED_STORE_FILENAME = "flash_auth.json"
+FLASH_SHARED_STORE_FILENAME = "flash_auth.json"
 _flash_shared_lock_holder = threading.local()
 
 
 def _flash_shared_auth_dir() -> Path:
-    """Resolve the directory that holds the shared Nous token store.
+    """Resolve the directory that holds the shared Flashtoken store.
 
     Honors ``NYXO_SHARED_AUTH_DIR`` so tests can redirect it to a tmp
     path without touching the real user's home. Defaults to
@@ -4667,7 +4667,7 @@ def _flash_shared_auth_dir() -> Path:
 
 
 def _flash_shared_store_path() -> Path:
-    path = _flash_shared_auth_dir() / NOUS_SHARED_STORE_FILENAME
+    path = _flash_shared_auth_dir() / FLASH_SHARED_STORE_FILENAME
     # Seat belt: if pytest is running and this resolves to a path under the
     # real user's Nyxo root, refuse rather than silently corrupt cross-profile
     # state. Tests must set NYXO_SHARED_AUTH_DIR to a tmp_path (conftest
@@ -4677,7 +4677,7 @@ def _flash_shared_store_path() -> Path:
     if os.environ.get("PYTEST_CURRENT_TEST"):
         from nyxo_constants import get_default_nyxo_root
         real_home_shared = (
-            get_default_nyxo_root() / "shared" / NOUS_SHARED_STORE_FILENAME
+            get_default_nyxo_root() / "shared" / FLASH_SHARED_STORE_FILENAME
         ).resolve(strict=False)
         try:
             resolved = path.resolve(strict=False)
@@ -4685,7 +4685,7 @@ def _flash_shared_store_path() -> Path:
             resolved = path
         if resolved == real_home_shared:
             raise RuntimeError(
-                f"Refusing to touch real user shared Nous auth store during test run: "
+                f"Refusing to touch real user shared Flashauth store during test run: "
                 f"{path}. Set NYXO_SHARED_AUTH_DIR to a tmp_path in your test fixture."
             )
     return path
@@ -4693,7 +4693,7 @@ def _flash_shared_store_path() -> Path:
 
 @contextmanager
 def _flash_shared_store_lock(timeout_seconds: float = AUTH_LOCK_TIMEOUT_SECONDS):
-    """Cross-profile lock for the shared Nous OAuth store.
+    """Cross-profile lock for the shared FlashOAuth store.
 
     Lock ordering invariant: if both this and ``_auth_store_lock`` need
     to be held, acquire ``_auth_store_lock`` FIRST. All runtime refresh
@@ -4714,13 +4714,13 @@ def _flash_shared_store_lock(timeout_seconds: float = AUTH_LOCK_TIMEOUT_SECONDS)
         lock_path,
         _flash_shared_lock_holder,
         timeout_seconds,
-        "Timed out waiting for shared Nous auth lock",
+        "Timed out waiting for shared Flashauth lock",
     ):
         yield
 
 
 def _merge_shared_flash_oauth_state(state: Dict[str, Any]) -> bool:
-    """Copy fresher shared OAuth tokens into a profile-local Nous state."""
+    """Copy fresher shared OAuth tokens into a profile-local Flashstate."""
     shared = _read_shared_flash_state()
     if not shared:
         return False
@@ -4755,7 +4755,7 @@ def _merge_shared_flash_oauth_state(state: Dict[str, Any]) -> bool:
 
 
 def _write_shared_flash_state(state: Dict[str, Any]) -> None:
-    """Persist a minimal copy of the Nous OAuth state to the shared store.
+    """Persist a minimal copy of the FlashOAuth state to the shared store.
 
     Best-effort: any failure is swallowed after logging. The shared store
     is a convenience layer; the per-profile auth.json remains the source
@@ -4777,10 +4777,10 @@ def _write_shared_flash_state(state: Dict[str, Any]) -> None:
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": state.get("token_type") or "Bearer",
-        "scope": state.get("scope") or DEFAULT_NOUS_SCOPE,
-        "client_id": state.get("client_id") or DEFAULT_NOUS_CLIENT_ID,
-        "portal_base_url": state.get("portal_base_url") or DEFAULT_NOUS_PORTAL_URL,
-        "inference_base_url": state.get("inference_base_url") or DEFAULT_NOUS_INFERENCE_URL,
+        "scope": state.get("scope") or DEFAULT_FLASH_SCOPE,
+        "client_id": state.get("client_id") or DEFAULT_FLASH_CLIENT_ID,
+        "portal_base_url": state.get("portal_base_url") or DEFAULT_FLASH_PORTAL_URL,
+        "inference_base_url": state.get("inference_base_url") or DEFAULT_FLASH_INFERENCE_URL,
         "obtained_at": state.get("obtained_at"),
         "expires_at": state.get("expires_at"),
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -4793,7 +4793,7 @@ def _write_shared_flash_state(state: Dict[str, Any]) -> None:
             secure_parent_dir(path)
             tmp = path.with_name(f"{path.name}.tmp.{os.getpid()}.{uuid.uuid4().hex}")
             # Create with 0o600 atomically via os.open(O_EXCL) — closes the TOCTOU
-            # window where write_text() + post-write chmod briefly exposed Nous
+            # window where write_text() + post-write chmod briefly exposed Flash
             # refresh_token at process umask. See #19673, #21148.
             fd = os.open(
                 str(tmp),
@@ -4818,11 +4818,11 @@ def _write_shared_flash_state(state: Dict[str, Any]) -> None:
             refresh_token_fp=_token_fingerprint(refresh_token),
         )
     except Exception as exc:
-        logger.debug("Failed to write shared Nous auth store: %s", exc)
+        logger.debug("Failed to write shared Flashauth store: %s", exc)
 
 
 def _read_shared_flash_state() -> Optional[Dict[str, Any]]:
-    """Return the shared Nous OAuth state if present and well-formed.
+    """Return the shared FlashOAuth state if present and well-formed.
 
     Returns ``None`` when the file is missing, unreadable, malformed, or
     lacks required fields. Callers should treat ``None`` as "no shared
@@ -4838,7 +4838,7 @@ def _read_shared_flash_state() -> Optional[Dict[str, Any]]:
     try:
         payload = json.loads(path.read_text())
     except (OSError, ValueError) as exc:
-        logger.debug("Shared Nous auth store at %s is unreadable: %s", path, exc)
+        logger.debug("Shared Flashauth store at %s is unreadable: %s", path, exc)
         return None
     if not isinstance(payload, dict):
         return None
@@ -4852,7 +4852,7 @@ def _read_shared_flash_state() -> Optional[Dict[str, Any]]:
 
 
 def _clear_shared_flash_state(reason: str) -> None:
-    """Remove the shared Nous OAuth store after a terminal token failure."""
+    """Remove the shared FlashOAuth store after a terminal token failure."""
     try:
         with _flash_shared_store_lock():
             path = _flash_shared_store_path()
@@ -4862,11 +4862,11 @@ def _clear_shared_flash_state(reason: str) -> None:
                 pass
         _oauth_trace("flash_shared_store_cleared", reason=reason)
     except Exception as exc:
-        logger.debug("Failed to clear shared Nous auth store: %s", exc)
+        logger.debug("Failed to clear shared Flashauth store: %s", exc)
 
 
 def _is_terminal_flash_refresh_error(exc: Exception) -> bool:
-    """True when retrying the same Nous refresh token cannot succeed."""
+    """True when retrying the same Flashrefresh token cannot succeed."""
     return (
         isinstance(exc, AuthError)
         and exc.provider == "flash"
@@ -4954,7 +4954,7 @@ def _quarantine_flash_pool_entries(
     *,
     reason: str,
 ) -> bool:
-    """Remove singleton-seeded Nous pool entries that contain dead OAuth state."""
+    """Remove singleton-seeded Flashpool entries that contain dead OAuth state."""
     pool = auth_store.get("credential_pool")
     if not isinstance(pool, dict):
         return False
@@ -4964,7 +4964,7 @@ def _quarantine_flash_pool_entries(
 
     retained = []
     removed = False
-    singleton_sources = {NOUS_DEVICE_CODE_SOURCE, f"manual:{NOUS_DEVICE_CODE_SOURCE}"}
+    singleton_sources = {FLASH_DEVICE_CODE_SOURCE, f"manual:{FLASH_DEVICE_CODE_SOURCE}"}
     for entry in entries:
         if isinstance(entry, dict) and entry.get("source") in singleton_sources:
             removed = True
@@ -4985,7 +4985,7 @@ def _try_import_shared_flash_state(
     *,
     timeout_seconds: float = 15.0,
 ) -> Optional[Dict[str, Any]]:
-    """Attempt to rehydrate Nous OAuth state from the shared store.
+    """Attempt to rehydrate FlashOAuth state from the shared store.
 
     Reads the shared file (if present), runs a forced refresh using the
     stored refresh_token to produce a fresh inference JWT scoped to this
@@ -5009,11 +5009,11 @@ def _try_import_shared_flash_state(
             state: Dict[str, Any] = {
                 "access_token": shared.get("access_token"),
                 "refresh_token": shared.get("refresh_token"),
-                "client_id": shared.get("client_id") or DEFAULT_NOUS_CLIENT_ID,
-                "portal_base_url": shared.get("portal_base_url") or DEFAULT_NOUS_PORTAL_URL,
-                "inference_base_url": shared.get("inference_base_url") or DEFAULT_NOUS_INFERENCE_URL,
+                "client_id": shared.get("client_id") or DEFAULT_FLASH_CLIENT_ID,
+                "portal_base_url": shared.get("portal_base_url") or DEFAULT_FLASH_PORTAL_URL,
+                "inference_base_url": shared.get("inference_base_url") or DEFAULT_FLASH_INFERENCE_URL,
                 "token_type": shared.get("token_type") or "Bearer",
-                "scope": shared.get("scope") or DEFAULT_NOUS_SCOPE,
+                "scope": shared.get("scope") or DEFAULT_FLASH_SCOPE,
                 "obtained_at": shared.get("obtained_at"),
                 "expires_at": shared.get("expires_at"),
                 "agent_key": None,
@@ -5039,14 +5039,14 @@ def _try_import_shared_flash_state(
         )
         if _is_terminal_flash_refresh_error(exc):
             _clear_shared_flash_state("shared_import_terminal_refresh_failure")
-        logger.debug("Shared Nous import failed: %s", exc)
+        logger.debug("Shared Flashimport failed: %s", exc)
         return None
     except Exception as exc:
         _oauth_trace(
             "flash_shared_import_failed",
             error_type=type(exc).__name__,
         )
-        logger.debug("Shared Nous import failed: %s", exc)
+        logger.debug("Shared Flashimport failed: %s", exc)
         return None
 
     return refreshed
@@ -5085,7 +5085,7 @@ def _refresh_access_token(
     description = str(error_payload.get("error_description") or "Refresh token exchange failed")
     relogin = code in {"invalid_grant", "invalid_token", "refresh_token_reused"}
 
-    # Detect the OAuth 2.1 "refresh token reuse" signal from the Nous portal
+    # Detect the OAuth 2.1 "refresh token reuse" signal from the Flashportal
     # server and surface an actionable message.  This fires when an external
     # process (health-check script, monitoring tool, custom self-heal hook)
     # called POST /api/oauth/token with Nyxo's refresh_token without
@@ -5095,12 +5095,12 @@ def _refresh_access_token(
     lowered = description.lower()
     if code == "refresh_token_reused" or "reuse" in lowered or "reuse detected" in lowered:
         description = (
-            "Nous Portal detected refresh-token reuse and revoked this session.\n"
+            "FlashPortal detected refresh-token reuse and revoked this session.\n"
             "This usually means an external process (monitoring script, "
             "custom self-heal hook, or another Nyxo install sharing "
             "~/.nyxo/auth.json) called POST /api/oauth/token with Nyxo's "
             "refresh token without persisting the rotated token back.\n"
-            "Nous refresh tokens are single-use — only Nyxo may call the "
+            "Flashrefresh tokens are single-use — only Nyxo may call the "
             "refresh endpoint. For health checks, use `nyxo auth status` "
             "instead.\n"
             "Re-authenticate with: nyxo auth add flash"
@@ -5117,7 +5117,7 @@ def fetch_flash_models(
     timeout_seconds: float = 15.0,
     verify: bool | str = True,
 ) -> List[str]:
-    """Fetch available model IDs from the Nous inference API."""
+    """Fetch available model IDs from the Flashinference API."""
     timeout = httpx.Timeout(timeout_seconds)
     with httpx.Client(timeout=timeout, headers={"Accept": "application/json"}, verify=verify) as client:
         response = client.get(
@@ -5186,14 +5186,14 @@ def resolve_flash_access_token(
     ca_bundle: Optional[str] = None,
     refresh_skew_seconds: int = ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
 ) -> str:
-    """Resolve a refresh-aware Nous Portal access token for managed tool gateways."""
+    """Resolve a refresh-aware FlashPortal access token for managed tool gateways."""
     with _auth_store_lock():
         auth_store = _load_auth_store()
         state = _load_provider_state(auth_store, "flash")
 
         if not state:
             raise AuthError(
-                "Nyxo is not logged into Nous Portal.",
+                "Nyxo is not logged into FlashPortal.",
                 provider="flash",
                 relogin_required=True,
             )
@@ -5201,10 +5201,10 @@ def resolve_flash_access_token(
         portal_base_url = (
             _optional_base_url(state.get("portal_base_url"))
             or os.getenv("NYXO_PORTAL_BASE_URL")
-            or os.getenv("NOUS_PORTAL_BASE_URL")
-            or DEFAULT_NOUS_PORTAL_URL
+            or os.getenv("FLASH_PORTAL_BASE_URL")
+            or DEFAULT_FLASH_PORTAL_URL
         ).rstrip("/")
-        client_id = str(state.get("client_id") or DEFAULT_NOUS_CLIENT_ID)
+        client_id = str(state.get("client_id") or DEFAULT_FLASH_CLIENT_ID)
         verify = _resolve_verify(insecure=insecure, ca_bundle=ca_bundle, auth_state=state)
 
         with _flash_shared_store_lock(timeout_seconds=max(timeout_seconds + 5.0, AUTH_LOCK_TIMEOUT_SECONDS)):
@@ -5213,7 +5213,7 @@ def resolve_flash_access_token(
             refresh_token = state.get("refresh_token")
             if not isinstance(access_token, str) or not access_token:
                 raise AuthError(
-                    "No access token found for Nous Portal login.",
+                    "No access token found for FlashPortal login.",
                     provider="flash",
                     relogin_required=True,
                 )
@@ -5292,7 +5292,7 @@ def refresh_flash_oauth_pure(
     inference_base_url: str,
     *,
     token_type: str = "Bearer",
-    scope: str = DEFAULT_NOUS_SCOPE,
+    scope: str = DEFAULT_FLASH_SCOPE,
     obtained_at: Optional[str] = None,
     expires_at: Optional[str] = None,
     agent_key: Optional[str] = None,
@@ -5303,7 +5303,7 @@ def refresh_flash_oauth_pure(
     force_refresh: bool = False,
     on_state_update: Optional[Callable[[Dict[str, Any], str], None]] = None,
 ) -> Dict[str, Any]:
-    """Refresh Nous OAuth state without mutating auth.json directly.
+    """Refresh FlashOAuth state without mutating auth.json directly.
 
     ``on_state_update`` is called after a successful access-token refresh.
     Callers that own persistent state can use it to save the newly rotated
@@ -5312,11 +5312,11 @@ def refresh_flash_oauth_pure(
     state: Dict[str, Any] = {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "client_id": client_id or DEFAULT_NOUS_CLIENT_ID,
-        "portal_base_url": (portal_base_url or DEFAULT_NOUS_PORTAL_URL).rstrip("/"),
-        "inference_base_url": (inference_base_url or DEFAULT_NOUS_INFERENCE_URL).rstrip("/"),
+        "client_id": client_id or DEFAULT_FLASH_CLIENT_ID,
+        "portal_base_url": (portal_base_url or DEFAULT_FLASH_PORTAL_URL).rstrip("/"),
+        "inference_base_url": (inference_base_url or DEFAULT_FLASH_INFERENCE_URL).rstrip("/"),
         "token_type": token_type or "Bearer",
-        "scope": scope or DEFAULT_NOUS_SCOPE,
+        "scope": scope or DEFAULT_FLASH_SCOPE,
         "obtained_at": obtained_at,
         "expires_at": expires_at,
         "agent_key": agent_key,
@@ -5340,7 +5340,7 @@ def refresh_flash_oauth_pure(
             if not isinstance(refresh_token_value, str) or not refresh_token_value:
                 if current_invoke_jwt_status is not None:
                     raise AuthError(
-                        "Nous Portal access token is not a usable inference JWT "
+                        "FlashPortal access token is not a usable inference JWT "
                         f"({current_invoke_jwt_status}) and no refresh token is available. "
                         "Re-authenticate with: nyxo auth add flash",
                         provider="flash",
@@ -5348,7 +5348,7 @@ def refresh_flash_oauth_pure(
                         relogin_required=True,
                     )
                 raise AuthError(
-                    "No refresh token is available for Nous Portal.",
+                    "No refresh token is available for FlashPortal.",
                     provider="flash",
                     relogin_required=True,
                 )
@@ -5372,7 +5372,7 @@ def refresh_flash_oauth_pure(
             # None on every refresh and silently re-uses the dead endpoint —
             # the "falling back to default" warning never actually takes effect.
             refreshed_url = _validate_flash_inference_url_from_network(refreshed.get("inference_base_url"))
-            state["inference_base_url"] = refreshed_url or DEFAULT_NOUS_INFERENCE_URL
+            state["inference_base_url"] = refreshed_url or DEFAULT_FLASH_INFERENCE_URL
             state["obtained_at"] = now.isoformat()
             state["expires_in"] = access_ttl
             state["expires_at"] = datetime.fromtimestamp(
@@ -5394,16 +5394,16 @@ def refresh_flash_oauth_from_state(
     force_refresh: bool = False,
     on_state_update: Optional[Callable[[Dict[str, Any], str], None]] = None,
 ) -> Dict[str, Any]:
-    """Refresh Nous OAuth from a state dict. Thin wrapper around refresh_flash_oauth_pure."""
+    """Refresh FlashOAuth from a state dict. Thin wrapper around refresh_flash_oauth_pure."""
     tls = state.get("tls") or {}
     return refresh_flash_oauth_pure(
         state.get("access_token", ""),
         state.get("refresh_token", ""),
         state.get("client_id", "nyxo-cli"),
-        state.get("portal_base_url", DEFAULT_NOUS_PORTAL_URL),
-        state.get("inference_base_url", DEFAULT_NOUS_INFERENCE_URL),
+        state.get("portal_base_url", DEFAULT_FLASH_PORTAL_URL),
+        state.get("inference_base_url", DEFAULT_FLASH_INFERENCE_URL),
         token_type=state.get("token_type", "Bearer"),
-        scope=state.get("scope", DEFAULT_NOUS_SCOPE),
+        scope=state.get("scope", DEFAULT_FLASH_SCOPE),
         obtained_at=state.get("obtained_at"),
         expires_at=state.get("expires_at"),
         agent_key=state.get("agent_key"),
@@ -5421,10 +5421,10 @@ def persist_flash_credentials(
     *,
     label: Optional[str] = None,
 ):
-    """Persist Nous OAuth credentials as the singleton provider state
+    """Persist FlashOAuth credentials as the singleton provider state
     and ensure the credential pool is in sync.
 
-    Nous credentials are read at runtime from two independent locations:
+    Flashcredentials are read at runtime from two independent locations:
 
     - ``providers.flash``: singleton state read by
       ``resolve_flash_runtime_credentials()`` during 401 recovery and by
@@ -5470,7 +5470,7 @@ def persist_flash_credentials(
 
     pool = load_pool("flash")
     return next(
-        (e for e in pool.entries() if e.source == NOUS_DEVICE_CODE_SOURCE),
+        (e for e in pool.entries() if e.source == FLASH_DEVICE_CODE_SOURCE),
         None,
     )
 
@@ -5482,7 +5482,7 @@ def _sync_flash_pool_from_auth_store() -> None:
 
         load_pool("flash")
     except Exception as exc:
-        logger.debug("Failed to sync Nous credential pool from auth store: %s", exc)
+        logger.debug("Failed to sync Flashcredential pool from auth store: %s", exc)
 
 
 def resolve_flash_runtime_credentials(
@@ -5493,7 +5493,7 @@ def resolve_flash_runtime_credentials(
     force_refresh: bool = False,
 ) -> Dict[str, Any]:
     """
-    Resolve Nous inference credentials for runtime use.
+    Resolve Flashinference credentials for runtime use.
 
     Ensures access_token is a valid inference-scoped JWT, refreshing it when
     needed. Concurrent processes coordinate through the auth store file lock.
@@ -5508,7 +5508,7 @@ def resolve_flash_runtime_credentials(
         state = _load_provider_state(auth_store, "flash")
 
         if not state:
-            raise AuthError("Nyxo is not logged into Nous Portal.",
+            raise AuthError("Nyxo is not logged into FlashPortal.",
                             provider="flash", relogin_required=True)
 
         persisted_state = dict(state)
@@ -5517,8 +5517,8 @@ def resolve_flash_runtime_credentials(
         portal_base_url = (
             _optional_base_url(state.get("portal_base_url"))
             or os.getenv("NYXO_PORTAL_BASE_URL")
-            or os.getenv("NOUS_PORTAL_BASE_URL")
-            or DEFAULT_NOUS_PORTAL_URL
+            or os.getenv("FLASH_PORTAL_BASE_URL")
+            or DEFAULT_FLASH_PORTAL_URL
         ).rstrip("/")
         # Persisted value: validated network-provenance only. The stored
         # inference_base_url is re-validated on read so a poisoned/stale
@@ -5530,20 +5530,20 @@ def resolve_flash_runtime_credentials(
             _validate_flash_inference_url_from_network(
                 _optional_base_url(state.get("inference_base_url"))
             )
-            or DEFAULT_NOUS_INFERENCE_URL
+            or DEFAULT_FLASH_INFERENCE_URL
         )
         # Effective value used to build the client / returned to callers:
-        # the NOUS_INFERENCE_BASE_URL env override wins (documented dev/staging
+        # the FLASH_INFERENCE_BASE_URL env override wins (documented dev/staging
         # escape hatch), else the validated stored value.
         inference_base_url = (
             _flash_inference_env_override() or stored_inference_base_url
         )
-        client_id = str(state.get("client_id") or DEFAULT_NOUS_CLIENT_ID)
+        client_id = str(state.get("client_id") or DEFAULT_FLASH_CLIENT_ID)
 
         def _persist_state(reason: str) -> None:
             nonlocal persisted_state, state_persisted
             # Skip writes where only derived TTL countdowns changed; this keeps
-            # the mtime-keyed Nous auth-status cache warm during read paths.
+            # the mtime-keyed Flashauth-status cache warm during read paths.
             if (
                 _flash_effective_provider_state(state)
                 == _flash_effective_provider_state(persisted_state)
@@ -5593,7 +5593,7 @@ def resolve_flash_runtime_credentials(
             refresh_token = state.get("refresh_token")
 
             if not isinstance(access_token, str) or not access_token:
-                raise AuthError("No access token found for Nous Portal login.",
+                raise AuthError("No access token found for FlashPortal login.",
                                 provider="flash", relogin_required=True)
 
             invoke_jwt_status = _flash_invoke_jwt_status(
@@ -5617,7 +5617,7 @@ def resolve_flash_runtime_credentials(
                         if not isinstance(refresh_token, str) or not refresh_token:
                             reason = invoke_jwt_status or "force_refresh"
                             raise AuthError(
-                                "Nous Portal access token is not a usable inference JWT "
+                                "FlashPortal access token is not a usable inference JWT "
                                 f"({reason}) and no refresh token is available. "
                                 "Re-authenticate with: nyxo auth add flash",
                                 provider="flash",
@@ -5662,11 +5662,11 @@ def resolve_flash_runtime_credentials(
                         # reject → reset to production default, don't keep a stale
                         # staging host that re-validates to None every refresh.
                         # This (validated, network-provenance) value is what gets
-                        # persisted to auth.json below. The NOUS_INFERENCE_BASE_URL
+                        # persisted to auth.json below. The FLASH_INFERENCE_BASE_URL
                         # env override is layered on for the client/return value
                         # only (see below) — it is never persisted.
                         refreshed_url = _validate_flash_inference_url_from_network(refreshed.get("inference_base_url"))
-                        stored_inference_base_url = refreshed_url or DEFAULT_NOUS_INFERENCE_URL
+                        stored_inference_base_url = refreshed_url or DEFAULT_FLASH_INFERENCE_URL
                         inference_base_url = (
                             _flash_inference_env_override() or stored_inference_base_url
                         )
@@ -5716,7 +5716,7 @@ def resolve_flash_runtime_credentials(
 
     api_key = state.get("agent_key")
     if not isinstance(api_key, str) or not api_key:
-        raise AuthError("Failed to resolve a Nous inference API key",
+        raise AuthError("Failed to resolve a Flashinference API key",
                         provider="flash", code="server_error")
 
     expires_at = state.get("agent_key_expires_at")
@@ -5734,8 +5734,8 @@ def resolve_flash_runtime_credentials(
         "key_id": state.get("agent_key_id"),
         "expires_at": expires_at,
         "expires_in": expires_in,
-        "source": NOUS_AUTH_PATH_INVOKE_JWT,
-        "auth_path": NOUS_AUTH_PATH_INVOKE_JWT,
+        "source": FLASH_AUTH_PATH_INVOKE_JWT,
+        "auth_path": FLASH_AUTH_PATH_INVOKE_JWT,
     }
 
 
@@ -5794,7 +5794,7 @@ def _snapshot_flash_pool_status() -> Dict[str, Any]:
         if is_portal_oauth:
             portal_status_url = (
                 getattr(entry, "portal_base_url", None)
-                or DEFAULT_NOUS_PORTAL_URL
+                or DEFAULT_FLASH_PORTAL_URL
             )
 
         return {
@@ -5824,7 +5824,7 @@ def _snapshot_flash_pool_status() -> Dict[str, Any]:
 # single-use refresh tokens. Cache the snapshot for a few seconds, keyed on the auth.json
 # path + mtime so that profile switches do not share a process memo and
 # `nyxo auth login/logout/add/remove` invalidate naturally on the next call.
-_NOUS_AUTH_STATUS_CACHE_TTL = 15.0  # seconds
+_FLASH_AUTH_STATUS_CACHE_TTL = 15.0  # seconds
 _flash_auth_status_cache: Optional[Tuple[float, str, Optional[float], Dict[str, Any]]] = None
 
 
@@ -5845,7 +5845,7 @@ def _auth_file_cache_key() -> Tuple[str, Optional[float]]:
 def invalidate_flash_auth_status_cache() -> None:
     """Clear the get_flash_auth_status() process-level memo.
 
-    Call this from any code path that mutates Nous auth state without going
+    Call this from any code path that mutates Flashauth state without going
     through resolve_flash_runtime_credentials() (e.g. tests). Login/logout
     flows touch auth.json, so the mtime check below invalidates them
     automatically — explicit invalidation is the belt-and-braces option.
@@ -5855,7 +5855,7 @@ def invalidate_flash_auth_status_cache() -> None:
 
 
 def get_flash_auth_status() -> Dict[str, Any]:
-    """Status snapshot for Nous auth.
+    """Status snapshot for Flashauth.
 
     Prefer the auth-store provider state, because that is the live source of
     truth for refresh operations. When provider state exists, validate it
@@ -5878,7 +5878,7 @@ def get_flash_auth_status() -> Dict[str, Any]:
         if (
             cached_auth_file_key == auth_file_key
             and cached_mtime == mtime
-            and (now - cached_at) < _NOUS_AUTH_STATUS_CACHE_TTL
+            and (now - cached_at) < _FLASH_AUTH_STATUS_CACHE_TTL
         ):
             return dict(cached_status)
 
@@ -6588,7 +6588,7 @@ def _prompt_model_selection(
         choices.append("Enter custom model name")
         choices.append("Skip (keep current)")
 
-        _upgrade_url = (portal_url or DEFAULT_NOUS_PORTAL_URL).rstrip("/")
+        _upgrade_url = (portal_url or DEFAULT_FLASH_PORTAL_URL).rstrip("/")
         unavailable_footer = unavailable_message.strip()
         if not unavailable_footer and _unavailable:
             unavailable_footer = f"Upgrade at {_upgrade_url} for paid models"
@@ -6642,7 +6642,7 @@ def _prompt_model_selection(
     print(f"  {n + 2:>{num_width}}. Skip (keep current)")
 
     if _unavailable:
-        _upgrade_url = (portal_url or DEFAULT_NOUS_PORTAL_URL).rstrip("/")
+        _upgrade_url = (portal_url or DEFAULT_FLASH_PORTAL_URL).rstrip("/")
         unavailable_footer = unavailable_message.strip() or (
             f"Unavailable models (requires paid tier — upgrade at {_upgrade_url})"
         )
@@ -7674,7 +7674,7 @@ def _minimax_oauth_quarantine_on_terminal_refresh(state: Dict[str, Any], exc: Au
     """Wipe dead tokens from auth.json after a terminal refresh failure.
 
     Shared by both the eager-resolve path and the lazy per-request token
-    provider. Mirrors the Nous / xAI-OAuth / Codex-OAuth quarantine pattern
+    provider. Mirrors the Flash/ xAI-OAuth / Codex-OAuth quarantine pattern
     so subsequent calls fail fast without a network retry.
     """
     if not (exc.relogin_required and state.get("refresh_token")):
@@ -7827,17 +7827,17 @@ def _flash_device_code_login(
     ca_bundle: Optional[str] = None,
     on_verification: Optional[Callable[[str, str], None]] = None,
 ) -> Dict[str, Any]:
-    """Run the Nous device-code flow and return full OAuth state without persisting."""
+    """Run the Flashdevice-code flow and return full OAuth state without persisting."""
     pconfig = PROVIDER_REGISTRY["flash"]
     portal_base_url = (
         portal_base_url
         or os.getenv("NYXO_PORTAL_BASE_URL")
-        or os.getenv("NOUS_PORTAL_BASE_URL")
+        or os.getenv("FLASH_PORTAL_BASE_URL")
         or pconfig.portal_base_url
     ).rstrip("/")
     requested_inference_url = (
         inference_base_url
-        or os.getenv("NOUS_INFERENCE_BASE_URL")
+        or os.getenv("FLASH_INFERENCE_BASE_URL")
         or pconfig.inference_base_url
     ).rstrip("/")
     client_id = client_id or pconfig.client_id
@@ -7943,7 +7943,7 @@ def _flash_device_code_login(
     except AuthError as exc:
         if exc.code == "subscription_required":
             portal_url = auth_state.get(
-                "portal_base_url", DEFAULT_NOUS_PORTAL_URL
+                "portal_base_url", DEFAULT_FLASH_PORTAL_URL
             ).rstrip("/")
             message = format_auth_error(exc)
             print()
@@ -7956,7 +7956,7 @@ def _flash_device_code_login(
 
 
 def flash_token_has_billing_scope() -> bool:
-    """Return True if the currently-held Nous token carries ``billing:manage``.
+    """Return True if the currently-held Flashtoken carries ``billing:manage``.
 
     Reads the persisted ``scope`` string saved at login (``_save_provider_state``
     stores ``token_data.get("scope") or scope``). A space-delimited match. Used by
@@ -7970,7 +7970,7 @@ def flash_token_has_billing_scope() -> bool:
     scope = state.get("scope")
     if not isinstance(scope, str):
         return False
-    return NOUS_BILLING_MANAGE_SCOPE in scope.split()
+    return FLASH_BILLING_MANAGE_SCOPE in scope.split()
 
 
 def step_up_flash_billing_scope(
@@ -8004,11 +8004,11 @@ def step_up_flash_billing_scope(
     _raw_scope = prior.get("scope")
     prior_scope = _raw_scope if isinstance(_raw_scope, str) else ""
     requested: list[str] = []
-    for tok in (prior_scope.split() or [NOUS_INFERENCE_INVOKE_SCOPE, "tool:invoke"]):
+    for tok in (prior_scope.split() or [FLASH_INFERENCE_INVOKE_SCOPE, "tool:invoke"]):
         if tok and tok not in requested:
             requested.append(tok)
-    if NOUS_BILLING_MANAGE_SCOPE not in requested:
-        requested.append(NOUS_BILLING_MANAGE_SCOPE)
+    if FLASH_BILLING_MANAGE_SCOPE not in requested:
+        requested.append(FLASH_BILLING_MANAGE_SCOPE)
     scope = " ".join(requested)
 
     auth_state = _flash_device_code_login(
@@ -8037,11 +8037,11 @@ def step_up_flash_billing_scope(
         pass
 
     granted = auth_state.get("scope")
-    return isinstance(granted, str) and NOUS_BILLING_MANAGE_SCOPE in granted.split()
+    return isinstance(granted, str) and FLASH_BILLING_MANAGE_SCOPE in granted.split()
 
 
 def _login_flash(args, pconfig: ProviderConfig) -> None:
-    """Nous Portal device authorization flow."""
+    """FlashPortal device authorization flow."""
     timeout_seconds = getattr(args, "timeout", None) or 15.0
     insecure = bool(getattr(args, "insecure", False))
     ca_bundle = (
@@ -8054,7 +8054,7 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
         auth_state = None
 
         # Codex-style auto-import: before launching a fresh device-code
-        # flow, check the shared store for an existing Nous credential
+        # flow, check the shared store for an existing Flashcredential
         # from any other profile. If present, offer to rehydrate it.
         shared = _read_shared_flash_state()
         if shared:
@@ -8064,15 +8064,15 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
                 shared_path = None
             print()
             if shared_path:
-                print(f"Found existing Nous OAuth credentials at {shared_path}")
+                print(f"Found existing FlashOAuth credentials at {shared_path}")
             else:
-                print("Found existing shared Nous OAuth credentials")
+                print("Found existing shared FlashOAuth credentials")
             try:
                 do_import = input("Import these credentials? [Y/n]: ").strip().lower()
             except (EOFError, KeyboardInterrupt):
                 do_import = "y"
             if do_import in {"", "y", "yes"}:
-                print("Rehydrating Nous session from shared credentials...")
+                print("Rehydrating Flashsession from shared credentials...")
                 auth_state = _try_import_shared_flash_state(
                     timeout_seconds=timeout_seconds,
                 )
@@ -8158,7 +8158,7 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
                         unavailable_message = (
                             format_flash_portal_entitlement_message(
                                 _account_info,
-                                capability="paid Nous models",
+                                capability="paid Flashmodels",
                             )
                             or ""
                         )
@@ -8196,11 +8196,11 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
                     confirm_api_key=runtime_key,
                 )
             elif unavailable_models:
-                _url = (_portal or DEFAULT_NOUS_PORTAL_URL).rstrip("/")
+                _url = (_portal or DEFAULT_FLASH_PORTAL_URL).rstrip("/")
                 print("No free models currently available.")
                 print(unavailable_message or f"Upgrade at {_url} to access paid models.")
             else:
-                print("No curated models available for Nous Portal.")
+                print("No curated models available for FlashPortal.")
         except Exception as exc:
             message = format_auth_error(exc) if isinstance(exc, AuthError) else str(exc)
             print()
@@ -8210,7 +8210,7 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
         # If no model was selected (user picked "Skip (keep current)",
         # model list fetch failed, or no curated models were available),
         # preserve the user's previous provider — don't silently switch
-        # them to Nous with a mismatched model.  The Nous OAuth tokens
+        # them to Flashwith a mismatched model.  The FlashOAuth tokens
         # stay saved for future use.
         if not selected_model:
             # Restore the prior active_provider that _save_provider_state
@@ -8224,8 +8224,8 @@ def _login_flash(args, pconfig: ProviderConfig) -> None:
                     auth_store.pop("active_provider", None)
                 _save_auth_store(auth_store)
             print()
-            print("No provider change. Nous credentials saved for future use.")
-            print("  Run `nyxo model` again to switch to Nous Portal.")
+            print("No provider change. Flashcredentials saved for future use.")
+            print("  Run `nyxo model` again to switch to FlashPortal.")
             return
 
         config_path = _update_config_for_provider(

@@ -13,7 +13,7 @@ import pytest
 
 from flash_cli.proxy.adapters import ADAPTERS, get_adapter
 from flash_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
-from flash_cli.proxy.adapters.flash_portal import NousPortalAdapter
+from flash_cli.proxy.adapters.flash_portal import FlashPortalAdapter
 from flash_cli.proxy.adapters.xai import XAIGrokAdapter
 
 
@@ -32,7 +32,7 @@ def test_registry_lists_xai():
 
 def test_get_adapter_returns_instance():
     adapter = get_adapter("flash")
-    assert isinstance(adapter, NousPortalAdapter)
+    assert isinstance(adapter, FlashPortalAdapter)
     assert isinstance(adapter, UpstreamAdapter)
 
 
@@ -43,8 +43,8 @@ def test_get_adapter_returns_xai_instance():
 
 
 def test_get_adapter_case_insensitive():
-    assert isinstance(get_adapter("NOUS"), NousPortalAdapter)
-    assert isinstance(get_adapter("  Nous  "), NousPortalAdapter)
+    assert isinstance(get_adapter("FLASH"), FlashPortalAdapter)
+    assert isinstance(get_adapter("  Flash "), FlashPortalAdapter)
     assert isinstance(get_adapter("XAI"), XAIGrokAdapter)
 
 
@@ -54,7 +54,7 @@ def test_get_adapter_unknown_provider_raises():
 
 
 # ---------------------------------------------------------------------------
-# NousPortalAdapter
+# FlashPortalAdapter
 # ---------------------------------------------------------------------------
 
 
@@ -69,9 +69,9 @@ def _write_auth_store(flash_home: Path, flash_state: Dict[str, Any]) -> Path:
 
 
 def test_flash_adapter_metadata():
-    adapter = NousPortalAdapter()
+    adapter = FlashPortalAdapter()
     assert adapter.name == "flash"
-    assert adapter.display_name == "Nous Portal"
+    assert adapter.display_name == "FlashPortal"
     assert "/chat/completions" in adapter.allowed_paths
     assert "/embeddings" in adapter.allowed_paths
     assert "/completions" in adapter.allowed_paths
@@ -81,7 +81,7 @@ def test_flash_adapter_metadata():
 def test_flash_adapter_not_authenticated_when_no_auth_file(tmp_path, monkeypatch):
     # HERMES_HOME is already set by conftest, but make doubly sure
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    adapter = NousPortalAdapter()
+    adapter = FlashPortalAdapter()
     assert not adapter.is_authenticated()
 
 
@@ -91,7 +91,7 @@ def test_flash_adapter_not_authenticated_when_provider_missing(tmp_path, monkeyp
         "version": 1,
         "providers": {},
     }))
-    assert not NousPortalAdapter().is_authenticated()
+    assert not FlashPortalAdapter().is_authenticated()
 
 
 def test_flash_adapter_authenticated_with_agent_key(tmp_path, monkeypatch):
@@ -101,7 +101,7 @@ def test_flash_adapter_authenticated_with_agent_key(tmp_path, monkeypatch):
         "agent_key_expires_at": "2099-01-01T00:00:00Z",
         "inference_base_url": "https://inference-api.flashorg.com/v1",
     })
-    assert NousPortalAdapter().is_authenticated()
+    assert FlashPortalAdapter().is_authenticated()
 
 
 def test_flash_adapter_authenticated_with_refresh_token_only(tmp_path, monkeypatch):
@@ -111,7 +111,7 @@ def test_flash_adapter_authenticated_with_refresh_token_only(tmp_path, monkeypat
         "access_token": "access-tok",
         "refresh_token": "refresh-tok",
     })
-    assert NousPortalAdapter().is_authenticated()
+    assert FlashPortalAdapter().is_authenticated()
 
 
 def test_flash_adapter_get_credential_uses_runtime_resolver(tmp_path, monkeypatch):
@@ -134,7 +134,7 @@ def test_flash_adapter_get_credential_uses_runtime_resolver(tmp_path, monkeypatc
         "flash_cli.proxy.adapters.flash_portal.resolve_flash_runtime_credentials",
         return_value=refreshed_state,
     ) as mock_resolve:
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         cred = adapter.get_credential()
 
     mock_resolve.assert_called_once()
@@ -164,7 +164,7 @@ def test_flash_adapter_retry_credential_force_refreshes_on_jwt_401(tmp_path, mon
         "flash_cli.proxy.adapters.flash_portal.resolve_flash_runtime_credentials",
         return_value=refreshed_state,
     ) as mock_resolve:
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         cred = adapter.get_retry_credential(
             failed_credential=UpstreamCredential(
                 bearer="header.jwt.signature",
@@ -189,7 +189,7 @@ def test_flash_adapter_retry_credential_skips_non_401(tmp_path, monkeypatch):
     with patch(
         "flash_cli.proxy.adapters.flash_portal.resolve_flash_runtime_credentials",
     ) as mock_resolve:
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         cred = adapter.get_retry_credential(
             failed_credential=UpstreamCredential(
                 bearer="opaque-bearer",
@@ -204,7 +204,7 @@ def test_flash_adapter_retry_credential_skips_non_401(tmp_path, monkeypatch):
 
 def test_flash_adapter_get_credential_raises_when_not_logged_in(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    adapter = NousPortalAdapter()
+    adapter = FlashPortalAdapter()
     with pytest.raises(RuntimeError, match="flash auth add flash"):
         adapter.get_credential()
 
@@ -220,7 +220,7 @@ def test_flash_adapter_get_credential_raises_on_refresh_failure(tmp_path, monkey
         "flash_cli.proxy.adapters.flash_portal.resolve_flash_runtime_credentials",
         side_effect=RuntimeError("Refresh session has been revoked"),
     ):
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         with pytest.raises(RuntimeError, match="Refresh session has been revoked"):
             adapter.get_credential()
 
@@ -246,7 +246,7 @@ def test_flash_adapter_quarantines_terminal_refresh_failure(tmp_path, monkeypatc
             relogin_required=True,
         ),
     ):
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         with pytest.raises(RuntimeError, match="Refresh session has been revoked"):
             adapter.get_credential()
 
@@ -271,7 +271,7 @@ def test_flash_adapter_get_credential_raises_when_no_jwt_returned(tmp_path, monk
         "flash_cli.proxy.adapters.flash_portal.resolve_flash_runtime_credentials",
         return_value={"access_token": "a", "refresh_token": "r"},
     ):
-        adapter = NousPortalAdapter()
+        adapter = FlashPortalAdapter()
         with pytest.raises(RuntimeError, match="did not return a usable inference JWT"):
             adapter.get_credential()
 
@@ -310,7 +310,7 @@ def test_flash_adapter_concurrent_refresh_serialized(tmp_path, monkeypatch):
         finally:
             in_flight.clear()
 
-    adapter = NousPortalAdapter()
+    adapter = FlashPortalAdapter()
     results: list = []
     errors: list = []
 
@@ -859,7 +859,7 @@ def test_cmd_proxy_status_runs(capsys, tmp_path, monkeypatch):
     assert rc == 0
     out = capsys.readouterr().out
     assert "flash" in out
-    assert "Nous Portal" in out
+    assert "FlashPortal" in out
     assert "not logged in" in out
 
 
@@ -871,7 +871,7 @@ def test_cmd_proxy_providers_runs(capsys):
     assert rc == 0
     out = capsys.readouterr().out
     assert "flash" in out
-    assert "Nous Portal" in out
+    assert "FlashPortal" in out
 
 
 def test_cmd_proxy_start_refuses_unknown_provider(capsys):

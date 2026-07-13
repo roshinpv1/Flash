@@ -242,7 +242,7 @@ def test_auth_add_flash_oauth_persists_pool_entry(tmp_path, monkeypatch):
     # `flash auth add flash` must also populate providers.flash so the
     # 401-recovery path (resolve_flash_runtime_credentials) can refresh an
     # invoke JWT when the token expires. If this mirror is missing, recovery
-    # raises "Flash is not logged into Nous Portal" and the agent dies.
+    # raises "Flash is not logged into FlashPortal" and the agent dies.
     singleton = payload["providers"]["flash"]
     assert singleton["access_token"] == token
     assert singleton["refresh_token"] == "refresh-token"

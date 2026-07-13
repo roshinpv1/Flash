@@ -299,7 +299,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                       )}
                       {provider.requires_flash_auth && (
                         <Badge tone="outline" className="text-xs">
-                          Nous Portal
+                          FlashPortal
                         </Badge>
                       )}
                     </div>

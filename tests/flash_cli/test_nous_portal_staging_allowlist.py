@@ -1,6 +1,6 @@
-"""Regression tests for the Nous Portal env-override bypassing the host
-allowlist, mirroring the existing NOUS_INFERENCE_BASE_URL /
-_ALLOWED_NOUS_INFERENCE_HOSTS treatment.
+"""Regression tests for the FlashPortal env-override bypassing the host
+allowlist, mirroring the existing FLASH_INFERENCE_BASE_URL /
+_ALLOWED_FLASH_INFERENCE_HOSTS treatment.
 
 Real incident (2026-07): a hosted agent provisioned by flash-account-service
 on the `staging` Vercel environment is stamped with
@@ -12,7 +12,7 @@ Before this fix, ``resolve_flash_access_token`` / ``resolve_flash_runtime_
 credentials`` read ``state.get("portal_base_url")`` FIRST via a plain ``or``
 chain, so whenever the stored state had ANY value the env vars were never
 even consulted — and whichever value won (state or env) was then run through
-``_NOUS_PORTAL_ALLOWED_HOSTS``, which only recognised the production host.
+``_FLASH_PORTAL_ALLOWED_HOSTS``, which only recognised the production host.
 The staging host was silently rewritten back to prod on every refresh, so a
 staging-issued refresh token got replayed against the PROD token endpoint.
 Prod correctly rejected that with ``invalid_grant``, which triggered
@@ -32,8 +32,8 @@ import json
 import logging
 
 from flash_cli.auth import (
-    DEFAULT_NOUS_PORTAL_URL,
-    _NOUS_PORTAL_ALLOWED_HOSTS,
+    DEFAULT_FLASH_PORTAL_URL,
+    _FLASH_PORTAL_ALLOWED_HOSTS,
     _flash_portal_env_override,
 )
 
@@ -41,14 +41,14 @@ from flash_cli.auth import (
 class TestPortalEnvOverrideHelper:
     def test_none_when_unset(self, monkeypatch):
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
-        monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
+        monkeypatch.delenv("FLASH_PORTAL_BASE_URL", raising=False)
         assert _flash_portal_env_override() is None
 
     def test_flash_portal_base_url_wins(self, monkeypatch):
         monkeypatch.setenv(
             "HERMES_PORTAL_BASE_URL", "https://portal.staging-flashorg.com/"
         )
-        monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
+        monkeypatch.delenv("FLASH_PORTAL_BASE_URL", raising=False)
         assert (
             _flash_portal_env_override() == "https://portal.staging-flashorg.com"
         )
@@ -56,7 +56,7 @@ class TestPortalEnvOverrideHelper:
     def test_flash_portal_base_url_used_as_fallback(self, monkeypatch):
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
         monkeypatch.setenv(
-            "NOUS_PORTAL_BASE_URL", "https://portal.staging-flashorg.com"
+            "FLASH_PORTAL_BASE_URL", "https://portal.staging-flashorg.com"
         )
         assert (
             _flash_portal_env_override() == "https://portal.staging-flashorg.com"
@@ -64,12 +64,12 @@ class TestPortalEnvOverrideHelper:
 
     def test_env_override_not_gated_by_allowlist(self, monkeypatch):
         """The whole point: an env-set staging host is NOT in
-        _NOUS_PORTAL_ALLOWED_HOSTS, and the helper must return it anyway —
+        _FLASH_PORTAL_ALLOWED_HOSTS, and the helper must return it anyway —
         gating happens only for network-provenance values."""
         monkeypatch.setenv(
             "HERMES_PORTAL_BASE_URL", "https://portal.staging-flashorg.com"
         )
-        assert "portal.staging-flashorg.com" not in _NOUS_PORTAL_ALLOWED_HOSTS
+        assert "portal.staging-flashorg.com" not in _FLASH_PORTAL_ALLOWED_HOSTS
         assert (
             _flash_portal_env_override() == "https://portal.staging-flashorg.com"
         )
@@ -155,7 +155,7 @@ class TestResolveAccessTokenEnvOverrideWins:
         staging_portal = "https://portal.staging-flashorg.com"
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.setenv("HERMES_PORTAL_BASE_URL", staging_portal)
-        self._write_auth_file(tmp_path, stored_portal_url=DEFAULT_NOUS_PORTAL_URL)
+        self._write_auth_file(tmp_path, stored_portal_url=DEFAULT_FLASH_PORTAL_URL)
 
         seen_portal_urls, _records = self._run_and_capture(monkeypatch, auth)
 
@@ -172,12 +172,12 @@ class TestResolveAccessTokenEnvOverrideWins:
         staging_portal = "https://portal.staging-flashorg.com"
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
-        monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
+        monkeypatch.delenv("FLASH_PORTAL_BASE_URL", raising=False)
         self._write_auth_file(tmp_path, stored_portal_url=staging_portal)
 
         seen_portal_urls, records = self._run_and_capture(monkeypatch, auth)
 
-        assert seen_portal_urls == [DEFAULT_NOUS_PORTAL_URL]
+        assert seen_portal_urls == [DEFAULT_FLASH_PORTAL_URL]
         assert any("ignoring invalid portal_base_url" in msg for msg in records)
 
     def test_no_env_no_staging_state_prod_url_used_unmodified(
@@ -189,10 +189,10 @@ class TestResolveAccessTokenEnvOverrideWins:
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
-        monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
-        self._write_auth_file(tmp_path, stored_portal_url=DEFAULT_NOUS_PORTAL_URL)
+        monkeypatch.delenv("FLASH_PORTAL_BASE_URL", raising=False)
+        self._write_auth_file(tmp_path, stored_portal_url=DEFAULT_FLASH_PORTAL_URL)
 
         seen_portal_urls, records = self._run_and_capture(monkeypatch, auth)
 
-        assert seen_portal_urls == [DEFAULT_NOUS_PORTAL_URL]
+        assert seen_portal_urls == [DEFAULT_FLASH_PORTAL_URL]
         assert not any("ignoring invalid portal_base_url" in msg for msg in records)

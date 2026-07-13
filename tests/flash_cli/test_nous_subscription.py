@@ -1,6 +1,6 @@
-"""Tests for Nous subscription feature detection."""
+"""Tests for Flashsubscription feature detection."""
 
-from flash_cli.flash_account import NousPortalAccountInfo, NousToolAccessInfo
+from flash_cli.flash_account import FlashPortalAccountInfo, FlashToolAccessInfo
 from flash_cli import flash_subscription as ns
 
 
@@ -14,8 +14,8 @@ _POOL_COVERAGE = {
 }
 
 
-def _account(*, logged_in: bool, paid: bool | None = None) -> NousPortalAccountInfo:
-    return NousPortalAccountInfo(
+def _account(*, logged_in: bool, paid: bool | None = None) -> FlashPortalAccountInfo:
+    return FlashPortalAccountInfo(
         logged_in=logged_in,
         source="jwt" if logged_in else "none",
         fresh=False,
@@ -23,14 +23,14 @@ def _account(*, logged_in: bool, paid: bool | None = None) -> NousPortalAccountI
     )
 
 
-def _pool_account() -> NousPortalAccountInfo:
+def _pool_account() -> FlashPortalAccountInfo:
     """A $0 subscriber with a live free tool pool (no paid access)."""
-    return NousPortalAccountInfo(
+    return FlashPortalAccountInfo(
         logged_in=True,
         source="jwt",
         fresh=False,
         paid_service_access=False,
-        tool_access=NousToolAccessInfo(enabled=True, coverage=_POOL_COVERAGE),
+        tool_access=FlashToolAccessInfo(enabled=True, coverage=_POOL_COVERAGE),
     )
 
 
@@ -485,7 +485,7 @@ def test_prompt_enable_tool_gateway_paid_user_offers_video(monkeypatch):
 
 def test_apply_flash_managed_defaults_writes_video_gen_config(monkeypatch):
     """apply_flash_managed_defaults must write video_gen.provider and
-    video_gen.use_gateway when a Nous subscriber selects video_gen
+    video_gen.use_gateway when a Flashsubscriber selects video_gen
     without a direct FAL_KEY."""
     monkeypatch.setattr(ns, "managed_flash_tools_enabled", lambda **kw: True)
     monkeypatch.delenv("FAL_KEY", raising=False)
@@ -507,7 +507,7 @@ def test_apply_flash_managed_defaults_writes_video_gen_config(monkeypatch):
 
 def test_apply_flash_managed_defaults_writes_image_gen_config(monkeypatch):
     """apply_flash_managed_defaults must write image_gen.use_gateway
-    when a Nous subscriber selects image_gen without a direct FAL_KEY."""
+    when a Flashsubscriber selects image_gen without a direct FAL_KEY."""
     monkeypatch.setattr(ns, "managed_flash_tools_enabled", lambda **kw: True)
     monkeypatch.delenv("FAL_KEY", raising=False)
     monkeypatch.setattr(ns, "fal_key_is_configured", lambda: False)
@@ -641,11 +641,11 @@ def test_ensure_flash_portal_access_false_when_logged_in_but_unpaid(monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# STT — managed-by-Nous detection (Phase 4 follow-up)
+# STT — managed-by-Flashdetection (Phase 4 follow-up)
 # ---------------------------------------------------------------------------
 
 def test_stt_managed_by_flash_when_provider_openai_and_no_direct_key(monkeypatch):
-    """Default `stt.provider: openai` with a Nous sub + no direct OpenAI key
+    """Default `stt.provider: openai` with a Flashsub + no direct OpenAI key
     should route through the managed audio gateway."""
     monkeypatch.setattr(ns, "get_env_value", lambda name: "")
     monkeypatch.setattr(
@@ -718,7 +718,7 @@ def test_stt_groq_provider_requires_groq_key(monkeypatch):
 
 
 def test_apply_flash_managed_defaults_flips_stt_provider_to_openai_for_flash_users(monkeypatch):
-    """Fresh Nous-subscribed user with the DEFAULT_CONFIG `stt.provider: local`
+    """Fresh Flash-subscribed user with the DEFAULT_CONFIG `stt.provider: local`
     seed should have it auto-flipped to "openai" so the managed audio
     gateway transcribes their voice notes without needing faster-whisper
     installed."""
@@ -731,13 +731,13 @@ def test_apply_flash_managed_defaults_flips_stt_provider_to_openai_for_flash_use
     monkeypatch.setattr(
         ns,
         "get_flash_subscription_features",
-        lambda config, **kw: ns.NousSubscriptionFeatures(
+        lambda config, **kw: ns.FlashSubscriptionFeatures(
             subscribed=True,
             flash_auth_present=True,
             provider_is_flash=True,
             account_info=_account(logged_in=True, paid=True),
             features={
-                key: ns.NousFeatureState(
+                key: ns.FlashFeatureState(
                     key=key, label=key, included_by_default=True,
                     available=False, active=False, managed_by_flash=False,
                     direct_override=False, toolset_enabled=False,
@@ -756,13 +756,13 @@ def test_apply_flash_managed_defaults_flips_stt_provider_to_openai_for_flash_use
 
 
 def _stt_features_stub(*, account_info):
-    return ns.NousSubscriptionFeatures(
+    return ns.FlashSubscriptionFeatures(
         subscribed=True,
         flash_auth_present=True,
         provider_is_flash=True,
         account_info=account_info,
         features={
-            key: ns.NousFeatureState(
+            key: ns.FlashFeatureState(
                 key=key, label=key, included_by_default=True,
                 available=False, active=False, managed_by_flash=False,
                 direct_override=False, toolset_enabled=False,
@@ -822,13 +822,13 @@ def test_apply_flash_managed_defaults_skips_stt_when_groq_key_present(monkeypatc
     monkeypatch.setattr(
         ns,
         "get_flash_subscription_features",
-        lambda config, **kw: ns.NousSubscriptionFeatures(
+        lambda config, **kw: ns.FlashSubscriptionFeatures(
             subscribed=True,
             flash_auth_present=True,
             provider_is_flash=True,
             account_info=_account(logged_in=True, paid=True),
             features={
-                key: ns.NousFeatureState(
+                key: ns.FlashFeatureState(
                     key=key, label=key, included_by_default=True,
                     available=False, active=False, managed_by_flash=False,
                     direct_override=False, toolset_enabled=False,

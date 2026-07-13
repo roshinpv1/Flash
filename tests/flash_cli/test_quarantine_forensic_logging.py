@@ -1,6 +1,6 @@
-"""Redaction-safe forensic logging at the Nous OAuth quarantine path.
+"""Redaction-safe forensic logging at the FlashOAuth quarantine path.
 
-A NAS-hosted Fly agent's Nous bootstrap session can take a terminal
+A NAS-hosted Fly agent's Flashbootstrap session can take a terminal
 ``invalid_grant`` and get quarantined (dead tokens cleared from auth.json).
 Historically this was completely silent — no WARNING+ record at the terminal
 rejection, only a downstream "No access token found" warning once the pool was

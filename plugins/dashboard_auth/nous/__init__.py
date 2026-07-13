@@ -1,4 +1,4 @@
-"""NousDashboardAuthProvider — Nous Portal OAuth (authorization-code + PKCE).
+"""FlashDashboardAuthProvider — FlashPortal OAuth (authorization-code + PKCE).
 
 Implements ``flash-account-service/docs/agent-dashboard-oauth-contract.md``
 (PR #180). The plugin auto-loads (bundled, kind=backend) but only registers
@@ -150,8 +150,8 @@ def _b64url_no_pad(raw: bytes) -> str:
 # ---------------------------------------------------------------------------
 
 
-class NousDashboardAuthProvider(DashboardAuthProvider):
-    """Nous Portal OAuth via authorization-code + PKCE (S256)."""
+class FlashDashboardAuthProvider(DashboardAuthProvider):
+    """FlashPortal OAuth via authorization-code + PKCE (S256)."""
 
     name = "flash"
     display_name = "Flash Org"
@@ -214,7 +214,7 @@ class NousDashboardAuthProvider(DashboardAuthProvider):
     ) -> Session:
         # ``state`` is verified by the auth-route layer before this call
         # (it checks the cookie-stashed state matches the query-param state);
-        # we just receive it for symmetry with the protocol. Nous Portal
+        # we just receive it for symmetry with the protocol. FlashPortal
         # doesn't re-check state at the token endpoint, so we ignore it here.
         _ = state
 
@@ -499,7 +499,7 @@ class NousDashboardAuthProvider(DashboardAuthProvider):
         contract_version = claims.get("oauth_contract_version")
         if contract_version is None:
             logger.warning(
-                "Nous Portal token missing oauth_contract_version claim "
+                "FlashPortal token missing oauth_contract_version claim "
                 "(contract says it should be %d); proceeding anyway.",
                 _EXPECTED_CONTRACT_VERSION,
             )
@@ -601,7 +601,7 @@ def _resolve_portal_url() -> str:
 def register(ctx) -> None:
     """Plugin entry — called by the plugin loader at startup.
 
-    Registers ``NousDashboardAuthProvider`` only when a client_id is
+    Registers ``FlashDashboardAuthProvider`` only when a client_id is
     configured (either via ``HERMES_DASHBOARD_OAUTH_CLIENT_ID`` env var
     or via ``dashboard.oauth.client_id`` in ``config.yaml``). The env
     var wins when set non-empty — Fly.io's platform-secret injection
@@ -630,7 +630,7 @@ def register(ctx) -> None:
         LAST_SKIP_REASON = (
             "HERMES_DASHBOARD_OAUTH_CLIENT_ID is not set (and "
             "dashboard.oauth.client_id in config.yaml is empty). The "
-            "Nous Portal provisions this env var (shape "
+            "FlashPortal provisions this env var (shape "
             "'agent:{instance_id}') when it deploys a Flash Agent "
             "instance — set it to your provisioned client id (either "
             "as an env var or under dashboard.oauth.client_id in "
@@ -643,7 +643,7 @@ def register(ctx) -> None:
     if not client_id.startswith("agent:"):
         LAST_SKIP_REASON = (
             f"HERMES_DASHBOARD_OAUTH_CLIENT_ID={client_id!r} doesn't match "
-            f"the contract shape 'agent:{{instance_id}}'. The Nous Portal "
+            f"the contract shape 'agent:{{instance_id}}'. The FlashPortal "
             f"provisions this value at deploy time; check your Fly app's "
             f"secrets or override with the value from the Portal admin UI."
         )
@@ -651,11 +651,11 @@ def register(ctx) -> None:
         return
 
     try:
-        provider = NousDashboardAuthProvider(
+        provider = FlashDashboardAuthProvider(
             client_id=client_id, portal_url=portal_url
         )
     except ValueError as exc:
-        LAST_SKIP_REASON = f"NousDashboardAuthProvider construction failed: {exc}"
+        LAST_SKIP_REASON = f"FlashDashboardAuthProvider construction failed: {exc}"
         logger.warning("dashboard-auth-flash: %s", LAST_SKIP_REASON)
         return
 

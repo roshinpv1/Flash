@@ -900,7 +900,7 @@ def mcp_command(args):
         run_picker()
         print(color("  Commands:", Colors.CYAN))
         _info("nyxo mcp                                    Open the catalog picker (default)")
-        _info("nyxo mcp catalog                            List Nous-approved MCPs")
+        _info("nyxo mcp catalog                            List Flash-approved MCPs")
         _info("nyxo mcp install <name>                     Install a catalog MCP")
         _info("nyxo mcp serve                              Run as MCP server")
         _info("nyxo mcp add <name> --url <endpoint>        Add a custom MCP server")

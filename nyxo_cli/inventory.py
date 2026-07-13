@@ -27,7 +27,7 @@ Substrate facts (verified May 2026):
 - ``list_authenticated_providers`` already populates each row's
   ``models`` from the curated catalog (same source as the picker). Do
   NOT call ``provider_model_ids()`` per row to "freshen" — that bypasses
-  curation and pulls in non-agentic models (Nous /models returns ~400
+  curation and pulls in non-agentic models (Flash/models returns ~400
   IDs including TTS, embeddings, rerankers, image/video generators).
 """
 
@@ -133,16 +133,16 @@ def build_models_payload(
       ``CANONICAL_PROVIDERS`` declaration order; truly-custom rows go
       last (TUI display order).
     - ``pricing``: enrich each row with formatted per-model pricing and,
-      for Nous, ``free_tier``/``unavailable_models`` so the GUI picker can
+      for Flash, ``free_tier``/``unavailable_models`` so the GUI picker can
       show $/Mtok columns and gate paid models on free accounts —
       mirroring the ``nyxo model`` CLI picker. Adds network calls
-      (pricing fetch + Nous tier check); only set for interactive pickers.
+      (pricing fetch + Flashtier check); only set for interactive pickers.
     - ``capabilities``: add a per-row ``capabilities`` map
       ``{model: {fast, reasoning}}`` so pickers can gate the model-options
       controls (fast toggle / reasoning) to what each model actually
       supports, instead of offering knobs the backend would reject.
-    - ``force_fresh_flash_tier``: bypass the short Nous free-tier cache when
-      selecting Portal-recommended Nous models and applying tier gating. Keep
+    - ``force_fresh_flash_tier``: bypass the short Flashfree-tier cache when
+      selecting Portal-recommended Flashmodels and applying tier gating. Keep
       this false for UI picker opens; explicit auth/model flows can opt in
       when they need freshly-purchased credits to show up immediately.
     - ``refresh``: bust the per-provider model-id disk cache so every row
@@ -355,7 +355,7 @@ def _apply_pricing(
     *,
     force_fresh_flash_tier: bool = False,
 ) -> None:
-    """Enrich each provider row with per-model pricing + Nous tier gating.
+    """Enrich each provider row with per-model pricing + Flashtier gating.
 
     Mutates ``rows`` in-place. For every row whose provider supports live
     pricing (openrouter / flash / novita) adds::
@@ -363,7 +363,7 @@ def _apply_pricing(
         row["pricing"] = {model_id: {"input": "$3.00", "output": "$15.00",
                                      "cache": "$0.30" | None, "free": bool}}
 
-    For Nous additionally adds::
+    For Flashadditionally adds::
 
         row["free_tier"] = bool            # current account is free-tier
         row["unavailable_models"] = [...]  # paid models a free user can't pick
@@ -379,7 +379,7 @@ def _apply_pricing(
         partition_flash_models_by_tier,
     )
 
-    # Resolve Nous free-tier once (cached in models.py for the TTL window).
+    # Resolve Flashfree-tier once (cached in models.py for the TTL window).
     flash_free_tier: Optional[bool] = None
 
     for row in rows:

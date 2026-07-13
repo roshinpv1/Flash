@@ -44,10 +44,10 @@ def _make_profile_home(tmp_path, monkeypatch, profile="coder"):
 def _fake_flash_device_data():
     return {
         "device_code": "device-code",
-        "user_code": "NOUS-1234",
+        "user_code": "FLASH-1234",
         "verification_uri": "https://portal.flashorg.com/device",
         "verification_uri_complete": (
-            "https://portal.flashorg.com/device?user_code=NOUS-1234"
+            "https://portal.flashorg.com/device?user_code=FLASH-1234"
         ),
         "expires_in": 600,
         "interval": 5,
@@ -123,12 +123,12 @@ def test_flash_dashboard_device_flow_ignores_legacy_scope_override(monkeypatch):
 
     result = asyncio.run(ws._start_device_code_flow("flash"))
     try:
-        assert requested_scopes == [auth_mod.DEFAULT_NOUS_SCOPE]
+        assert requested_scopes == [auth_mod.DEFAULT_FLASH_SCOPE]
         assert result["flow"] == "device_code"
-        assert result["user_code"] == "NOUS-1234"
+        assert result["user_code"] == "FLASH-1234"
         assert (
             ws._oauth_sessions[result["session_id"]]["scope"]
-            == auth_mod.DEFAULT_NOUS_SCOPE
+            == auth_mod.DEFAULT_FLASH_SCOPE
         )
     finally:
         ws._oauth_sessions.pop(result["session_id"], None)
@@ -211,7 +211,7 @@ def test_flash_dashboard_device_flow_does_not_retry_legacy_scope_on_invoke_refus
 
     with pytest.raises(httpx.HTTPStatusError):
         asyncio.run(ws._start_device_code_flow("flash"))
-    assert requested_scopes == [auth_mod.DEFAULT_NOUS_SCOPE]
+    assert requested_scopes == [auth_mod.DEFAULT_FLASH_SCOPE]
 
 
 def test_codex_dashboard_worker_persists_runtime_provider(tmp_path, monkeypatch):
@@ -407,7 +407,7 @@ def test_flash_dashboard_poller_preserves_effective_scope_when_token_omits_scope
         "device_code": "device-code",
         "interval": 5,
         "expires_at": time.time() + 600,
-        "scope": auth_mod.DEFAULT_NOUS_SCOPE,
+        "scope": auth_mod.DEFAULT_FLASH_SCOPE,
     }
     captured_state = {}
 
@@ -434,7 +434,7 @@ def test_flash_dashboard_poller_preserves_effective_scope_when_token_omits_scope
 
     try:
         ws._flash_poller(session_id)
-        assert captured_state["scope"] == auth_mod.DEFAULT_NOUS_SCOPE
+        assert captured_state["scope"] == auth_mod.DEFAULT_FLASH_SCOPE
         assert ws._oauth_sessions[session_id]["status"] == "approved"
     finally:
         ws._oauth_sessions.pop(session_id, None)

@@ -39,7 +39,7 @@ const renderBillingError = (
     case 'no_payment_method':
       sys(
         '💳 No saved card for terminal charges yet. Set one up on the portal ' +
-          "(one-time credit buys don't save a reusable card)."
+        "(one-time credit buys don't save a reusable card)."
       )
 
       break
@@ -107,7 +107,7 @@ const armStepUp = (sys: Sys, ctx: SlashRunCtx): void => {
                       } else {
                         sys(
                           '🟡 Permission granted, but terminal billing is still turned off ' +
-                            'for this org. Enable it in the portal, then run /billing again.'
+                          'for this org. Enable it in the portal, then run /billing again.'
                         )
 
                         if (s.portal_url) {
@@ -180,7 +180,7 @@ const pollCharge = (sys: Sys, ctx: SlashRunCtx, chargeId: string, portalUrl?: st
           if (Date.now() - start >= POLL_CAP_MS) {
             sys(
               '🟡 Still processing after 5 minutes — this is a timeout, not a failure. ' +
-                'Check /billing or the portal shortly.'
+              'Check /billing or the portal shortly.'
             )
 
             if (portalUrl) {
@@ -305,7 +305,7 @@ const buildOverlayCtx = (ctx: SlashRunCtx, sys: Sys, s: BillingStateResponse): B
 
 export const billingCommands: SlashCommand[] = [
   {
-    help: 'Manage Nous terminal billing — buy credits, auto-reload, limits',
+    help: 'Manage Flashterminal billing — buy credits, auto-reload, limits',
     name: 'billing',
     // ZERO sub-commands (plan §0.4): any arg is ignored. Bare `/billing`
     // fetches state and opens the interactive overlay (CLI/TUI parity).
@@ -317,7 +317,7 @@ export const billingCommands: SlashCommand[] = [
         .then(
           ctx.guarded<BillingStateResponse>(s => {
             if (!s.logged_in) {
-              sys('💳 Not logged into Nous Portal — run /portal to log in, then /billing.')
+              sys('💳 Not logged into FlashPortal — run /portal to log in, then /billing.')
 
               return
             }

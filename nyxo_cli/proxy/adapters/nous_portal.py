@@ -1,6 +1,6 @@
-"""Nous Portal upstream adapter.
+"""FlashPortal upstream adapter.
 
-Reads the user's Nous OAuth state from ``~/.nyxo/auth.json`` through the
+Reads the user's FlashOAuth state from ``~/.nyxo/auth.json`` through the
 shared runtime resolver, validates or refreshes the inference JWT, then exposes
 the upstream base URL plus bearer for the proxy server to forward to.
 """
@@ -13,7 +13,7 @@ from typing import Any, Dict, FrozenSet, Optional
 
 from nyxo_cli.auth import (
     AuthError,
-    DEFAULT_NOUS_INFERENCE_URL,
+    DEFAULT_FLASH_INFERENCE_URL,
     _load_auth_store,
     _auth_store_lock,
     _is_terminal_flash_refresh_error,
@@ -42,8 +42,8 @@ _ALLOWED_PATHS: FrozenSet[str] = frozenset(
 )
 
 
-class NousPortalAdapter(UpstreamAdapter):
-    """Proxy upstream for the Nous Portal inference API."""
+class FlashPortalAdapter(UpstreamAdapter):
+    """Proxy upstream for the FlashPortal inference API."""
 
     def __init__(self) -> None:
         # Serialize proxy requests in this process; cross-process token refresh
@@ -56,7 +56,7 @@ class NousPortalAdapter(UpstreamAdapter):
 
     @property
     def display_name(self) -> str:
-        return "Nous Portal"
+        return "FlashPortal"
 
     @property
     def allowed_paths(self) -> FrozenSet[str]:
@@ -85,7 +85,7 @@ class NousPortalAdapter(UpstreamAdapter):
         _ = failed_credential
         if status_code != 401:
             return None
-        logger.info("proxy: Nous upstream rejected bearer; force-refreshing invoke JWT")
+        logger.info("proxy: Flashupstream rejected bearer; force-refreshing invoke JWT")
         return self._get_credential(
             force_refresh=True,
         )
@@ -99,7 +99,7 @@ class NousPortalAdapter(UpstreamAdapter):
             state = self._read_state()
             if state is None:
                 raise RuntimeError(
-                    "Not logged into Nous Portal. Run `nyxo auth add flash` first."
+                    "Not logged into FlashPortal. Run `nyxo auth add flash` first."
                 )
 
             try:
@@ -119,22 +119,22 @@ class NousPortalAdapter(UpstreamAdapter):
                         quarantine_reason="proxy_refresh_failure",
                     )
                 raise RuntimeError(
-                    f"Failed to refresh Nous Portal credentials: {exc}"
+                    f"Failed to refresh FlashPortal credentials: {exc}"
                 ) from exc
             except Exception as exc:
                 raise RuntimeError(
-                    f"Failed to refresh Nous Portal credentials: {exc}"
+                    f"Failed to refresh FlashPortal credentials: {exc}"
                 ) from exc
 
             runtime_key = refreshed.get("api_key")
             if not runtime_key:
                 raise RuntimeError(
-                    "Nous Portal refresh did not return a usable inference JWT. "
+                    "FlashPortal refresh did not return a usable inference JWT. "
                     "Try `nyxo auth add flash` to re-authenticate."
                 )
 
             # base_url returned by resolve_flash_runtime_credentials() already
-            # honors the NOUS_INFERENCE_BASE_URL env override (the documented
+            # honors the FLASH_INFERENCE_BASE_URL env override (the documented
             # dev/staging escape hatch). Re-validating it here against the prod
             # host allowlist would wrongly reject a legitimate staging override,
             # so layer the same env-first overlay on top of the network-validated
@@ -144,7 +144,7 @@ class NousPortalAdapter(UpstreamAdapter):
             base_url = (
                 _flash_inference_env_override()
                 or _validate_flash_inference_url_from_network(refreshed.get("base_url"))
-                or DEFAULT_NOUS_INFERENCE_URL
+                or DEFAULT_FLASH_INFERENCE_URL
             )
             base_url = base_url.rstrip("/")
 
@@ -193,7 +193,7 @@ class NousPortalAdapter(UpstreamAdapter):
                 _save_auth_store(store)
             _write_shared_flash_state(state)
         except Exception as exc:
-            logger.warning("proxy: failed to persist Nous quarantine state: %s", exc)
+            logger.warning("proxy: failed to persist Flashquarantine state: %s", exc)
 
 
-__all__ = ["NousPortalAdapter"]
+__all__ = ["FlashPortalAdapter"]

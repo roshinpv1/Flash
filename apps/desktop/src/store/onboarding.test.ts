@@ -288,7 +288,7 @@ describe('OAuth onboarding', () => {
         return {
           providers: [
             {
-              name: 'Nous Portal',
+              name: 'FlashPortal',
               slug: 'flash',
               models: [model]
             }
@@ -329,7 +329,7 @@ describe('OAuth onboarding', () => {
       baseState({
         flow: {
           status: 'awaiting_user',
-          provider: provider('flash', 'Nous Portal'),
+          provider: provider('flash', 'FlashPortal'),
           start: {
             auth_url: 'https://portal.example/auth',
             expires_in: 600,
@@ -339,7 +339,7 @@ describe('OAuth onboarding', () => {
           code: 'fresh-code'
         },
         reason:
-          'No access token found for Nous Portal login. setup.status reports configured credentials, but runtime resolution still failed.',
+          'No access token found for FlashPortal login. setup.status reports configured credentials, but runtime resolution still failed.',
         requested: true
       })
     )
@@ -351,7 +351,7 @@ describe('OAuth onboarding', () => {
     expect(state.flow.status).toBe('confirming_model')
 
     if (state.flow.status === 'confirming_model') {
-      expect(state.flow.label).toBe('Nous Portal')
+      expect(state.flow.label).toBe('FlashPortal')
       expect(state.flow.currentModel).toBe(model)
     }
 

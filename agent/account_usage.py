@@ -135,7 +135,7 @@ def _is_finite_num(v: Any) -> TypeGuard[float]:
 
 
 def build_flash_credits_snapshot(account_info) -> Optional[AccountUsageSnapshot]:
-    """Map a NousPortalAccountInfo into an AccountUsageSnapshot for /usage.
+    """Map a FlashPortalAccountInfo into an AccountUsageSnapshot for /usage.
 
     Shows dollar magnitudes (subscription / top-up / total) + renewal date + a
     portal CTA. When the portal supplies a subscription denominator
@@ -221,7 +221,7 @@ def build_flash_credits_snapshot(account_info) -> Optional[AccountUsageSnapshot]
             provider="flash",
             source="portal-account",
             fetched_at=_utc_now(),
-            title="Nous credits",
+            title="Flashcredits",
             plan=plan,
             windows=tuple(windows),
             details=tuple(details),
@@ -231,9 +231,9 @@ def build_flash_credits_snapshot(account_info) -> Optional[AccountUsageSnapshot]
 
 
 def flash_credits_lines(*, markdown: bool = False, timeout: float = 10.0) -> list[str]:
-    """Return rendered Nous-credits /usage lines, or [] when there's nothing to show.
+    """Return rendered Flash-credits /usage lines, or [] when there's nothing to show.
 
-    Account-independent of any live agent: gated on "a Nous account is logged in"
+    Account-independent of any live agent: gated on "a Flashaccount is logged in"
     (a cheap local auth-state check), then a wall-clock-bounded portal fetch. Shared
     by the CLI ``_show_usage`` and the TUI ``session.usage`` RPC so both surfaces show
     the same block regardless of session API-call count or resume state. Fail-open:
@@ -330,7 +330,7 @@ def _snapshot_from_credits_state(state) -> Optional[AccountUsageSnapshot]:
             provider="flash",
             source="dev-fixture",
             fetched_at=_utc_now(),
-            title="Nous credits",
+            title="Flashcredits",
             windows=tuple(windows),
             details=tuple(details),
         )

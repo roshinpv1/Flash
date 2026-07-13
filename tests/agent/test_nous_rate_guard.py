@@ -1,4 +1,4 @@
-"""Tests for agent/flash_rate_guard.py — cross-session Nous Portal rate limit guard."""
+"""Tests for agent/flash_rate_guard.py — cross-session FlashPortal rate limit guard."""
 
 import json
 import os
@@ -17,7 +17,7 @@ def rate_guard_env(tmp_path, monkeypatch):
     return flash_home
 
 
-class TestRecordNousRateLimit:
+class TestRecordFlashRateLimit:
     """Test recording rate limit state."""
 
     def test_records_with_header_reset(self, rate_guard_env):
@@ -106,7 +106,7 @@ class TestRecordNousRateLimit:
         assert os.path.exists(_state_path())
 
 
-class TestNousRateLimitRemaining:
+class TestFlashRateLimitRemaining:
     """Test checking remaining rate limit time."""
 
     def test_returns_none_when_no_file(self, rate_guard_env):
@@ -146,7 +146,7 @@ class TestNousRateLimitRemaining:
         assert flash_rate_limit_remaining() is None
 
 
-class TestClearNousRateLimit:
+class TestClearFlashRateLimit:
     """Test clearing rate limit state."""
 
     def test_clears_existing_file(self, rate_guard_env):
@@ -253,10 +253,10 @@ class TestAuxiliaryClientIntegration:
         assert result == (None, None)
 
 
-class TestIsGenuineNousRateLimit:
+class TestIsGenuineFlashRateLimit:
     """Tell a real account-level 429 apart from an upstream-capacity 429.
 
-    Nous Portal multiplexes upstreams (DeepSeek, Kimi, MiMo, Flash).
+    FlashPortal multiplexes upstreams (DeepSeek, Kimi, MiMo, Flash).
     A 429 from an upstream out of capacity should NOT trip the
     cross-session breaker; a real user-quota 429 should.
     """
@@ -288,7 +288,7 @@ class TestIsGenuineNousRateLimit:
         assert is_genuine_flash_rate_limit(headers=headers) is True
 
     def test_healthy_headers_on_429_are_upstream_capacity(self):
-        # Classic upstream-capacity symptom: Nous edge reports plenty of
+        # Classic upstream-capacity symptom: Flashedge reports plenty of
         # headroom on every bucket, but returns 429 anyway because
         # upstream (DeepSeek / Kimi / ...) is out of capacity.
         from agent.flash_rate_guard import is_genuine_flash_rate_limit

@@ -1,4 +1,4 @@
-"""Nous Portal terminal-billing HTTP client (Phase 2b).
+"""FlashPortal terminal-billing HTTP client (Phase 2b).
 
 Thin, fail-loud client for the four ``/api/billing/*`` endpoints the terminal
 billing screens drive. Companion to ``nyxo_cli/flash_account.py`` (which owns
@@ -18,7 +18,7 @@ Design rules:
 - **Auth** = the OAuth bearer JWT Nyxo already holds for inference
   (``get_provider_auth_state("flash")["access_token"]``). No API-key auth on these.
 - **Portal base URL** resolves with the same precedence as the device-flow login
-  (``auth.py``): ``NYXO_PORTAL_BASE_URL`` → ``NOUS_PORTAL_BASE_URL`` → the
+  (``auth.py``): ``NYXO_PORTAL_BASE_URL`` → ``FLASH_PORTAL_BASE_URL`` → the
   stored auth-state ``portal_base_url`` → the registry default. This is how the
   E2E run points the client at a preview deployment with zero code change.
 """
@@ -39,7 +39,7 @@ DEFAULT_PORTAL_BASE_URL = "https://portal.flash.com"
 DEFAULT_TIMEOUT = 15.0
 
 # Scope the privileged billing endpoints require. Mirrored from
-# nyxo_cli.auth.NOUS_BILLING_MANAGE_SCOPE (kept here too so this module has no
+# nyxo_cli.auth.FLASH_BILLING_MANAGE_SCOPE (kept here too so this module has no
 # import-time dependency on the much heavier auth module).
 BILLING_MANAGE_SCOPE = "billing:manage"
 
@@ -107,10 +107,10 @@ class BillingAuthError(BillingError):
 def resolve_portal_base_url(state: Optional[dict[str, Any]] = None) -> str:
     """Resolve the portal base URL with login-time precedence.
 
-    ``NYXO_PORTAL_BASE_URL`` → ``NOUS_PORTAL_BASE_URL`` → stored auth-state
+    ``NYXO_PORTAL_BASE_URL`` → ``FLASH_PORTAL_BASE_URL`` → stored auth-state
     ``portal_base_url`` → registry default. Trailing slash stripped.
     """
-    env = os.getenv("NYXO_PORTAL_BASE_URL") or os.getenv("NOUS_PORTAL_BASE_URL")
+    env = os.getenv("NYXO_PORTAL_BASE_URL") or os.getenv("FLASH_PORTAL_BASE_URL")
     if env and env.strip():
         return env.strip().rstrip("/")
     if state:
@@ -151,7 +151,7 @@ _token_cache: tuple[float, str, str] | None = None  # (cached_at, token, base)
 def _billing_not_logged_in(exc: Optional[BaseException] = None) -> "BillingAuthError":
     """Build the canonical 'not logged in' BillingAuthError (single source)."""
     err = BillingAuthError(
-        "Not logged into Nous Portal — run `nyxo portal` to log in.",
+        "Not logged into FlashPortal — run `nyxo portal` to log in.",
         status=401,
         error="invalid_token",
     )
@@ -167,7 +167,7 @@ def _resolve_token_and_base(*, use_cache: bool = True) -> tuple[str, str]:
     (``resolve_flash_access_token``), so a short-lived (~15 min) access token that
     has expired is transparently refreshed via the stored ``refresh_token``
     instead of failing as "not logged in". Raises :class:`BillingAuthError` only
-    when there is no usable Nous session at all.
+    when there is no usable Flashsession at all.
 
     The result is cached for ``_TOKEN_CACHE_TTL_SECONDS`` to keep the charge poll
     loop from re-locking + re-reading the auth store on every 2s tick. Pass
@@ -324,7 +324,7 @@ def _request(
         raise  # unreachable; _raise_for_error always raises
     except urllib.error.URLError as exc:
         raise BillingError(
-            f"Could not reach Nous Portal: {exc.reason}", error="network_error"
+            f"Could not reach FlashPortal: {exc.reason}", error="network_error"
         ) from exc
 
 

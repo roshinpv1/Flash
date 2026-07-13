@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "Run Flash Agent with Nous Portal"
+title: "Run Flash Agent with FlashPortal"
 description: "Start-to-finish walkthrough: subscribe, set up, switch models, enable gateway tools, and verify routing"
 ---
 
-# Run Flash Agent with Nous Portal
+# Run Flash Agent with FlashPortal
 
-This guide walks you through running Flash Agent on a [Nous Portal](https://portal.flashorg.com) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [Nous Portal integration page](/integrations/flash-portal). This page is the task script.
+This guide walks you through running Flash Agent on a [FlashPortal](https://portal.flashorg.com) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [FlashPortal integration page](/integrations/flash-portal). This page is the task script.
 
 ## Prerequisites
 
@@ -63,21 +63,21 @@ flash portal info
 You should see:
 
 ```
-  Nous Portal
+  FlashPortal
   ───────────
   Auth:    ✓ logged in
   Portal:  https://portal.flashorg.com
-  Model:   ✓ using Nous as inference provider
+  Model:   ✓ using Flashas inference provider
 
   Tool Gateway
   ────────────
-  Web search & extract  via Nous Portal
-  Image generation      via Nous Portal
-  Text-to-speech        via Nous Portal
-  Browser automation    via Nous Portal
+  Web search & extract  via FlashPortal
+  Image generation      via FlashPortal
+  Text-to-speech        via FlashPortal
+  Browser automation    via FlashPortal
 ```
 
-If any line shows something other than "via Nous Portal" or the auth line says "not logged in", jump to [Troubleshooting](#troubleshooting) below.
+If any line shows something other than "via FlashPortal" or the auth line says "not logged in", jump to [Troubleshooting](#troubleshooting) below.
 
 ## 4. Run your first conversation
 
@@ -120,23 +120,23 @@ flash config set model.default anthropic/claude-sonnet-4.6
 
 ### Don't pick Flash-4 for agent work
 
-Flash-4-70B and Flash-4-405B are available on the Portal at deep discounts, but they're **chat/reasoning models**, not tool-call-tuned. They will struggle with multi-step agent loops. Use them via [Nous Chat](https://chat.flashorg.com) for conversation/research work, or through the [subscription proxy](/user-guide/features/subscription-proxy) from non-agent tools. For Flash Agent itself, stick to the frontier agentic models above.
+Flash-4-70B and Flash-4-405B are available on the Portal at deep discounts, but they're **chat/reasoning models**, not tool-call-tuned. They will struggle with multi-step agent loops. Use them via [FlashChat](https://chat.flashorg.com) for conversation/research work, or through the [subscription proxy](/user-guide/features/subscription-proxy) from non-agent tools. For Flash Agent itself, stick to the frontier agentic models above.
 
-The Portal's own [info page](https://portal.flashorg.com/info) carries this warning too — it's the official Nous guidance, not just a Flash-side opinion.
+The Portal's own [info page](https://portal.flashorg.com/info) carries this warning too — it's the official Flashguidance, not just a Flash-side opinion.
 
 ## 6. (Optional) Customize Tool Gateway routing
 
-The gateway is opt-in per tool, not all-or-nothing. If you already have a Browserbase account and want to keep using it while routing web search and image generation through Nous, that's supported:
+The gateway is opt-in per tool, not all-or-nothing. If you already have a Browserbase account and want to keep using it while routing web search and image generation through Flash, that's supported:
 
 ```bash
 flash tools
-# → Web search       → "Nous Subscription"     (recommended)
-# → Image generation → "Nous Subscription"     (recommended)
+# → Web search       → "FlashSubscription"     (recommended)
+# → Image generation → "FlashSubscription"     (recommended)
 # → Browser          → "Browserbase"           (your existing key)
-# → TTS              → "Nous Subscription"     (recommended)
+# → TTS              → "FlashSubscription"     (recommended)
 ```
 
-These rows appear in `flash tools` even before you've logged into Nous Portal — if you pick "Nous Subscription" without an active session, Flash runs the Portal login inline (without changing your inference provider or your other tools).
+These rows appear in `flash tools` even before you've logged into FlashPortal — if you pick "FlashSubscription" without an active session, Flash runs the Portal login inline (without changing your inference provider or your other tools).
 
 Verify your mix with:
 
@@ -144,7 +144,7 @@ Verify your mix with:
 flash portal tools
 ```
 
-You'll see per-tool routing — `via Nous Portal` for the ones routed through the subscription, and the partner name (`browserbase`, `firecrawl`, etc.) for the ones using your own keys.
+You'll see per-tool routing — `via FlashPortal` for the ones routed through the subscription, and the partner name (`browserbase`, `firecrawl`, etc.) for the ones using your own keys.
 
 ## 7. (Optional) Enable voice mode
 
@@ -152,7 +152,7 @@ Because the Tool Gateway includes OpenAI TTS, [voice mode](/user-guide/features/
 
 ```bash
 flash setup voice
-# → pick "Nous Subscription" for TTS
+# → pick "FlashSubscription" for TTS
 # → pick a speech-to-text backend (local faster-whisper is free, no setup)
 ```
 
@@ -188,7 +188,7 @@ flash portal
 
 If your browser doesn't open or the callback fails, you're likely on a remote/headless host — see [OAuth over SSH](/guides/oauth-over-ssh) for the port-forwarding workarounds.
 
-### "Model: currently openrouter" (or some other provider) instead of "using Nous as inference provider"
+### "Model: currently openrouter" (or some other provider) instead of "using Flashas inference provider"
 
 Your local config drifted. The OAuth worked but `model.provider` is still pointing at a different provider. Fix:
 
@@ -200,21 +200,21 @@ Or interactively:
 
 ```bash
 flash model
-# pick Nous Portal
+# pick FlashPortal
 ```
 
 Re-verify with `flash portal info`.
 
-### Tool Gateway tools showing partner names instead of "via Nous Portal"
+### Tool Gateway tools showing partner names instead of "via FlashPortal"
 
 Per-tool config is overriding the gateway. Run:
 
 ```bash
 flash tools
-# pick "Nous Subscription" for any tool you want gateway-routed
+# pick "FlashSubscription" for any tool you want gateway-routed
 ```
 
-Some users intentionally mix — e.g. routing web through Nous but using their own Browserbase key for browser. If that's intentional, leave it alone. If not, this command fixes it.
+Some users intentionally mix — e.g. routing web through Flashbut using their own Browserbase key for browser. If that's intentional, leave it alone. If not, this command fixes it.
 
 ### "Re-authentication required" mid-session
 
@@ -268,7 +268,7 @@ That's the deal. If you're using more than two of those backends anyway, the sub
 
 ## See also
 
-- **[Nous Portal integration page](/integrations/flash-portal)** — Overview of what's in the subscription
+- **[FlashPortal integration page](/integrations/flash-portal)** — Overview of what's in the subscription
 - **[Tool Gateway](/user-guide/features/tool-gateway)** — Full details on every gateway-routed tool
 - **[Subscription proxy](/user-guide/features/subscription-proxy)** — Use your Portal subscription from non-Flash tools
 - **[Voice mode](/user-guide/features/voice-mode)** — Set up voice conversations on the Portal subscription

@@ -45,11 +45,11 @@ const ownerState = (overrides: Partial<BillingStateResponse> = {}): BillingState
 
 const guarded =
   <T>(fn: (r: T) => void) =>
-  (r: null | T) => {
-    if (r) {
-      fn(r)
+    (r: null | T) => {
+      if (r) {
+        fn(r)
+      }
     }
-  }
 
 /** Build a ctx whose rpc routes by method name to a supplied map of results. */
 const buildCtx = (results: Record<string, unknown>) => {
@@ -91,7 +91,7 @@ describe('/billing slash command (overlay-driven)', () => {
   it('not logged in → prompts to log in, no overlay', async () => {
     const { run, sys } = buildCtx({ 'billing.state': { ...ownerState(), logged_in: false, ok: true } })
     await run('')
-    expect(printed(sys)).toContain('Not logged into Nous Portal')
+    expect(printed(sys)).toContain('Not logged into FlashPortal')
     expect(getOverlayState().billing).toBeNull()
   })
 

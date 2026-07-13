@@ -6,7 +6,7 @@ import pytest
 
 import flash_cli.auth as auth
 from flash_cli.auth import (
-    NOUS_BILLING_MANAGE_SCOPE,
+    FLASH_BILLING_MANAGE_SCOPE,
     flash_token_has_billing_scope,
     step_up_flash_billing_scope,
 )
@@ -93,7 +93,7 @@ def test_step_up_requests_billing_scope_and_reuses_prior_urls(monkeypatch, _stub
     granted = step_up_flash_billing_scope()
     assert granted is True
     # Requested scope must include billing:manage, preserving prior scopes.
-    assert NOUS_BILLING_MANAGE_SCOPE in captured["scope"].split()
+    assert FLASH_BILLING_MANAGE_SCOPE in captured["scope"].split()
     assert "inference:invoke" in captured["scope"].split()
     # Reuses the prior credential's deployment URLs (so a preview stays a preview).
     assert captured["portal_base_url"] == "https://preview.example.com"
@@ -124,7 +124,7 @@ def test_step_up_falls_back_to_standard_scope_when_no_prior(monkeypatch, _stub_p
     requested = captured["scope"].split()
     assert "inference:invoke" in requested
     assert "tool:invoke" in requested
-    assert NOUS_BILLING_MANAGE_SCOPE in requested
+    assert FLASH_BILLING_MANAGE_SCOPE in requested
 
 
 # ---------------------------------------------------------------------------

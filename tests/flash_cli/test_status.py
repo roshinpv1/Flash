@@ -78,7 +78,7 @@ def test_show_status_reports_flash_auth_error(monkeypatch, capsys, tmp_path):
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     output = capsys.readouterr().out
-    assert "Nous Portal   ✗ not logged in (run: flash portal)" in output
+    assert "FlashPortal   ✗ not logged in (run: flash portal)" in output
     assert "Error:      Refresh session has been revoked" in output
     assert "Access exp:" in output
     assert "Key exp:" in output
@@ -86,7 +86,7 @@ def test_show_status_reports_flash_auth_error(monkeypatch, capsys, tmp_path):
 
 def test_show_status_reports_flash_inference_key_without_portal_login(monkeypatch, capsys, tmp_path):
     from flash_cli import status as status_mod
-    from flash_cli.flash_account import NousPortalAccountInfo
+    from flash_cli.flash_account import FlashPortalAccountInfo
     import flash_cli.auth as auth_mod
     import flash_cli.gateway as gateway_mod
 
@@ -111,7 +111,7 @@ def test_show_status_reports_flash_inference_key_without_portal_login(monkeypatc
     monkeypatch.setattr(
         status_mod,
         "get_flash_portal_account_info",
-        lambda: NousPortalAccountInfo(
+        lambda: FlashPortalAccountInfo(
             logged_in=False,
             source="inference_key",
             fresh=False,
@@ -129,9 +129,9 @@ def test_show_status_reports_flash_inference_key_without_portal_login(monkeypatc
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     output = capsys.readouterr().out
-    assert "Nous Portal   ✗ not logged in (Nous inference key configured)" in output
+    assert "FlashPortal   ✗ not logged in (Flashinference key configured)" in output
     assert "Inference:  https://inference.example.com/v1" in output
-    assert "Nous inference credentials are configured" in output
+    assert "Flashinference credentials are configured" in output
 
 
 # ---------------------------------------------------------------------------
@@ -312,7 +312,7 @@ class TestShowStatusXaiOAuth:
         assert "◆ Auth Providers" in out
 
     def test_import_failure_does_not_break_other_oauth_providers(self, monkeypatch, capsys, tmp_path):
-        """Nous/Codex/MiniMax rows must still appear when xAI import fails."""
+        """Flash/Codex/MiniMax rows must still appear when xAI import fails."""
         import flash_cli.auth as auth_mod
         status_mod = _base_xai_mocks(monkeypatch, tmp_path)
         monkeypatch.setattr(auth_mod, "get_flash_auth_status",
@@ -322,7 +322,7 @@ class TestShowStatusXaiOAuth:
         status_mod.show_status(SimpleNamespace(all=False, deep=False))
         out = capsys.readouterr().out
 
-        assert "Nous Portal" in out
+        assert "FlashPortal" in out
         assert "MiniMax OAuth" in out
 
     def test_status_function_exception_does_not_crash(self, monkeypatch, capsys, tmp_path):

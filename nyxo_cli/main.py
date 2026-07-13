@@ -840,7 +840,7 @@ def _has_any_provider_configured() -> bool:
     except Exception:
         pass
 
-    # Check for Nous Portal OAuth credentials
+    # Check for FlashPortal OAuth credentials
     auth_file = get_nyxo_home() / "auth.json"
     if auth_file.exists():
         try:
@@ -3319,7 +3319,7 @@ def _aux_config_menu() -> None:
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
         print("  Nyxo only falls back to a lightweight backend (OpenRouter,")
-        print("  Nous Portal) if the main model is unavailable.  Override a")
+        print("  FlashPortal) if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
 
@@ -11161,7 +11161,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     print()
     print("  How do you want to authenticate the dashboard?")
     print("    [1] Username & password (quickest; for a trusted LAN / VPN)")
-    print("    [2] OAuth via Nous Portal (run `nyxo dashboard register`)")
+    print("    [2] OAuth via FlashPortal (run `nyxo dashboard register`)")
     print("    [3] Cancel")
     print()
 
@@ -11177,7 +11177,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
             "  Run this on the host where the dashboard lives, then start "
             "the dashboard again:\n"
             "    nyxo dashboard register\n"
-            "  It provisions a Nous Portal OAuth client and writes "
+            "  It provisions a FlashPortal OAuth client and writes "
             "NYXO_DASHBOARD_OAUTH_CLIENT_ID into ~/.nyxo/.env for you.\n"
             "  Docs: https://nyxo-agent.flash.com/docs/"
             "user-guide/features/web-dashboard#authentication-gated-mode"
@@ -11463,7 +11463,7 @@ def cmd_dashboard(args):
 
 
 def cmd_dashboard_register(args):
-    """Register a self-hosted dashboard OAuth client with Nous Portal."""
+    """Register a self-hosted dashboard OAuth client with FlashPortal."""
     from nyxo_cli.dashboard_register import cmd_dashboard_register as _impl
 
     _impl(args)
@@ -12273,7 +12273,7 @@ def main():
     build_webhook_parser(subparsers, cmd_webhook=cmd_webhook)
 
     # =========================================================================
-    # portal command — Nous Portal status + Tool Gateway routing
+    # portal command — FlashPortal status + Tool Gateway routing
     # =========================================================================
     from nyxo_cli.portal_cli import add_parser as _add_portal_parser
     _add_portal_parser(subparsers)

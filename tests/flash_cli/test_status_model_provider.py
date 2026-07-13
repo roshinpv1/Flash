@@ -2,8 +2,8 @@
 
 from types import SimpleNamespace
 
-from flash_cli.flash_account import NousPaidServiceAccessInfo, NousPortalAccountInfo
-from flash_cli.flash_subscription import NousFeatureState, NousSubscriptionFeatures
+from flash_cli.flash_account import FlashPaidServiceAccessInfo, FlashPortalAccountInfo
+from flash_cli.flash_subscription import FlashFeatureState, FlashSubscriptionFeatures
 
 
 def _patch_common_status_deps(monkeypatch, status_mod, tmp_path, *, openai_base_url=""):
@@ -77,22 +77,22 @@ def test_show_status_reports_managed_flash_features(monkeypatch, capsys, tmp_pat
     )
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FlashPortal", raising=False)
     monkeypatch.setattr(
         status_mod,
         "get_flash_subscription_features",
-        lambda config: NousSubscriptionFeatures(
+        lambda config: FlashSubscriptionFeatures(
             subscribed=True,
             flash_auth_present=True,
             provider_is_flash=True,
             features={
-                "web": NousFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
-                "image_gen": NousFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "Nous Subscription"),
-                "video_gen": NousFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
-                "tts": NousFeatureState("tts", "OpenAI TTS", True, True, True, True, False, True, "OpenAI TTS"),
-                "stt": NousFeatureState("stt", "Speech-to-text", True, True, True, True, False, True, "OpenAI Whisper"),
-                "browser": NousFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browser Use"),
-                "modal": NousFeatureState("modal", "Modal execution", False, True, False, False, False, True, "local"),
+                "web": FlashFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
+                "image_gen": FlashFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "FlashSubscription"),
+                "video_gen": FlashFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
+                "tts": FlashFeatureState("tts", "OpenAI TTS", True, True, True, True, False, True, "OpenAI TTS"),
+                "stt": FlashFeatureState("stt", "Speech-to-text", True, True, True, True, False, True, "OpenAI Whisper"),
+                "browser": FlashFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browser Use"),
+                "modal": FlashFeatureState("modal", "Modal execution", False, True, False, False, False, True, "local"),
             },
         ),
         raising=False,
@@ -101,9 +101,9 @@ def test_show_status_reports_managed_flash_features(monkeypatch, capsys, tmp_pat
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     out = capsys.readouterr().out
-    assert "Nous Tool Gateway" in out
+    assert "FlashTool Gateway" in out
     assert "Browser automation" in out
-    assert "active via Nous subscription" in out
+    assert "active via Flashsubscription" in out
 
 
 def test_show_status_hides_flash_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
@@ -119,12 +119,12 @@ def test_show_status_hides_flash_subscription_section_when_feature_flag_is_off(m
     )
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FlashPortal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     out = capsys.readouterr().out
-    assert "Nous Tool Gateway" not in out
+    assert "FlashTool Gateway" not in out
 
 
 def test_show_status_reports_exhausted_flash_credits(monkeypatch, capsys, tmp_path):
@@ -148,13 +148,13 @@ def test_show_status_reports_exhausted_flash_credits(monkeypatch, capsys, tmp_pa
     monkeypatch.setattr(
         status_mod,
         "get_flash_portal_account_info",
-        lambda: NousPortalAccountInfo(
+        lambda: FlashPortalAccountInfo(
             logged_in=True,
             source="account_api",
             fresh=True,
             paid_service_access=False,
             portal_base_url="https://portal.example.test",
-            paid_service_access_info=NousPaidServiceAccessInfo(
+            paid_service_access_info=FlashPaidServiceAccessInfo(
                 allowed=False,
                 reason="no_usable_credits",
                 has_active_subscription=True,
@@ -169,15 +169,15 @@ def test_show_status_reports_exhausted_flash_credits(monkeypatch, capsys, tmp_pa
     monkeypatch.setattr(status_mod, "load_config", lambda: {"model": {"provider": "flash"}}, raising=False)
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FlashPortal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     out = capsys.readouterr().out
-    assert "Nous Tool Gateway" in out
+    assert "FlashTool Gateway" in out
     assert "credits are exhausted" in out
     assert "https://portal.example.test/billing" in out
-    assert "free-tier Nous account" not in out
+    assert "free-tier Flashaccount" not in out
 
 
 def test_show_status_reports_empty_lmstudio_listing_as_reachable(monkeypatch, capsys, tmp_path):

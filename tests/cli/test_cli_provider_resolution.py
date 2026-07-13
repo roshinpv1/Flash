@@ -472,13 +472,13 @@ def test_model_flow_anthropic_clears_stale_custom_key_and_mode(tmp_path, monkeyp
 
 
 def test_model_flow_flash_offers_tool_gateway_prompt_when_unconfigured(monkeypatch, capsys):
-    from flash_cli.flash_account import NousPortalAccountInfo
+    from flash_cli.flash_account import FlashPortalAccountInfo
 
     # Entitled account (paid → all tools eligible) drives the offer; the prompt
     # is a per-tool checklist now, so capture the call rather than scrape stdout.
     monkeypatch.setattr(
         "flash_cli.flash_subscription.get_flash_portal_account_info",
-        lambda **kwargs: NousPortalAccountInfo(
+        lambda **kwargs: FlashPortalAccountInfo(
             logged_in=True,
             source="account_api",
             fresh=True,

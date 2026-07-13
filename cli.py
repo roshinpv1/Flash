@@ -3488,8 +3488,8 @@ def _build_compact_banner() -> str:
     dim_color = _skin.get_color("banner_dim", "#B8860B") if _skin else "#B8860B"
 
     if skin_name == "default":
-        line1 = "⚕ NOUS HERMES - AI Agent Framework"
-        tiny_line = "⚕ NOUS HERMES"
+        line1 = "⚕ FLASHHERMES - AI Agent Framework"
+        tiny_line = "⚕ FLASHHERMES"
     else:
         agent_name = _skin.get_branding("agent_name", "Flash Agent") if _skin else "Flash Agent"
         line1 = f"{agent_name} - AI Agent Framework"
@@ -6228,7 +6228,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     "[dim]   Fix: Set model.context_length in config.yaml, or increase your server's context setting[/]"
                 )
 
-        # Warn if the configured model is a Nous Flash LLM (not agentic)
+        # Warn if the configured model is a FlashFlash LLM (not agentic)
         from flash_cli.model_switch import is_flash_flash_non_agentic
 
         model_name = getattr(self, "model", "") or ""
@@ -7919,7 +7919,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         _cprint(f"    Provider: {provider_label}")
 
         # Context: always resolve via the provider-aware chain so Codex OAuth,
-        # Copilot, and Nous-enforced caps win over the raw models.dev entry
+        # Copilot, and Flash-enforced caps win over the raw models.dev entry
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
         try:
@@ -8229,7 +8229,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         _cprint(f"    Provider: {provider_label}")
 
         # Context: always resolve via the provider-aware chain so Codex OAuth,
-        # Copilot, and Nous-enforced caps win over the raw models.dev entry
+        # Copilot, and Flash-enforced caps win over the raw models.dev entry
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
         from flash_cli.model_switch import resolve_display_context_length
@@ -9624,9 +9624,9 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
 
     def _show_usage(self):
-        """Rate limits + session token usage (when a live agent exists) + Nous credits.
+        """Rate limits + session token usage (when a live agent exists) + Flashcredits.
 
-        The Nous credits block is agent-independent (a portal fetch), so it runs even
+        The Flashcredits block is agent-independent (a portal fetch), so it runs even
         with no live agent — important for the TUI, where /usage runs in a slash-worker
         subprocess that resumes the session WITHOUT building an agent (self.agent is None),
         which would otherwise early-return before any credits showed.
@@ -9709,7 +9709,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             for line in account_lines:
                 print(line)
 
-        # Nous credits magnitudes + monthly-grant gauge (agent-independent — also
+        # Flashcredits magnitudes + monthly-grant gauge (agent-independent — also
         # runs at the no-agent / no-calls early-returns above). See the helper.
         self._print_flash_credits_block()
 
@@ -9728,12 +9728,12 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # installing a console StreamHandler in non-verbose mode.
 
     def _print_flash_credits_block(self) -> bool:
-        """Print the Nous credits magnitudes + monthly-grant gauge when a Nous account
+        """Print the Flashcredits magnitudes + monthly-grant gauge when a Flashaccount
         is logged in. Returns True if it printed anything.
 
         Delegates to the shared ``agent.account_usage.flash_credits_lines`` helper —
         the single source for the /usage credits block across CLI, gateway, and TUI.
-        It's agent-independent (a portal fetch gated on "a Nous account is logged in",
+        It's agent-independent (a portal fetch gated on "a Flashaccount is logged in",
         NOT the inference-provider string), so /usage shows the block even in the TUI
         slash-worker subprocess that resumes WITHOUT a live agent. Fail-open and
         wall-clock-bounded inside the helper; also honors HERMES_DEV_CREDITS_FIXTURE
@@ -9750,7 +9750,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         return True
 
     def _show_credits(self):
-        """`/credits` — focused Nous credit balance + top-up handoff.
+        """`/credits` — focused Flashcredit balance + top-up handoff.
 
         Interactive CLI: balance block + identity line + a 3-button panel
         (Open top-up / Copy link / Cancel). Non-interactive contexts — the TUI
@@ -9767,15 +9767,15 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         if not view.logged_in:
             print()
-            _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
+            _cprint(f"  💳 {_d('Not logged into FlashPortal.')}")
             print("  Run `flash portal` to log in, then /credits.")
             return
 
         print()
-        print("  💳 Nous credits")
+        print("  💳 Flashcredits")
         print(f"  {'─' * 41}")
         for line in view.balance_lines:
-            # Drop the helper's own "📈 Nous credits" header — we print our own.
+            # Drop the helper's own "📈 Flashcredits" header — we print our own.
             if line.lstrip().startswith("📈"):
                 continue
             print(f"  {line}")
@@ -9834,7 +9834,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
     # ------------------------------------------------------------------
 
     def _show_billing(self, command: str = "/billing"):
-        """`/billing` — terminal billing for Nous (one interactive modal).
+        """`/billing` — terminal billing for Flash(one interactive modal).
 
         ZERO sub-commands: any argument is ignored. Bare ``/billing`` always
         opens the Overview (Screen 1), whose numbered menu is the *only* way to
@@ -9856,7 +9856,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 _msg = f"Couldn't load billing: {state.error}"
                 _cprint(f"  💳 {_d(_msg)}")
             else:
-                _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
+                _cprint(f"  💳 {_d('Not logged into FlashPortal.')}")
                 print("  Run `flash portal` to log in, then /billing.")
             return
 

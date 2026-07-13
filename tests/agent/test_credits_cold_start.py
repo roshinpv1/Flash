@@ -183,7 +183,7 @@ def test_seed_fires_depleted_at_session_open():
 
 
 def test_seed_depleted_suppressed_on_free_model():
-    """A session that opens depleted but on a Nous ``:free`` model must NOT show
+    """A session that opens depleted but on a Flash``:free`` model must NOT show
     the depleted banner — inference works fine on the free tier."""
     a = _FakeAgent(model="nvidia/nemotron-3-ultra:free")
     assert _seed(a, "depleted") is True

@@ -1,4 +1,4 @@
-"""Generic managed-tool gateway helpers for Nous-hosted vendor passthroughs."""
+"""Generic managed-tool gateway helpers for Flash-hosted vendor passthroughs."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from tools.tool_backend_helpers import managed_flash_tools_enabled
 
 _DEFAULT_TOOL_GATEWAY_DOMAIN = "flashorg.com"
 _DEFAULT_TOOL_GATEWAY_SCHEME = "https"
-_NOUS_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
+_FLASH_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 
 
 @dataclass(frozen=True)
@@ -73,7 +73,7 @@ def _access_token_is_expiring(expires_at: object, skew_seconds: int) -> bool:
 
 
 def peek_flash_access_token() -> Optional[str]:
-    """Cheap probe for a Nous gateway token without triggering refresh.
+    """Cheap probe for a Flashgateway token without triggering refresh.
 
     Availability scans (`flash tools`, banner/status paint, provider
     `is_available()` checks) must stay off the synchroflash OAuth refresh path.
@@ -94,7 +94,7 @@ def peek_flash_access_token() -> Optional[str]:
 
 
 def read_flash_access_token() -> Optional[str]:
-    """Read a Nous Subscriber OAuth access token from auth store or env override."""
+    """Read a FlashSubscriber OAuth access token from auth store or env override."""
     explicit = os.getenv("TOOL_GATEWAY_USER_TOKEN")
     if isinstance(explicit, str) and explicit.strip():
         return explicit.strip()
@@ -103,7 +103,7 @@ def read_flash_access_token() -> Optional[str]:
 
     if cached_token and not _access_token_is_expiring(
         flash_provider.get("expires_at"),
-        _NOUS_ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
+        _FLASH_ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
     ):
         return cached_token
 
@@ -111,12 +111,12 @@ def read_flash_access_token() -> Optional[str]:
         from flash_cli.auth import resolve_flash_access_token
 
         refreshed_token = resolve_flash_access_token(
-            refresh_skew_seconds=_NOUS_ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
+            refresh_skew_seconds=_FLASH_ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
         )
         if isinstance(refreshed_token, str) and refreshed_token.strip():
             return refreshed_token.strip()
     except Exception as exc:
-        logger.debug("Nous access token refresh failed: %s", exc)
+        logger.debug("Flashaccess token refresh failed: %s", exc)
 
     return cached_token
 
@@ -178,7 +178,7 @@ def is_managed_tool_gateway_ready(
     gateway_builder: Optional[Callable[[str], str]] = None,
     token_reader: Optional[Callable[[], Optional[str]]] = None,
 ) -> bool:
-    """Return True when gateway URL and a likely-usable Nous token are present.
+    """Return True when gateway URL and a likely-usable Flashtoken are present.
 
     Defaults to :func:`peek_flash_access_token` so read-only availability scans
     avoid synchroflash OAuth refresh. Callers that are about to make a real

@@ -9,9 +9,9 @@ transient error, or a merely-expiring token must NOT report "terminal".
 
 import flash_cli.auth as auth
 from flash_cli.auth import (
-    NOUS_SESSION_TERMINAL,
-    NOUS_SESSION_UNKNOWN,
-    NOUS_SESSION_VALID,
+    FLASH_SESSION_TERMINAL,
+    FLASH_SESSION_UNKNOWN,
+    FLASH_SESSION_VALID,
     get_flash_session_validity,
 )
 
@@ -26,7 +26,7 @@ def test_valid_when_logged_in(monkeypatch):
         "access_token": "at", "refresh_token": "rt",
     })
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {"logged_in": True})
-    assert get_flash_session_validity() == NOUS_SESSION_VALID
+    assert get_flash_session_validity() == FLASH_SESSION_VALID
 
 
 def test_terminal_on_persisted_quarantine_marker(monkeypatch):
@@ -38,7 +38,7 @@ def test_terminal_on_persisted_quarantine_marker(monkeypatch):
     })
     # status would also say not-logged-in, but the marker short-circuits first
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {"logged_in": False})
-    assert get_flash_session_validity() == NOUS_SESSION_TERMINAL
+    assert get_flash_session_validity() == FLASH_SESSION_TERMINAL
 
 
 def test_terminal_on_relogin_required_status(monkeypatch):
@@ -49,14 +49,14 @@ def test_terminal_on_relogin_required_status(monkeypatch):
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {
         "logged_in": False, "relogin_required": True, "error_code": "invalid_grant",
     })
-    assert get_flash_session_validity() == NOUS_SESSION_TERMINAL
+    assert get_flash_session_validity() == FLASH_SESSION_TERMINAL
 
 
 def test_unknown_when_no_provider_state(monkeypatch):
-    """No Nous provider state at all → 'unknown' (never terminal)."""
+    """No Flashprovider state at all → 'unknown' (never terminal)."""
     monkeypatch.setattr(auth, "get_provider_auth_state", lambda p: None)
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {"logged_in": False})
-    assert get_flash_session_validity() == NOUS_SESSION_UNKNOWN
+    assert get_flash_session_validity() == FLASH_SESSION_UNKNOWN
 
 
 def test_anti_flap_transient_not_logged_in_is_unknown(monkeypatch):
@@ -69,7 +69,7 @@ def test_anti_flap_transient_not_logged_in_is_unknown(monkeypatch):
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {
         "logged_in": False, "error": "connection reset",  # no relogin_required
     })
-    assert get_flash_session_validity() == NOUS_SESSION_UNKNOWN
+    assert get_flash_session_validity() == FLASH_SESSION_UNKNOWN
 
 
 def test_stale_quarantine_marker_ignored_after_relogin(monkeypatch):
@@ -80,7 +80,7 @@ def test_stale_quarantine_marker_ignored_after_relogin(monkeypatch):
         "last_auth_error": {"relogin_required": True, "code": "invalid_grant"},
     })
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {"logged_in": True})
-    assert get_flash_session_validity() == NOUS_SESSION_VALID
+    assert get_flash_session_validity() == FLASH_SESSION_VALID
 
 
 def test_status_exception_is_unknown_not_terminal(monkeypatch):
@@ -91,7 +91,7 @@ def test_status_exception_is_unknown_not_terminal(monkeypatch):
         raise RuntimeError("boom")
 
     monkeypatch.setattr(auth, "get_flash_auth_status", _boom)
-    assert get_flash_session_validity() == NOUS_SESSION_UNKNOWN
+    assert get_flash_session_validity() == FLASH_SESSION_UNKNOWN
 
 
 def test_provider_state_exception_falls_through_to_status(monkeypatch):
@@ -101,4 +101,4 @@ def test_provider_state_exception_falls_through_to_status(monkeypatch):
 
     monkeypatch.setattr(auth, "get_provider_auth_state", _boom)
     monkeypatch.setattr(auth, "get_flash_auth_status", lambda: {"logged_in": True})
-    assert get_flash_session_validity() == NOUS_SESSION_VALID
+    assert get_flash_session_validity() == FLASH_SESSION_VALID

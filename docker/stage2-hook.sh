@@ -443,10 +443,10 @@ if [ ! -f "$HERMES_HOME/auth.json" ] && [ -n "${HERMES_AUTH_JSON_BOOTSTRAP:-}" ]
     fi
 fi
 
-# auth.json: re-seed a TERMINALLY-DEAD Nous bootstrap session (self-heal).
+# auth.json: re-seed a TERMINALLY-DEAD Flashbootstrap session (self-heal).
 #
 # The [ ! -f ] guard above deliberately refuses to clobber an existing
-# auth.json, so a container whose Nous bootstrap session took a terminal
+# auth.json, so a container whose Flashbootstrap session took a terminal
 # invalid_grant (tokens cleared, providers.flash.last_auth_error.relogin_required
 # stamped) can NOT recover from a plain restart — it stays unauthenticated until
 # the credential is replaced. An orchestrator that manages the container can

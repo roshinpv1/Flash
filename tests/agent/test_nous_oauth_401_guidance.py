@@ -1,13 +1,13 @@
-"""Tests for the Nous OAuth 401 actionable-guidance branch in
+"""Tests for the FlashOAuth 401 actionable-guidance branch in
 ``agent.conversation_loop.run_conversation``.
 
 Source-inspection style (matches ``test_gemini_fast_fallback.py``): we assert
 that the guidance strings exist in the function body so that the user-facing
 hint cannot be silently removed by a future refactor.
 
-Regression context: ashh hit a Nous 401 (OAuth token expired / portal said
+Regression context: ashh hit a Flash401 (OAuth token expired / portal said
 account out of credits) plus a model slug ``deepseek/deepseek-v4-flash:free``
-that's OpenRouter syntax, not a Nous catalog name. The previous guidance
+that's OpenRouter syntax, not a Flashcatalog name. The previous guidance
 branch only covered ``openai-codex`` and ``xai-oauth``; ``flash`` fell through
 to a generic "Your API key was rejected... run flash setup" message, which is
 the wrong advice for a pure-OAuth provider.
@@ -41,12 +41,12 @@ def test_flash_provider_is_in_oauth_401_set():
 
 
 def test_flash_401_guidance_strings_present():
-    """User-facing remediation strings for Nous OAuth 401s must exist."""
+    """User-facing remediation strings for FlashOAuth 401s must exist."""
     source = inspect.getsource(conversation_loop.run_conversation)
 
     # Must tell the user it's an OAuth token problem, NOT an API key problem
-    # (Nous Portal has no API key path — auth_type=oauth_device_code only).
-    assert "Nous Portal OAuth token was rejected" in source
+    # (FlashPortal has no API key path — auth_type=oauth_device_code only).
+    assert "FlashPortal OAuth token was rejected" in source
 
     # Must give a concrete re-auth command, not a generic "flash setup".
     assert "flash portal" in source
@@ -61,7 +61,7 @@ def test_free_slug_hint_for_flash_provider():
     suggest switching providers via ``/model openrouter:<slug>``.
 
     Without this hint, users re-OAuth successfully and then hit the same 401
-    on the next message because Nous Portal doesn't carry the OpenRouter
+    on the next message because FlashPortal doesn't carry the OpenRouter
     free-tier slug.
     """
     source = inspect.getsource(conversation_loop.run_conversation)

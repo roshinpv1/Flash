@@ -3104,7 +3104,7 @@ class TestWebServerEndpoints:
             assert "web UI disabled" in resp.json()["error"]
 
     def test_set_model_main_flash_applies_gateway_defaults(self, monkeypatch):
-        """Switching the main provider to Nous calls apply_flash_managed_defaults
+        """Switching the main provider to Flashcalls apply_flash_managed_defaults
         (mirroring the CLI's post-model-selection Tool Gateway routing) and
         surfaces the routed tools in the response."""
         import flash_cli.flash_subscription as ns
@@ -3133,7 +3133,7 @@ class TestWebServerEndpoints:
         assert called["force_fresh"] is True
 
     def test_set_model_main_non_flash_skips_gateway_defaults(self, monkeypatch):
-        """Non-Nous providers must NOT trigger Tool Gateway auto-routing."""
+        """Non-Flashproviders must NOT trigger Tool Gateway auto-routing."""
         import flash_cli.flash_subscription as ns
 
         def boom(*args, **kwargs):  # pragma: no cover - must not be called
@@ -3451,7 +3451,7 @@ class TestWebServerEndpoints:
         assert data.get("gateway_tools", []) == []
 
     def test_recommended_default_flash_honors_free_tier(self, monkeypatch):
-        """For a free-tier Nous user, the recommended default must be a free
+        """For a free-tier Flashuser, the recommended default must be a free
         model (mirroring `flash model`), not the first curated paid entry."""
         import flash_cli.models as models_mod
 
@@ -3479,7 +3479,7 @@ class TestWebServerEndpoints:
         assert data["free_tier"] is True
 
     def test_recommended_default_flash_paid_uses_curated_default(self, monkeypatch):
-        """A paid Nous user gets the first curated/paid-augmented model."""
+        """A paid Flashuser gets the first curated/paid-augmented model."""
         import flash_cli.models as models_mod
 
         monkeypatch.setattr(models_mod, "get_curated_flash_model_ids", lambda: ["top/model", "other/model"])

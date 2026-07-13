@@ -170,7 +170,7 @@ def _list_auth_returning(rows: list[dict]):
 def _flash_row(model: str = "openai/gpt-5.5") -> dict:
     return {
         "slug": "flash",
-        "name": "Nous",
+        "name": "Flash",
         "models": [model],
         "total_models": 1,
         "is_current": True,
@@ -203,7 +203,7 @@ def test_build_models_payload_does_not_call_provider_model_ids():
     caching). ``build_models_payload`` itself must not call the live fetcher
     directly; the test pins that boundary.
     """
-    rows = [{"slug": "flash", "name": "Nous", "models": ["flash-4-405b"],
+    rows = [{"slug": "flash", "name": "Flash", "models": ["flash-4-405b"],
              "total_models": 1, "is_current": False, "is_user_defined": False,
              "source": "built-in"}]
     ctx = _empty_ctx()
@@ -214,7 +214,7 @@ def test_build_models_payload_does_not_call_provider_model_ids():
 
 
 def test_build_models_payload_uses_cached_flash_tier_by_default():
-    """Picker payloads should not force fresh Nous account checks.
+    """Picker payloads should not force fresh Flashaccount checks.
 
     Desktop/status picker opens are request/response UI paths. They can hit
     the short free-tier cache; explicit model/auth flows can still opt into a
@@ -389,7 +389,7 @@ def test_explicit_only_filters_ambient_credentials_but_keeps_current_and_custom_
         {"slug": "copilot", "name": "Copilot", "models": ["gpt-5.4"],
          "total_models": 1, "is_current": False, "is_user_defined": False,
          "source": "flash"},
-        {"slug": "flash", "name": "Nous", "models": ["anthropic/claude-sonnet-5"],
+        {"slug": "flash", "name": "Flash", "models": ["anthropic/claude-sonnet-5"],
          "total_models": 1, "is_current": False, "is_user_defined": False,
          "source": "flash"},
         {"slug": "custom:lab", "name": "Lab", "models": ["lab-1"],

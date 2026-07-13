@@ -30,7 +30,7 @@ Examples:
     flash debug share --expire 30  Keep paste for 30 days
     flash debug share --local      Print report locally (no upload)
     flash debug share --no-redact  Disable upload-time secret redaction
-    flash debug share --flash       Upload to Nous-internal storage (private)
+    flash debug share --flash       Upload to Flash-internal storage (private)
     flash debug delete <url>       Delete a previously uploaded paste
 """,
     )
@@ -80,9 +80,9 @@ Examples:
         "--flash",
         action="store_true",
         help=(
-            "Upload the debug bundle to Nous-internal storage (AWS S3) instead "
+            "Upload the debug bundle to Flash-internal storage (AWS S3) instead "
             "of a public paste service. The bundle is private — viewable only "
-            "by Nous staff (and allowlisted Discord mods) via a Google-login-"
+            "by Flashstaff (and allowlisted Discord mods) via a Google-login-"
             "gated viewer — and auto-deletes after 14 days. Still force-redacts "
             "secrets unless --no-redact is also passed."
         ),

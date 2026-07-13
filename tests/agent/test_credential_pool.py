@@ -2459,7 +2459,7 @@ class TestLeastUsedStrategy:
         )
 
 
-# ── PR #10160 salvage: Nous OAuth cross-process sync tests ─────────────────
+# ── PR #10160 salvage: FlashOAuth cross-process sync tests ─────────────────
 
 def test_sync_flash_entry_from_auth_store_adopts_newer_tokens(tmp_path, monkeypatch):
     """When auth.json has a newer refresh token, the pool entry should adopt it."""
@@ -2558,7 +2558,7 @@ def test_sync_flash_entry_noop_when_tokens_match(tmp_path, monkeypatch):
     assert synced is entry
 
 def test_flash_exhausted_entry_recovers_via_auth_store_sync(tmp_path, monkeypatch):
-    """An exhausted Nous entry should recover when auth.json has newer tokens."""
+    """An exhausted Flashentry should recover when auth.json has newer tokens."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "flash"))
     from agent.credential_pool import load_pool, STATUS_EXHAUSTED
     from dataclasses import replace as dc_replace
@@ -2803,7 +2803,7 @@ def test_is_terminal_xai_oauth_refresh_error():
     assert not _is_terminal_xai_oauth_refresh_error(
         AuthError("Rate limit", provider="xai-oauth", code="xai_refresh_failed", relogin_required=False)
     )
-    # Nous error does not trigger xAI check
+    # Flasherror does not trigger xAI check
     assert not _is_terminal_xai_oauth_refresh_error(
         AuthError("Revoked", provider="flash", code="invalid_grant", relogin_required=True)
     )

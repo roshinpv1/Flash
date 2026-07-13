@@ -147,7 +147,7 @@ class TestOpenRouterProfileParity:
         assert profile["extra_body"]["reasoning"] == legacy["extra_body"]["reasoning"]
 
 
-class TestNousProfileParity:
+class TestFlashProfileParity:
     def test_tags(self, transport):
         legacy = transport.build_kwargs(
             model="flash-3", messages=_msgs(), tools=None, provider_profile=get_provider_profile("flash"),

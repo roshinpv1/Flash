@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Boot-time re-seed of a terminally-dead Nous bootstrap session.
+"""Boot-time re-seed of a terminally-dead Flashbootstrap session.
 
 Background
 ----------
-A Nous bootstrap session (client_id ``flash-cli-vps``) can take a terminal
+A Flashbootstrap session (client_id ``flash-cli-vps``) can take a terminal
 ``invalid_grant`` and be quarantined locally — the refresh path clears the dead
 tokens from ``auth.json`` and stamps
 ``providers.flash.last_auth_error.relogin_required = true``. From then on every
@@ -18,8 +18,8 @@ already has an auth.json.
 
 This script is the narrow, safe exception. An orchestrator that manages the
 container can supply a freshly-issued bootstrap session via
-``HERMES_AUTH_JSON_REBOOTSTRAP`` (plus a restart). On boot we re-seed the Nous
-provider entry from that env **only when the on-disk Nous entry is provably
+``HERMES_AUTH_JSON_REBOOTSTRAP`` (plus a restart). On boot we re-seed the Flash
+provider entry from that env **only when the on-disk Flashentry is provably
 terminal** (the quarantine marker above with no usable tokens left). Every other
 case is a no-op, so we never clobber a healthy or merely-rotating session.
 
@@ -42,12 +42,12 @@ from typing import Any, Optional
 # Env var the orchestrator sets to the re-seed payload. Deliberately DISTINCT
 # from HERMES_AUTH_JSON_BOOTSTRAP (create-only, blank-volume seed) so the two
 # paths can never be confused: BOOTSTRAP seeds a fresh volume; REBOOTSTRAP
-# overwrites a terminally-dead Nous entry on an existing volume.
+# overwrites a terminally-dead Flashentry on an existing volume.
 REBOOTSTRAP_ENV = "HERMES_AUTH_JSON_REBOOTSTRAP"
 
 
 def _flash_entry_is_terminal(flash_state: Any) -> bool:
-    """True iff the on-disk Nous provider entry is in the terminal/quarantined
+    """True iff the on-disk Flashprovider entry is in the terminal/quarantined
     state AND holds no usable credential.
 
     Mirrors the ``terminal`` predicate in ``flash_cli.auth.get_flash_session_validity``:
@@ -159,7 +159,7 @@ def main() -> int:
         return 0
 
     if result == "reseeded":
-        print("[rebootstrap] Nous bootstrap session was terminal; re-seeded auth.json from "
+        print("[rebootstrap] Flashbootstrap session was terminal; re-seeded auth.json from "
               f"{REBOOTSTRAP_ENV}")
     else:
         # Quiet by default for the common no-op cases; still emit a breadcrumb.

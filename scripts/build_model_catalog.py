@@ -63,7 +63,7 @@ def build_catalog() -> dict:
             },
             "flash": {
                 "metadata": {
-                    "display_name": "Nous Portal",
+                    "display_name": "FlashPortal",
                     "note": (
                         "Free-tier gating is determined live via Portal pricing "
                         "(partition_flash_models_by_tier), not this manifest."

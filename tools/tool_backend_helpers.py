@@ -15,9 +15,9 @@ _VALID_MODAL_MODES = {"auto", "direct", "managed"}
 
 
 def managed_flash_tools_enabled(*, force_fresh: bool = False) -> bool:
-    """Return True when the user is entitled to the Nous Tool Gateway.
+    """Return True when the user is entitled to the FlashTool Gateway.
 
-    Entitlement is paid Nous Portal service access OR a live free tool pool
+    Entitlement is paid FlashPortal service access OR a live free tool pool
     (``tool_gateway_entitled``). Per-category coverage (the pool funds image but
     not video, etc.) is narrowed by callers via ``tool_gateway_entitled_for``;
     this coarse gate only answers "is any managed tool usable at all".
@@ -42,11 +42,11 @@ def managed_flash_tools_enabled(*, force_fresh: bool = False) -> bool:
 
 
 def flash_tool_gateway_unavailable_message(
-    capability: str = "the Nous Tool Gateway",
+    capability: str = "the FlashTool Gateway",
     *,
     force_fresh: bool = False,
 ) -> str:
-    """Return account-aware guidance for an unavailable Nous Tool Gateway path."""
+    """Return account-aware guidance for an unavailable FlashTool Gateway path."""
     try:
         from flash_cli.flash_account import (
             format_flash_portal_entitlement_message,
@@ -64,7 +64,7 @@ def flash_tool_gateway_unavailable_message(
         pass
     return (
         f"{capability} is unavailable. Run `flash model` to refresh your "
-        "Nous Portal login and billing status."
+        "FlashPortal login and billing status."
     )
 
 

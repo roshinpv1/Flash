@@ -45,8 +45,8 @@ import { PluginSlot } from "@/plugins";
 
 /** Map env-var key prefixes to a human-friendly provider name + ordering. */
 const PROVIDER_GROUPS: { prefix: string; name: string; priority: number }[] = [
-  // Nous Portal first
-  { prefix: "NOUS_", name: "Nous Portal", priority: 0 },
+  // FlashPortal first
+  { prefix: "FLASH_", name: "FlashPortal", priority: 0 },
   // Then alphabetical by display name
   { prefix: "ANTHROPIC_", name: "Anthropic", priority: 1 },
   { prefix: "DASHSCOPE_", name: "DashScope (Qwen)", priority: 2 },
@@ -245,8 +245,8 @@ function EnvVarRow({
         <div className="flex items-center gap-2">
           <div
             className={`flex-1 border border-border px-3 py-2 font-mono-ui text-xs ${isRevealed
-                ? "bg-background text-foreground select-all"
-                : "bg-muted/30 text-muted-foreground"
+              ? "bg-background text-foreground select-all"
+              : "bg-muted/30 text-muted-foreground"
               }`}
           >
             {info.is_set ? displayValue : "---"}

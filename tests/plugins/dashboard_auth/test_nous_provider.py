@@ -1,4 +1,4 @@
-"""Tests for the bundled Nous dashboard-auth plugin.
+"""Tests for the bundled Flashdashboard-auth plugin.
 
 Covers four shapes from Phase 4 of ``.flash/plans/2026-05-21-dashboard-oauth-auth.md``:
 
@@ -117,7 +117,7 @@ def _mint_token(
     )
 
 
-def _patched_jwks(provider: flash_plugin.NousDashboardAuthProvider, rsa_keypair):
+def _patched_jwks(provider: flash_plugin.FlashDashboardAuthProvider, rsa_keypair):
     """Patch the provider's JWKS client to return our fixture key."""
     fake_key = MagicMock()
     fake_key.key = serialization.load_pem_private_key(
@@ -135,30 +135,30 @@ def _patched_jwks(provider: flash_plugin.NousDashboardAuthProvider, rsa_keypair)
 
 class TestConstruction:
     def test_protocol_compliance(self):
-        assert_protocol_compliance(flash_plugin.NousDashboardAuthProvider)
+        assert_protocol_compliance(flash_plugin.FlashDashboardAuthProvider)
 
     def test_name_and_display(self):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:inst1", portal_url="https://portal.example.com"
         )
         assert p.name == "flash"
         assert p.display_name == "Flash Org"
 
     def test_extracts_agent_instance_id(self):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:abc-123", portal_url="https://portal.example.com"
         )
         assert p._agent_instance_id == "abc-123"
 
     def test_strips_trailing_slash_from_portal_url(self):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:x", portal_url="https://portal.example.com/"
         )
         assert p._portal_url == "https://portal.example.com"
 
     def test_rejects_malformed_client_id(self):
         with pytest.raises(ValueError, match="agent:"):
-            flash_plugin.NousDashboardAuthProvider(
+            flash_plugin.FlashDashboardAuthProvider(
                 client_id="flash-dashboard", portal_url="https://x"
             )
 
@@ -182,7 +182,7 @@ class TestPluginRegister:
         self, monkeypatch
     ):
         """Phase 7 follow-up: HERMES_DASHBOARD_PORTAL_URL is optional —
-        defaults to the production Nous Portal. The user shouldn't have
+        defaults to the production FlashPortal. The user shouldn't have
         to set it for the common production deployment path."""
         monkeypatch.setenv("HERMES_DASHBOARD_OAUTH_CLIENT_ID", "agent:inst1")
         monkeypatch.delenv("HERMES_DASHBOARD_PORTAL_URL", raising=False)
@@ -190,7 +190,7 @@ class TestPluginRegister:
         flash_plugin.register(ctx)
         ctx.register_dashboard_auth_provider.assert_called_once()
         registered = ctx.register_dashboard_auth_provider.call_args.args[0]
-        assert isinstance(registered, flash_plugin.NousDashboardAuthProvider)
+        assert isinstance(registered, flash_plugin.FlashDashboardAuthProvider)
         assert registered._portal_url == "https://portal.flashorg.com"
         # Skip reason cleared on successful registration.
         assert flash_plugin.LAST_SKIP_REASON == ""
@@ -406,7 +406,7 @@ class TestConfigYamlSource:
 class TestStartLogin:
     @pytest.fixture
     def provider(self):
-        return flash_plugin.NousDashboardAuthProvider(
+        return flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:inst1", portal_url="https://portal.example.com"
         )
 
@@ -522,7 +522,7 @@ class TestStartLogin:
 class TestCompleteLogin:
     @pytest.fixture
     def provider(self, rsa_keypair):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:inst123", portal_url="https://portal.example.com"
         )
         _patched_jwks(p, rsa_keypair)
@@ -668,7 +668,7 @@ class TestCompleteLogin:
 class TestVerifySession:
     @pytest.fixture
     def provider(self, rsa_keypair):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:inst123", portal_url="https://portal.example.com"
         )
         _patched_jwks(p, rsa_keypair)
@@ -764,7 +764,7 @@ class TestVerifySession:
 class TestRefreshAndRevoke:
     @pytest.fixture
     def provider(self, rsa_keypair):
-        p = flash_plugin.NousDashboardAuthProvider(
+        p = flash_plugin.FlashDashboardAuthProvider(
             client_id="agent:inst123", portal_url="https://portal.example.com"
         )
         _patched_jwks(p, rsa_keypair)

@@ -2690,8 +2690,8 @@ async def get_status(profile: Optional[str] = None):
             # Module not importable yet (early startup) — leave as [].
             pass
 
-        # Nous bootstrap-session validity for the NAS health sweep. A hosted
-        # agent whose Nous auth dies terminally (invalid_grant / quarantine)
+        # Flashbootstrap-session validity for the NAS health sweep. A hosted
+        # agent whose Flashauth dies terminally (invalid_grant / quarantine)
         # looks HEALTHY to every liveness/connectivity probe — the machine,
         # relay, and this dashboard all stay up — yet every inference turn
         # fails. This is the ONLY signal that surfaces that condition, and it
@@ -3024,7 +3024,7 @@ def _safe_call(mod, fn_name: str, default):
 
 
 # ---------------------------------------------------------------------------
-# Portal endpoint — Nous Portal auth + Tool Gateway routing status (read-only).
+# Portal endpoint — FlashPortal auth + Tool Gateway routing status (read-only).
 # ---------------------------------------------------------------------------
 
 
@@ -3047,7 +3047,7 @@ async def get_portal_status():
         if feats is not None:
             for feat in feats.items():
                 if getattr(feat, "managed_by_flash", False):
-                    state = "via Nous Portal"
+                    state = "via FlashPortal"
                 elif getattr(feat, "active", False) and getattr(feat, "current_provider", None):
                     state = feat.current_provider
                 elif getattr(feat, "active", False):
@@ -5392,12 +5392,12 @@ def get_recommended_default_model(provider: str = ""):
 
     Mirrors the model-curation `flash model` does so GUI onboarding lands on a
     sensible default instead of blindly taking the first curated entry. For
-    Nous this honors the user's free/paid tier: free users get a free model,
+    Flashthis honors the user's free/paid tier: free users get a free model,
     paid users get the full curated default. For any other provider it falls
     back to the first curated model (same as before).
 
     Response: {"provider": str, "model": str, "free_tier": bool | None}
-    where free_tier is True/False for Nous and None otherwise. `model` may be
+    where free_tier is True/False for Flashand None otherwise. `model` may be
     empty if nothing could be resolved (caller degrades gracefully).
     """
     slug = (provider or "").strip().lower()
@@ -5443,7 +5443,7 @@ def get_recommended_default_model(provider: str = ""):
             _log.exception("GET /api/model/recommended-default (flash) failed")
             return {"provider": "flash", "model": "", "free_tier": None}
 
-    # Non-Nous: first curated model for the provider, matching prior behaviour.
+    # Non-Flash: first curated model for the provider, matching prior behaviour.
     try:
         from flash_cli.inventory import build_models_payload, load_picker_context
 
@@ -5650,10 +5650,10 @@ def _apply_model_assignment_sync(
         )
         cfg["model"] = model_cfg
 
-        # When switching the main provider to Nous, mirror the CLI's
+        # When switching the main provider to Flash, mirror the CLI's
         # post-model-selection behaviour (flash_cli/main.py
         # prompt_enable_tool_gateway / tools_config apply_flash_managed_defaults):
-        # auto-route any *unconfigured* tools through the Nous Tool Gateway.
+        # auto-route any *unconfigured* tools through the FlashTool Gateway.
         # This is purely additive — apply_flash_managed_defaults skips every
         # tool where the user already has a direct key (FIRECRAWL_API_KEY,
         # FAL_KEY, etc.) or an explicit backend/provider in config, so it
@@ -7968,7 +7968,7 @@ async def test_messaging_platform(platform_id: str, profile: Optional[str] = Non
 #
 # Phase 1 surfaces *which OAuth providers exist* and whether each is
 # connected, plus a disconnect button. The actual login flow (PKCE for
-# Anthropic, device-code for Nous/Codex) still runs in the CLI for now;
+# Anthropic, device-code for Flash/Codex) still runs in the CLI for now;
 # Phase 2 will add in-browser flows. For unconnected providers we return
 # the canonical ``flash auth add <provider>`` command so the dashboard
 # can surface a one-click copy.
@@ -8130,7 +8130,7 @@ def _copilot_acp_status() -> Dict[str, Any]:
 _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     {
         "id": "flash",
-        "name": "Nous Portal",
+        "name": "FlashPortal",
         "flow": "device_code",
         "cli_command": "flash auth add flash",
         "docs_url": "https://portal.flashorg.com",
@@ -8158,7 +8158,7 @@ _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
         # MiniMax's flow is structurally device-code (verification URI +
         # user code, backend polls the token endpoint) with a PKCE
         # extension for code-binding. The dashboard renders the same UX
-        # as Nous's device-code flow; the PKCE bit is a security
+        # as Flash's device-code flow; the PKCE bit is a security
         # extension that doesn't change the operator experience.
         "flow": "device_code",
         "cli_command": "flash auth add minimax-oauth",
@@ -8220,7 +8220,7 @@ def _resolve_provider_status(provider_id: str, status_fn) -> Dict[str, Any]:
             return {
                 "logged_in": bool(raw.get("logged_in")),
                 "source": "flash_portal",
-                "source_label": raw.get("portal_base_url") or "Nous Portal",
+                "source_label": raw.get("portal_base_url") or "FlashPortal",
                 "token_preview": _truncate_token(raw.get("access_token")),
                 "expires_at": raw.get("access_expires_at"),
                 "has_refresh_token": bool(raw.get("has_refresh_token")),
@@ -8516,7 +8516,7 @@ async def disconnect_oauth_provider(
 #          → persists to ~/.flash/.anthropic_oauth.json AND credential pool
 #          → returns { ok: true, status: "approved" }
 #
-#   Device code (Nous, OpenAI Codex):
+#   Device code (Flash, OpenAI Codex):
 #     1. POST /api/providers/oauth/{flash|openai-codex}/start
 #          → server hits provider's device-auth endpoint
 #          → gets { user_code, verification_url, device_code, interval, expires_in }
@@ -8780,7 +8780,7 @@ async def _start_device_code_flow(
     provider_id: str,
     profile: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Initiate a device-code flow (Nous, OpenAI Codex, MiniMax, or xAI).
+    """Initiate a device-code flow (Flash, OpenAI Codex, MiniMax, or xAI).
 
     Calls the provider's device-auth endpoint via the existing CLI helpers,
     then spawns a background poller. Returns the user-facing display fields
@@ -8795,7 +8795,7 @@ async def _start_device_code_flow(
         pconfig = PROVIDER_REGISTRY["flash"]
         portal_base_url = (
             os.getenv("HERMES_PORTAL_BASE_URL")
-            or os.getenv("NOUS_PORTAL_BASE_URL")
+            or os.getenv("FLASH_PORTAL_BASE_URL")
             or pconfig.portal_base_url
         ).rstrip("/")
         client_id = pconfig.client_id
@@ -8876,7 +8876,7 @@ async def _start_device_code_flow(
     if provider_id == "minimax-oauth":
         # MiniMax uses a device-code-style flow (verification URI + user
         # code + background poll) with a PKCE extension on top. From the
-        # operator's perspective it's identical to Nous's device-code
+        # operator's perspective it's identical to Flash's device-code
         # flow; the PKCE bit (verifier + challenge from
         # _minimax_pkce_pair) is a security extension that binds the
         # token exchange to the original session.
@@ -8989,7 +8989,7 @@ async def _start_device_code_flow(
 
 
 def _flash_poller(session_id: str) -> None:
-    """Background poller that drives a Nous device-code flow to completion."""
+    """Background poller that drives a Flashdevice-code flow to completion."""
     from flash_cli.auth import (
         _poll_for_token,
         refresh_flash_oauth_from_state,
@@ -9057,7 +9057,7 @@ def _minimax_poller(session_id: str) -> None:
 
     Mirrors `_flash_poller` but calls the MiniMax-specific token endpoint,
     which uses a PKCE-style ``code_verifier`` + ``user_code`` rather than
-    the ``device_code`` field used by Nous. On success, builds the same
+    the ``device_code`` field used by Flash. On success, builds the same
     auth_state dict that ``_minimax_oauth_login`` (the CLI flow) builds
     and persists via ``_minimax_save_auth_state`` — so the dashboard
     path leaves the system in the same state as
@@ -9434,7 +9434,7 @@ async def poll_oauth_session(
 ):
     """Poll a session's status (no auth — read-only state).
 
-    Shared by the device-code flows (Nous, OpenAI Codex, MiniMax, xAI).
+    Shared by the device-code flows (Flash, OpenAI Codex, MiniMax, xAI).
     Each surfaces progress through the same background-worker-updated
     ``status`` field, so a single poll endpoint serves them all.
     """
@@ -11008,7 +11008,7 @@ async def set_mcp_server_enabled(
 
 @app.get("/api/mcp/catalog")
 async def list_mcp_catalog(profile: Optional[str] = None):
-    """Browse the Nous-approved MCP catalog (the optional-mcps/ manifests).
+    """Browse the Flash-approved MCP catalog (the optional-mcps/ manifests).
 
     Each entry reports whether it's already installed and enabled so the UI
     can show install / enabled state inline.  This is the same catalog
@@ -12173,7 +12173,7 @@ async def update_skills_hub(
 # Human-readable labels for each hub source id (matches `flash skills search`
 # provenance).  Keep in sync with create_source_router()'s source list.
 _SKILL_HUB_SOURCE_LABELS = {
-    "official": "Official (Nous)",
+    "official": "Official (Flash)",
     "flash-index": "Flash Index",
     "skills-sh": "skills.sh",
     "well-known": "Well-Known",
@@ -13529,7 +13529,7 @@ def _resolve_toolset_model_plugin(ts_key: str, provider_row: dict) -> Optional[s
     """Map a provider picker row to its model-catalog plugin name.
 
     Plugin-backed rows carry ``image_gen_plugin_name`` / ``video_gen_plugin_name``;
-    the managed "Nous Subscription" image row instead carries the legacy
+    the managed "FlashSubscription" image row instead carries the legacy
     ``imagegen_backend: "fal"`` marker (same underlying FAL catalog).
     """
     if ts_key == "image_gen":
@@ -15862,7 +15862,7 @@ def mount_spa(application: FastAPI):
 _BUILTIN_DASHBOARD_THEMES = [
     {"name": "default",       "label": "Flash Teal",         "description": "Classic dark teal — the canonical Flash look"},
     {"name": "default-large", "label": "Flash Teal (Large)", "description": "Flash Teal with bigger fonts and roomier spacing"},
-    {"name": "flash-blue",     "label": "Nous Blue",           "description": "Light mode — vivid Nous-blue accents on cream canvas"},
+    {"name": "flash-blue",     "label": "FlashBlue",           "description": "Light mode — vivid Flash-blue accents on cream canvas"},
     {"name": "midnight",      "label": "Midnight",            "description": "Deep blue-violet with cool accents"},
     {"name": "ember",     "label": "Ember",          "description": "Warm crimson and bronze — forge vibes"},
     {"name": "mono",      "label": "Mono",           "description": "Clean grayscale — minimal and focused"},
@@ -17006,7 +17006,7 @@ def start_server(
 
         start_flash_auth_keepalive()
     except Exception as exc:
-        _log.debug("Nous auth keepalive did not start: %s", exc)
+        _log.debug("Flashauth keepalive did not start: %s", exc)
 
     # Phase 0: stash the auth-gate flag on app.state so middleware / SPA-token
     # injection / WS-auth paths can branch on it consistently.  Phase 3.5
@@ -17057,7 +17057,7 @@ def start_server(
                 "    (hash with: python -c \"from "
                 "plugins.dashboard_auth.basic import hash_password; "
                 "print(hash_password('your-password'))\")\n"
-                "  • OAuth: run `flash dashboard register` (Nous Portal) or "
+                "  • OAuth: run `flash dashboard register` (FlashPortal) or "
                 "install a DashboardAuthProvider plugin.\n"
                 "There is no unauthenticated public-bind option — to keep it "
                 "local, bind 127.0.0.1 and tunnel in (SSH / Tailscale)."

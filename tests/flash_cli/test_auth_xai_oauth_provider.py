@@ -1843,7 +1843,7 @@ def test_auxiliary_client_routes_xai_oauth_through_responses_api(tmp_path, monke
     arm and returns ``(None, None)`` — silently re-routing every auxiliary
     task (compression, curator, web extract, session search, ...) to
     whatever Step-2 fallback chain the user has configured (OpenRouter,
-    Nous, etc.).  Users on xAI Grok OAuth would then see surprise charges
+    Flash, etc.).  Users on xAI Grok OAuth would then see surprise charges
     on those side providers for side tasks they thought were running on
     their xAI subscription.
 
@@ -1916,7 +1916,7 @@ def test_auxiliary_client_xai_oauth_requires_explicit_model(tmp_path, monkeypatc
 def test_pool_sync_back_preserves_active_provider(tmp_path, monkeypatch):
     """A token-rotation sync-back is a side effect of refresh, not the user
     picking a provider.  ``_save_provider_state`` flips ``active_provider``;
-    using it on the sync-back path means every xAI/Codex/Nous refresh in a
+    using it on the sync-back path means every xAI/Codex/Flashrefresh in a
     multi-provider setup silently overrides the user's chosen active
     provider (visible to ``flash auth status``, ``flash setup``, and the
     ``flash`` no-arg dispatcher).  Pin the ``set_active=False`` contract so
@@ -1959,7 +1959,7 @@ def test_pool_sync_back_preserves_active_provider(tmp_path, monkeypatch):
     raw_after = json.loads((flash_home / "auth.json").read_text())
     assert raw_after["active_provider"] == "openrouter", (
         "pool sync-back must not flip active_provider; otherwise xAI/Codex/"
-        "Nous token rotations silently take over multi-provider users' "
+        "Flashtoken rotations silently take over multi-provider users' "
         "auth.json `active_provider` flag."
     )
     # Tokens were actually written so the next process won't replay the

@@ -111,7 +111,7 @@ const serverEnabled = (server: Record<string, unknown>) => server.enabled !== fa
 
 const NEEDS_AUTH_RE = /\b(401|unauthorized|forbidden|invalid[_ ]?token|authentication|oauth)\b/i
 
-// Shared cache for the Nous-approved catalog — feeds both description enrichment
+// Shared cache for the Flash-approved catalog — feeds both description enrichment
 // and the Catalog install view; invalidated after an install.
 const MCP_CATALOG_KEY = ['mcp-catalog'] as const
 
@@ -410,7 +410,7 @@ export function McpTab({ gateway }: { gateway: FlashGateway | null }) {
   // Config/document order, not alphabetical — the list mirrors mcp.json.
   const names = useMemo(() => Object.keys(servers), [servers])
 
-  // Left column view: the configured fleet, or the Nous-approved catalog to
+  // Left column view: the configured fleet, or the Flash-approved catalog to
   // install from. Both share one cached catalog fetch (also feeds description
   // enrichment below), so switching between them never re-requests.
   const [leftView, setLeftView] = useState<'catalog' | 'servers'>('servers')
@@ -1292,7 +1292,7 @@ function CatalogTag({ children }: { children: string }) {
   )
 }
 
-// The Nous-approved MCP catalog: one-click installs of curated servers, with an
+// The Flash-approved MCP catalog: one-click installs of curated servers, with an
 // inline prompt for any required credentials (never shows stored values). On
 // install the parent refetches config + catalog and reloads live sessions.
 function McpCatalog({

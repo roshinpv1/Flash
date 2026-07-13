@@ -161,7 +161,7 @@ class TestOpenRouterProfile:
         assert eb["reasoning"] == {"enabled": True, "effort": "high"}
 
     def test_reasoning_disabled_still_passes(self):
-        """OpenRouter passes disabled reasoning through (unlike Nous)."""
+        """OpenRouter passes disabled reasoning through (unlike Flash)."""
         p = get_provider_profile("openrouter")
         eb, _ = p.build_api_kwargs_extras(
             reasoning_config={"enabled": False},
@@ -405,7 +405,7 @@ class TestOpenRouterProfile:
         assert tl == {"verbosity": "high"}
 
 
-class TestNousProfile:
+class TestFlashProfile:
     def test_tags(self):
         from agent.portal_tags import flash_portal_tags
         p = get_provider_profile("flash")

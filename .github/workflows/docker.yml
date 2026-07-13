@@ -142,7 +142,7 @@ jobs:
           # real-API calls from inside the harness.
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
-          NOUS_API_KEY: ""
+          FLASH_API_KEY: ""
         run: |
           scripts/run_tests.sh tests/docker/ --file-timeout 600
 

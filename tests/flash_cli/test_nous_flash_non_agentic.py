@@ -1,4 +1,4 @@
-"""Tests for the Nous-Flash-3/4 non-agentic warning detector.
+"""Tests for the Flash-Flash-3/4 non-agentic warning detector.
 
 Prior to this check, the warning fired on any model whose name contained
 ``"flash"`` anywhere (case-insensitive). That false-positived on unrelated
@@ -38,7 +38,7 @@ from flash_cli.model_switch import (
 )
 def test_matches_real_flash_flash_chat_models(model_name: str) -> None:
     assert is_flash_flash_non_agentic(model_name), (
-        f"expected {model_name!r} to be flagged as Nous Flash 3/4"
+        f"expected {model_name!r} to be flagged as FlashFlash 3/4"
     )
     assert _check_flash_model_warning(model_name) == _HERMES_MODEL_WARNING
 
@@ -73,7 +73,7 @@ def test_matches_real_flash_flash_chat_models(model_name: str) -> None:
 )
 def test_does_not_match_unrelated_models(model_name: str) -> None:
     assert not is_flash_flash_non_agentic(model_name), (
-        f"expected {model_name!r} NOT to be flagged as Nous Flash 3/4"
+        f"expected {model_name!r} NOT to be flagged as FlashFlash 3/4"
     )
     assert _check_flash_model_warning(model_name) == ""
 

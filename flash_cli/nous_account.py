@@ -1,4 +1,4 @@
-"""Normalized Nous Portal account entitlement helpers."""
+"""Normalized FlashPortal account entitlement helpers."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
 
-NousAccountInfoSource = Literal["jwt", "account_api", "inference_key", "none", "error"]
+FlashAccountInfoSource = Literal["jwt", "account_api", "inference_key", "none", "error"]
 
 # Free tool-pool coverage categories. Kept byte-for-byte aligned with the
 # Portal's TOOL_COVERAGE_CATEGORIES (flash-account-service
@@ -29,12 +29,12 @@ TOOL_COVERAGE_CATEGORIES = (
 )
 
 _ACCOUNT_INFO_CACHE_TTL = 60
-_account_info_cache: tuple[str, float, "NousPortalAccountInfo"] | None = None
+_account_info_cache: tuple[str, float, "FlashPortalAccountInfo"] | None = None
 _ACCOUNT_INFO_CACHE_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
-class NousPortalSubscriptionInfo:
+class FlashPortalSubscriptionInfo:
     plan: Optional[str] = None
     tier: Optional[int] = None
     monthly_charge: Optional[float] = None
@@ -45,7 +45,7 @@ class NousPortalSubscriptionInfo:
 
 
 @dataclass(frozen=True)
-class NousPaidServiceAccessInfo:
+class FlashPaidServiceAccessInfo:
     allowed: Optional[bool] = None
     paid_access: Optional[bool] = None
     reason: Optional[str] = None
@@ -61,7 +61,7 @@ class NousPaidServiceAccessInfo:
 
 
 @dataclass(frozen=True)
-class NousToolAccessInfo:
+class FlashToolAccessInfo:
     """Free tool-pool entitlement, decoupled from paid/billing access.
 
     Mirrors the Portal's ``tool_access`` claim/field: ``enabled`` is true when a
@@ -74,9 +74,9 @@ class NousToolAccessInfo:
 
 
 @dataclass(frozen=True)
-class NousPortalAccountInfo:
+class FlashPortalAccountInfo:
     logged_in: bool
-    source: NousAccountInfoSource
+    source: FlashAccountInfoSource
     fresh: bool
     user_id: Optional[str] = None
     org_id: Optional[str] = None
@@ -92,10 +92,10 @@ class NousPortalAccountInfo:
     expires_at: Optional[datetime] = None
     email: Optional[str] = None
     privy_did: Optional[str] = None
-    subscription: Optional[NousPortalSubscriptionInfo] = None
+    subscription: Optional[FlashPortalSubscriptionInfo] = None
     paid_service_access: Optional[bool] = None
-    paid_service_access_info: Optional[NousPaidServiceAccessInfo] = None
-    tool_access: Optional[NousToolAccessInfo] = None
+    paid_service_access_info: Optional[FlashPaidServiceAccessInfo] = None
+    tool_access: Optional[FlashToolAccessInfo] = None
     raw_claims: Optional[dict[str, Any]] = None
     raw_account: Optional[dict[str, Any]] = None
     error: Optional[str] = None
@@ -127,22 +127,22 @@ class NousPortalAccountInfo:
         return bool(ta and ta.enabled and ta.coverage.get(category) is True)
 
 
-def flash_portal_billing_url(account_info: Optional[NousPortalAccountInfo] = None) -> str:
-    """Return the billing URL for a normalized Nous account snapshot."""
+def flash_portal_billing_url(account_info: Optional[FlashPortalAccountInfo] = None) -> str:
+    """Return the billing URL for a normalized Flashaccount snapshot."""
     try:
-        from flash_cli.auth import DEFAULT_NOUS_PORTAL_URL
+        from flash_cli.auth import DEFAULT_FLASH_PORTAL_URL
     except Exception:
-        DEFAULT_NOUS_PORTAL_URL = "https://portal.flashorg.com"
+        DEFAULT_FLASH_PORTAL_URL = "https://portal.flashorg.com"
 
     base = None
     if account_info is not None:
         base = account_info.portal_base_url
     if not isinstance(base, str) or not base.strip():
-        base = DEFAULT_NOUS_PORTAL_URL
+        base = DEFAULT_FLASH_PORTAL_URL
     return f"{base.rstrip('/')}/billing"
 
 
-def flash_portal_topup_url(account_info: Optional[NousPortalAccountInfo] = None) -> str:
+def flash_portal_topup_url(account_info: Optional[FlashPortalAccountInfo] = None) -> str:
     """Return the portal top-up URL that auto-opens the top-up modal.
 
     Prefers the org-pinned page ``{base}/orgs/{slug}/billing?topup=open`` (skips
@@ -166,13 +166,13 @@ def flash_portal_topup_url(account_info: Optional[NousPortalAccountInfo] = None)
 
 
 def format_flash_portal_entitlement_message(
-    account_info: Optional[NousPortalAccountInfo],
+    account_info: Optional[FlashPortalAccountInfo],
     *,
     capability: str = "this feature",
     include_refresh_hint: bool = True,
     coverage_category: Optional[str] = None,
 ) -> Optional[str]:
-    """Return user-facing guidance for a missing Nous tool-gateway entitlement.
+    """Return user-facing guidance for a missing Flashtool-gateway entitlement.
 
     ``None`` means the account is entitled to use the capability — via paid
     service access OR a live free tool pool that covers it. The message works
@@ -197,7 +197,7 @@ def format_flash_portal_entitlement_message(
                 # specific capability isn't covered. Surface a neutral billing
                 # nudge without exposing pool-vs-paid internals to the user.
                 return (
-                    f"{capability} isn't included with your current Nous Portal "
+                    f"{capability} isn't included with your current FlashPortal "
                     f"access. Add credits or a subscription to enable it at {billing_url}."
                 )
         elif account_info.tool_gateway_entitled:
@@ -205,7 +205,7 @@ def format_flash_portal_entitlement_message(
 
     if account_info is None:
         return (
-            f"Flash could not verify your Nous Portal entitlement, so {capability} "
+            f"Flash could not verify your FlashPortal entitlement, so {capability} "
             f"is unavailable. Run `flash model` to refresh your login, or check "
             f"billing at {billing_url}."
         )
@@ -213,19 +213,19 @@ def format_flash_portal_entitlement_message(
     if not account_info.logged_in:
         if account_info.inference_credential_present:
             return (
-                f"Nous inference credentials are configured, but Flash cannot verify "
-                f"your Nous Portal paid access for {capability}. Log in with "
+                f"Flashinference credentials are configured, but Flash cannot verify "
+                f"your FlashPortal paid access for {capability}. Log in with "
                 f"`flash model` to enable Portal-managed features. Billing and "
                 f"credits are managed at {billing_url}."
             )
         return (
-            f"Log in to Nous Portal to use {capability}: run `flash model`. "
+            f"Log in to FlashPortal to use {capability}: run `flash model`. "
             f"Billing and credits are managed at {billing_url}."
         )
 
     if account_info.paid_service_access is None:
         detail = (
-            f"Flash could not verify your Nous Portal paid access, so {capability} "
+            f"Flash could not verify your FlashPortal paid access, so {capability} "
             f"is unavailable."
         )
         if account_info.error:
@@ -239,9 +239,9 @@ def format_flash_portal_entitlement_message(
     reason = access.reason if access else None
     if reason == "account_missing":
         return (
-            f"Flash could not find a Nous Portal account or organisation for this "
+            f"Flash could not find a FlashPortal account or organisation for this "
             f"login, so {capability} is unavailable. Run `flash model` to "
-            f"authenticate again; if the problem persists, contact Nous support."
+            f"authenticate again; if the problem persists, contact Flashsupport."
         )
 
     if reason == "no_usable_credits" or account_info.paid_service_access is False:
@@ -251,13 +251,13 @@ def format_flash_portal_entitlement_message(
         return message
 
     return (
-        f"Your Nous Portal account does not currently have paid service access, "
+        f"Your FlashPortal account does not currently have paid service access, "
         f"so {capability} is unavailable. Add credits or update billing at {billing_url}."
     )
 
 
 def _no_paid_access_message(
-    account_info: NousPortalAccountInfo,
+    account_info: FlashPortalAccountInfo,
     capability: str,
     billing_url: str,
 ) -> str:
@@ -271,27 +271,27 @@ def _no_paid_access_message(
     if has_active_subscription and active_subscription_is_paid:
         credit_detail = _credit_detail(total_usable, subscription_credits, purchased_credits)
         return (
-            f"Your Nous Portal credits are exhausted{credit_detail}, so {capability} "
+            f"Your FlashPortal credits are exhausted{credit_detail}, so {capability} "
             f"is unavailable. Top up or renew credits at {billing_url}."
         )
 
     if has_active_subscription and active_subscription_is_paid is False:
         return (
-            f"Your current Nous Portal plan does not include paid service access, "
+            f"Your current FlashPortal plan does not include paid service access, "
             f"so {capability} is unavailable. Upgrade or add credits at {billing_url}."
         )
 
     if has_active_subscription is False:
         credit_detail = _credit_detail(total_usable, subscription_credits, purchased_credits)
         return (
-            f"Your Nous Portal account has no active subscription or usable credits"
+            f"Your FlashPortal account has no active subscription or usable credits"
             f"{credit_detail}, so {capability} is unavailable. Subscribe or add credits "
             f"at {billing_url}."
         )
 
     credit_detail = _credit_detail(total_usable, subscription_credits, purchased_credits)
     return (
-        f"Your Nous Portal account has no usable paid credits{credit_detail}, so "
+        f"Your FlashPortal account has no usable paid credits{credit_detail}, so "
         f"{capability} is unavailable. Add credits or update billing at {billing_url}."
     )
 
@@ -323,8 +323,8 @@ def get_flash_portal_account_info(
     *,
     force_fresh: bool = False,
     min_jwt_ttl_seconds: int = 60,
-) -> NousPortalAccountInfo:
-    """Return normalized Nous Portal account entitlement information.
+) -> FlashPortalAccountInfo:
+    """Return normalized FlashPortal account entitlement information.
 
     By default, a valid unexpired OAuth access JWT is used as a low-latency
     local account snapshot. ``force_fresh=True`` always calls
@@ -351,7 +351,7 @@ def get_flash_portal_account_info(
         pool_info = _info_from_inference_key_pool(portal_base_url)
         if pool_info is not None:
             return pool_info
-        return NousPortalAccountInfo(
+        return FlashPortalAccountInfo(
             logged_in=False,
             source="none",
             fresh=False,
@@ -380,7 +380,7 @@ def _fresh_account_info(
     state: dict[str, Any],
     force_fresh: bool,
     portal_base_url: Optional[str],
-) -> NousPortalAccountInfo:
+) -> FlashPortalAccountInfo:
     global _account_info_cache
 
     try:
@@ -430,8 +430,8 @@ def _fresh_account_info(
 
 def _info_from_inference_key_pool(
     portal_base_url: Optional[str],
-) -> Optional[NousPortalAccountInfo]:
-    """Return an explicit unknown-entitlement snapshot for opaque Nous keys."""
+) -> Optional[FlashPortalAccountInfo]:
+    """Return an explicit unknown-entitlement snapshot for opaque Flashkeys."""
     try:
         entry = _select_flash_pool_entry()
         if entry is None:
@@ -440,7 +440,7 @@ def _info_from_inference_key_pool(
         if not isinstance(runtime_key, str) or not runtime_key.strip():
             return None
 
-        return NousPortalAccountInfo(
+        return FlashPortalAccountInfo(
             logged_in=False,
             source="inference_key",
             fresh=False,
@@ -466,7 +466,7 @@ def _info_from_oauth_pool(
     force_fresh: bool,
     min_jwt_ttl_seconds: int,
     portal_base_url: Optional[str],
-) -> Optional[NousPortalAccountInfo]:
+) -> Optional[FlashPortalAccountInfo]:
     try:
         entry = _select_flash_pool_entry()
     except Exception:
@@ -582,7 +582,7 @@ def _info_from_valid_jwt(
     state: dict[str, Any],
     portal_base_url: Optional[str],
     min_jwt_ttl_seconds: int,
-) -> Optional[NousPortalAccountInfo]:
+) -> Optional[FlashPortalAccountInfo]:
     try:
         from flash_cli.auth import _decode_jwt_claims
     except Exception:
@@ -598,14 +598,14 @@ def _info_from_valid_jwt(
 
     paid_access = _coerce_bool(claims.get("paid_access"))
     subscription_tier = _coerce_int(claims.get("subscription_tier"))
-    access_info = NousPaidServiceAccessInfo(
+    access_info = FlashPaidServiceAccessInfo(
         allowed=paid_access,
         paid_access=paid_access,
         organisation_id=_coerce_str(claims.get("org_id")),
         subscription_tier=subscription_tier,
     )
 
-    return NousPortalAccountInfo(
+    return FlashPortalAccountInfo(
         logged_in=True,
         source="jwt",
         fresh=False,
@@ -631,7 +631,7 @@ def _info_from_account_payload(
     *,
     state: dict[str, Any],
     portal_base_url: Optional[str],
-) -> NousPortalAccountInfo:
+) -> FlashPortalAccountInfo:
     raw_user = payload.get("user")
     user: dict[str, Any] = raw_user if isinstance(raw_user, dict) else {}
     raw_org = payload.get("organisation")
@@ -642,7 +642,7 @@ def _info_from_account_payload(
     if paid_access is None and access is not None:
         paid_access = access.paid_access
 
-    return NousPortalAccountInfo(
+    return FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
@@ -664,9 +664,9 @@ def _info_from_account_payload(
     )
 
 
-def _tool_access_from_value(value: Any) -> Optional[NousToolAccessInfo]:
+def _tool_access_from_value(value: Any) -> Optional[FlashToolAccessInfo]:
     """Parse a Portal ``tool_access`` object (from the JWT claim or the account
-    API) into :class:`NousToolAccessInfo`. Fails closed: a non-object value
+    API) into :class:`FlashToolAccessInfo`. Fails closed: a non-object value
     yields ``None``, and only literal ``true`` counts for ``enabled`` and each
     coverage entry."""
     if not isinstance(value, dict):
@@ -678,13 +678,13 @@ def _tool_access_from_value(value: Any) -> Optional[NousToolAccessInfo]:
         for key, val in raw_coverage.items():
             if isinstance(key, str):
                 coverage[key] = val is True
-    return NousToolAccessInfo(enabled=enabled, coverage=coverage)
+    return FlashToolAccessInfo(enabled=enabled, coverage=coverage)
 
 
-def _subscription_from_payload(value: Any) -> Optional[NousPortalSubscriptionInfo]:
+def _subscription_from_payload(value: Any) -> Optional[FlashPortalSubscriptionInfo]:
     if not isinstance(value, dict):
         return None
-    return NousPortalSubscriptionInfo(
+    return FlashPortalSubscriptionInfo(
         plan=_coerce_str(value.get("plan")),
         tier=_coerce_int(value.get("tier")),
         monthly_charge=_coerce_float(value.get("monthly_charge")),
@@ -695,12 +695,12 @@ def _subscription_from_payload(value: Any) -> Optional[NousPortalSubscriptionInf
     )
 
 
-def _paid_service_access_from_payload(value: Any) -> Optional[NousPaidServiceAccessInfo]:
+def _paid_service_access_from_payload(value: Any) -> Optional[FlashPaidServiceAccessInfo]:
     if not isinstance(value, dict):
         return None
     allowed = _coerce_bool(value.get("allowed"))
     paid_access = _coerce_bool(value.get("paid_access"))
-    return NousPaidServiceAccessInfo(
+    return FlashPaidServiceAccessInfo(
         allowed=allowed,
         paid_access=paid_access,
         reason=_coerce_str(value.get("reason")),
@@ -722,8 +722,8 @@ def _error_info(
     logged_in: bool,
     portal_base_url: Optional[str] = None,
     raw_account: Optional[dict[str, Any]] = None,
-) -> NousPortalAccountInfo:
-    return NousPortalAccountInfo(
+) -> FlashPortalAccountInfo:
+    return FlashPortalAccountInfo(
         logged_in=logged_in,
         source="error",
         fresh=False,

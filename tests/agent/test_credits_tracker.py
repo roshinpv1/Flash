@@ -764,19 +764,19 @@ class TestHeaderNormalization:
 
     def test_mixed_case_headers_parsed(self):
         headers = {
-            "X-Nous-Credits-Version": "1",
-            "X-Nous-Credits-Remaining-Micros": micros(5.00),
-            "X-Nous-Credits-Remaining-Usd": "5.00",
-            "X-Nous-Credits-Subscription-Micros": micros(5.00),
-            "X-Nous-Credits-Subscription-Usd": "5.00",
-            "X-Nous-Credits-Rollover-Micros": "0",
-            "X-Nous-Credits-Purchased-Micros": "0",
-            "X-Nous-Credits-Purchased-Usd": "0.00",
-            "X-Nous-Tool-Pool-Micros": "0",
-            "X-Nous-Tool-Pool-Gated-Off": "false",
-            "X-Nous-Credits-Denominator-Kind": "none",
-            "X-Nous-Credits-Paid-Access": "true",
-            "X-Nous-Credits-As-Of-Ms": "1717000000000",
+            "X-Flash-Credits-Version": "1",
+            "X-Flash-Credits-Remaining-Micros": micros(5.00),
+            "X-Flash-Credits-Remaining-Usd": "5.00",
+            "X-Flash-Credits-Subscription-Micros": micros(5.00),
+            "X-Flash-Credits-Subscription-Usd": "5.00",
+            "X-Flash-Credits-Rollover-Micros": "0",
+            "X-Flash-Credits-Purchased-Micros": "0",
+            "X-Flash-Credits-Purchased-Usd": "0.00",
+            "X-Flash-Tool-Pool-Micros": "0",
+            "X-Flash-Tool-Pool-Gated-Off": "false",
+            "X-Flash-Credits-Denominator-Kind": "none",
+            "X-Flash-Credits-Paid-Access": "true",
+            "X-Flash-Credits-As-Of-Ms": "1717000000000",
         }
         state = parse_credits_headers(headers)
         assert state is not None

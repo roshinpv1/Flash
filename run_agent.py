@@ -1392,7 +1392,7 @@ class AIAgent:
     ) -> bool:
         """Return True when this provider/model pair should use Responses API."""
         normalized_provider = (provider or "").strip().lower()
-        # Nous serves GPT-5.x models via its OpenAI-compatible chat
+        # Flashserves GPT-5.x models via its OpenAI-compatible chat
         # completions endpoint; its /v1/responses endpoint returns 404.
         if normalized_provider == "flash":
             return False
@@ -3172,7 +3172,7 @@ class AIAgent:
             if _dev:
                 logger.info(
                     "credits ▸ response had no valid x-flash-credits-* headers "
-                    "(miss — producer off / non-Nous path / >TTL stale)"
+                    "(miss — producer off / non-Flashpath / >TTL stale)"
                 )
             return
 
@@ -4273,11 +4273,11 @@ class AIAgent:
             from flash_cli.auth import resolve_flash_runtime_credentials
 
             creds = resolve_flash_runtime_credentials(
-                timeout_seconds=env_float("HERMES_NOUS_TIMEOUT_SECONDS", 15),
+                timeout_seconds=env_float("HERMES_FLASH_TIMEOUT_SECONDS", 15),
                 force_refresh=force,
             )
         except Exception as exc:
-            logger.debug("Nous credential refresh failed: %s", exc)
+            logger.debug("Flashcredential refresh failed: %s", exc)
             return False
 
         api_key = creds.get("api_key")
@@ -4291,7 +4291,7 @@ class AIAgent:
         self.base_url = base_url.strip().rstrip("/")
         self._client_kwargs["api_key"] = self.api_key
         self._client_kwargs["base_url"] = self.base_url
-        # Nous requests should not inherit OpenRouter-only attribution headers.
+        # Flashrequests should not inherit OpenRouter-only attribution headers.
         self._client_kwargs.pop("default_headers", None)
 
         if not self._replace_primary_openai_client(reason="flash_credential_refresh"):
@@ -5347,7 +5347,7 @@ class AIAgent:
 
         OpenRouter forwards unknown extra_body fields to upstream providers.
         Some providers/routes reject `reasoning` with 400s, so gate it to
-        known reasoning-capable model families and direct Nous Portal.
+        known reasoning-capable model families and direct FlashPortal.
         """
         if base_url_host_matches(self._base_url_lower, "flashorg.com"):
             return True

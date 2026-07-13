@@ -1218,7 +1218,7 @@ def test_current_custom_model_not_leaked_into_other_provider_rows(monkeypatch):
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr("flash_cli.providers.HERMES_OVERLAYS", {})
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
-    monkeypatch.setenv("NOUS_API_KEY", "sk-test")
+    monkeypatch.setenv("FLASH_API_KEY", "sk-test")
     monkeypatch.setattr(
         "flash_cli.models.cached_provider_model_ids",
         lambda slug, **kw: ["curated/one"],

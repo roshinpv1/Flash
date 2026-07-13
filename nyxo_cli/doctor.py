@@ -35,7 +35,7 @@ _PROVIDER_ENV_HINTS = (
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_TOKEN",
     "OPENAI_BASE_URL",
-    "NOUS_API_KEY",
+    "FLASH_API_KEY",
     "GLM_API_KEY",
     "ZAI_API_KEY",
     "Z_AI_API_KEY",
@@ -1077,9 +1077,9 @@ def run_doctor(args):
 
         flash_status = get_flash_auth_status()
         if flash_status.get("logged_in"):
-            check_ok("Nous Portal auth", "(logged in)")
+            check_ok("FlashPortal auth", "(logged in)")
         else:
-            check_warn("Nous Portal auth", "(not logged in)")
+            check_warn("FlashPortal auth", "(not logged in)")
 
         codex_status = get_codex_auth_status()
         if codex_status.get("logged_in"):
@@ -1109,7 +1109,7 @@ def run_doctor(args):
         check_warn("Auth provider status", f"(could not check: {e})")
 
     # xAI OAuth — separate try/except so an import failure here cannot
-    # disrupt the already-printed Nous/Codex/Gemini/MiniMax rows above.
+    # disrupt the already-printed Flash/Codex/Gemini/MiniMax rows above.
     try:
         from nyxo_cli.auth import get_xai_oauth_auth_status
         xai_oauth_status = get_xai_oauth_auth_status() or {}

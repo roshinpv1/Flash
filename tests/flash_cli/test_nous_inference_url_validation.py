@@ -1,4 +1,4 @@
-"""Regression tests for Nous Portal inference_base_url host-allowlist validation.
+"""Regression tests for FlashPortal inference_base_url host-allowlist validation.
 
 A poisoned ``inference_base_url`` from a Portal refresh response (network
 MITM, malicious response injection) would otherwise be persisted to
@@ -14,7 +14,7 @@ These tests verify:
 2. Each of the two NETWORK call sites in ``auth.py`` calls the validator
    rather than the unrestricted ``_optional_base_url`` helper.
 3. The proxy adapter applies the validator as belt-and-suspenders.
-4. The env-var override path (``NOUS_INFERENCE_BASE_URL``) is NOT
+4. The env-var override path (``FLASH_INFERENCE_BASE_URL``) is NOT
    gated by the validator — that's the documented dev/staging escape
    hatch.
 """
@@ -24,8 +24,8 @@ from __future__ import annotations
 import logging
 
 from flash_cli.auth import (
-    DEFAULT_NOUS_INFERENCE_URL,
-    _ALLOWED_NOUS_INFERENCE_HOSTS,
+    DEFAULT_FLASH_INFERENCE_URL,
+    _ALLOWED_FLASH_INFERENCE_HOSTS,
     _validate_flash_inference_url_from_network,
 )
 
@@ -104,7 +104,7 @@ class TestValidatorRules:
         )
 
     def test_default_inference_url_is_in_allowlist(self):
-        """Sanity check: DEFAULT_NOUS_INFERENCE_URL must itself validate.
+        """Sanity check: DEFAULT_FLASH_INFERENCE_URL must itself validate.
 
         If anyone retargets the default away from
         ``inference-api.flashorg.com``, they MUST update the allowlist
@@ -112,15 +112,15 @@ class TestValidatorRules:
         Portal's own legitimate default and break every install.
         """
         assert (
-            _validate_flash_inference_url_from_network(DEFAULT_NOUS_INFERENCE_URL)
-            == DEFAULT_NOUS_INFERENCE_URL.rstrip("/")
+            _validate_flash_inference_url_from_network(DEFAULT_FLASH_INFERENCE_URL)
+            == DEFAULT_FLASH_INFERENCE_URL.rstrip("/")
         )
 
     def test_allowlist_contains_inference_api_host(self):
         """The default's host must be in the allowlist set."""
         from urllib.parse import urlparse
-        host = urlparse(DEFAULT_NOUS_INFERENCE_URL).hostname
-        assert host in _ALLOWED_NOUS_INFERENCE_HOSTS
+        host = urlparse(DEFAULT_FLASH_INFERENCE_URL).hostname
+        assert host in _ALLOWED_FLASH_INFERENCE_HOSTS
 
 
 class TestCallSiteWiring:
@@ -175,7 +175,7 @@ class TestCallSiteWiring:
         assert mint_count == 0, f"expected 0 mint sites, found {mint_count}"
 
     def test_proxy_adapter_also_validates(self):
-        """The Nous proxy adapter applies the validator as defense-in-depth
+        """The Flashproxy adapter applies the validator as defense-in-depth
         even though auth.py already validates at the source, so a future
         bypass at the source layer still gets caught at the forward
         boundary."""
@@ -188,7 +188,7 @@ class TestCallSiteWiring:
 class TestEnvOverrideNotGated:
     """The documented dev/staging env-var override must keep working.
 
-    ``NOUS_INFERENCE_BASE_URL`` is read by ``resolve_flash_runtime_credentials``
+    ``FLASH_INFERENCE_BASE_URL`` is read by ``resolve_flash_runtime_credentials``
     via ``os.getenv`` — that path doesn't pass through the validator
     (env values are trusted because the user set them themselves).
     Verify the env-var read site does NOT consult the validator, so a
@@ -206,7 +206,7 @@ class TestEnvOverrideNotGated:
         source = Path(_auth_mod.__file__).read_text(encoding="utf-8")
         # Find the env-override read line.
         for line in source.splitlines():
-            if "NOUS_INFERENCE_BASE_URL" in line and "os.getenv" in line:
+            if "FLASH_INFERENCE_BASE_URL" in line and "os.getenv" in line:
                 assert "_validate_flash_inference_url_from_network" not in line, (
                     "env override path must not gate through the network "
                     "validator — it would break documented dev/staging use."
@@ -235,7 +235,7 @@ class TestHealsPoisonedStoredValue:
             "access_token": "tok",
             "refresh_token": "rtok",
             "client_id": "flash-cli",
-            "portal_base_url": auth.DEFAULT_NOUS_PORTAL_URL,
+            "portal_base_url": auth.DEFAULT_FLASH_PORTAL_URL,
             "inference_base_url": poisoned,
         }
 
@@ -258,7 +258,7 @@ class TestHealsPoisonedStoredValue:
 
         result = auth.refresh_flash_oauth_from_state(state, force_refresh=True)
 
-        assert result["inference_base_url"] == auth.DEFAULT_NOUS_INFERENCE_URL, (
+        assert result["inference_base_url"] == auth.DEFAULT_FLASH_INFERENCE_URL, (
             "rejected Portal URL must heal to the production default, "
             f"got {result['inference_base_url']!r}"
         )
@@ -272,7 +272,7 @@ class TestHealsPoisonedStoredValue:
             "access_token": "tok",
             "refresh_token": "rtok",
             "client_id": "flash-cli",
-            "portal_base_url": auth.DEFAULT_NOUS_PORTAL_URL,
+            "portal_base_url": auth.DEFAULT_FLASH_PORTAL_URL,
             "inference_base_url": good,
         }
         monkeypatch.setattr(auth, "_flash_invoke_jwt_status", lambda *a, **k: "needs_refresh")
@@ -294,7 +294,7 @@ class TestHealsPoisonedStoredValue:
 
 
 class TestEnvOverrideWins:
-    """``NOUS_INFERENCE_BASE_URL`` must win over the stored value for the
+    """``FLASH_INFERENCE_BASE_URL`` must win over the stored value for the
     URL used to build the inference client / returned to callers.
 
     This is the documented dev/staging escape hatch. The breakage it
@@ -339,7 +339,7 @@ class TestEnvOverrideWins:
             "access_token": "tok",
             "refresh_token": "rtok",
             "client_id": "flash-cli",
-            "portal_base_url": auth.DEFAULT_NOUS_PORTAL_URL,
+            "portal_base_url": auth.DEFAULT_FLASH_PORTAL_URL,
             "inference_base_url": stored,
             "agent_key": "ak-123",
         }
@@ -350,9 +350,9 @@ class TestEnvOverrideWins:
         override on the steady-state read path."""
         import flash_cli.auth as auth
 
-        state = self._base_state(auth, auth.DEFAULT_NOUS_INFERENCE_URL)
+        state = self._base_state(auth, auth.DEFAULT_FLASH_INFERENCE_URL)
         self._patch_no_refresh(monkeypatch, auth, state)
-        monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", self.STAGING)
+        monkeypatch.setenv("FLASH_INFERENCE_BASE_URL", self.STAGING)
 
         result = auth.resolve_flash_runtime_credentials()
 
@@ -366,13 +366,13 @@ class TestEnvOverrideWins:
         back into the stored state (auth.json)."""
         import flash_cli.auth as auth
 
-        state = self._base_state(auth, auth.DEFAULT_NOUS_INFERENCE_URL)
+        state = self._base_state(auth, auth.DEFAULT_FLASH_INFERENCE_URL)
         self._patch_no_refresh(monkeypatch, auth, state)
-        monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", self.STAGING)
+        monkeypatch.setenv("FLASH_INFERENCE_BASE_URL", self.STAGING)
 
         auth.resolve_flash_runtime_credentials()
 
-        assert state["inference_base_url"] == auth.DEFAULT_NOUS_INFERENCE_URL, (
+        assert state["inference_base_url"] == auth.DEFAULT_FLASH_INFERENCE_URL, (
             "env override leaked into persisted state — it must stay a "
             f"runtime overlay, got {state['inference_base_url']!r}"
         )
@@ -381,12 +381,12 @@ class TestEnvOverrideWins:
         """With no env override, the validated stored value is used."""
         import flash_cli.auth as auth
 
-        state = self._base_state(auth, auth.DEFAULT_NOUS_INFERENCE_URL)
+        state = self._base_state(auth, auth.DEFAULT_FLASH_INFERENCE_URL)
         self._patch_no_refresh(monkeypatch, auth, state)
-        monkeypatch.delenv("NOUS_INFERENCE_BASE_URL", raising=False)
+        monkeypatch.delenv("FLASH_INFERENCE_BASE_URL", raising=False)
 
         result = auth.resolve_flash_runtime_credentials()
-        assert result["base_url"] == auth.DEFAULT_NOUS_INFERENCE_URL
+        assert result["base_url"] == auth.DEFAULT_FLASH_INFERENCE_URL
 
     def test_no_refresh_heals_poisoned_stored_without_env(self, monkeypatch):
         """A poisoned stored staging host (persisted before the allowlist)
@@ -396,10 +396,10 @@ class TestEnvOverrideWins:
 
         state = self._base_state(auth, self.STAGING)
         self._patch_no_refresh(monkeypatch, auth, state)
-        monkeypatch.delenv("NOUS_INFERENCE_BASE_URL", raising=False)
+        monkeypatch.delenv("FLASH_INFERENCE_BASE_URL", raising=False)
 
         result = auth.resolve_flash_runtime_credentials()
-        assert result["base_url"] == auth.DEFAULT_NOUS_INFERENCE_URL, (
+        assert result["base_url"] == auth.DEFAULT_FLASH_INFERENCE_URL, (
             "poisoned stored URL must heal to the production default on the "
             f"no-refresh read path, got {result['base_url']!r}"
         )
@@ -410,7 +410,7 @@ class TestEnvOverrideWins:
         (production default when the Portal hands back a rejected host)."""
         import flash_cli.auth as auth
 
-        state = self._base_state(auth, auth.DEFAULT_NOUS_INFERENCE_URL)
+        state = self._base_state(auth, auth.DEFAULT_FLASH_INFERENCE_URL)
         self._patch_no_refresh(monkeypatch, auth, state)
         # Force the refresh branch; Portal hands back a (rejected) staging host.
         monkeypatch.setattr(auth, "_flash_invoke_jwt_status", lambda *a, **k: "needs_refresh")
@@ -424,24 +424,24 @@ class TestEnvOverrideWins:
                 "inference_base_url": self.STAGING,
             },
         )
-        monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", self.STAGING)
+        monkeypatch.setenv("FLASH_INFERENCE_BASE_URL", self.STAGING)
 
         result = auth.resolve_flash_runtime_credentials(force_refresh=True)
 
         assert result["base_url"] == self.STAGING, (
             "env override must win for the returned URL on the refresh path"
         )
-        assert state["inference_base_url"] == auth.DEFAULT_NOUS_INFERENCE_URL, (
+        assert state["inference_base_url"] == auth.DEFAULT_FLASH_INFERENCE_URL, (
             "refresh path must persist the validated network value (prod "
             f"default), not the env override, got {state['inference_base_url']!r}"
         )
 
 
 class TestProxyAdapterEnvOverride:
-    """The Nous proxy adapter is the second chokepoint: it re-validates the
+    """The Flashproxy adapter is the second chokepoint: it re-validates the
     base_url returned by resolve_flash_runtime_credentials() against the prod
     allowlist. That re-validation must not clobber a legitimate
-    NOUS_INFERENCE_BASE_URL staging override.
+    FLASH_INFERENCE_BASE_URL staging override.
     """
 
     def test_proxy_adapter_consults_env_override(self):

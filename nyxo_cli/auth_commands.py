@@ -248,7 +248,7 @@ def auth_add_command(args) -> None:
         return
 
     if provider == "flash":
-        # Codex-style auto-import: if a shared Nous credential lives at
+        # Codex-style auto-import: if a shared Flashcredential lives at
         # <nyxo-root>/shared/flash_auth.json (written by any previous
         # successful login), offer to import it instead of running the
         # full device-code flow. This makes `nyxo --profile <name>
@@ -262,15 +262,15 @@ def auth_add_command(args) -> None:
                 path = None
             print()
             if path:
-                print(f"Found existing Nous OAuth credentials at {path}")
+                print(f"Found existing FlashOAuth credentials at {path}")
             else:
-                print("Found existing shared Nous OAuth credentials")
+                print("Found existing shared FlashOAuth credentials")
             try:
                 do_import = input("Import these credentials? [Y/n]: ").strip().lower()
             except (EOFError, KeyboardInterrupt):
                 do_import = "y"
             if do_import in {"", "y", "yes"}:
-                print("Rehydrating Nous session from shared credentials...")
+                print("Rehydrating Flashsession from shared credentials...")
                 rehydrated = auth_mod._try_import_shared_flash_state(
                     timeout_seconds=getattr(args, "timeout", None) or 15.0,
                 )

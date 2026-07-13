@@ -15,15 +15,15 @@ import pytest
 
 import agent.account_usage as account_usage
 from agent.account_usage import CreditsView, build_credits_view
-from flash_cli.flash_account import NousPortalAccountInfo, NousPaidServiceAccessInfo
+from flash_cli.flash_account import FlashPortalAccountInfo, FlashPaidServiceAccessInfo
 
 
-def _account(**kwargs) -> NousPortalAccountInfo:
+def _account(**kwargs) -> FlashPortalAccountInfo:
     kwargs.setdefault("logged_in", True)
     kwargs.setdefault("source", "account_api")
     kwargs.setdefault("fresh", True)
     kwargs.setdefault("portal_base_url", "https://portal.example.test")
-    return NousPortalAccountInfo(**kwargs)
+    return FlashPortalAccountInfo(**kwargs)
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_view_built_with_org_pinned_url_and_identity(_logged_in_account):
             org_name="Acme Inc",
             email="alice@example.test",
             paid_service_access=True,
-            paid_service_access_info=NousPaidServiceAccessInfo(
+            paid_service_access_info=FlashPaidServiceAccessInfo(
                 purchased_credits_remaining=30.0,
                 total_usable_credits=30.0,
             ),
@@ -86,7 +86,7 @@ def test_view_depleted_flag(_logged_in_account):
             org_slug="acme",
             email="alice@example.test",
             paid_service_access=False,
-            paid_service_access_info=NousPaidServiceAccessInfo(
+            paid_service_access_info=FlashPaidServiceAccessInfo(
                 total_usable_credits=0.0,
             ),
             subscription=None,
@@ -103,7 +103,7 @@ def test_view_falls_back_to_legacy_url_when_slug_null(_logged_in_account):
             org_slug=None,
             email="alice@example.test",
             paid_service_access=True,
-            paid_service_access_info=NousPaidServiceAccessInfo(
+            paid_service_access_info=FlashPaidServiceAccessInfo(
                 purchased_credits_remaining=5.0,
                 total_usable_credits=5.0,
             ),
@@ -152,7 +152,7 @@ def _make_gateway_stub():
 def test_gateway_credits_renders_block_and_url(monkeypatch):
     view = CreditsView(
         logged_in=True,
-        balance_lines=("📈 Nous credits", "Total usable: $52.50"),
+        balance_lines=("📈 Flashcredits", "Total usable: $52.50"),
         identity_line="Topping up as alice@example.test / org Acme",
         topup_url="https://portal.example.test/orgs/acme/billing?topup=open",
         depleted=False,
@@ -168,7 +168,7 @@ def test_gateway_credits_renders_block_and_url(monkeypatch):
     assert "https://portal.example.test/orgs/acme/billing?topup=open" in out
     assert "credits will appear in /credits shortly" in out
     # The helper's own 📈 header line is dropped (we render our own 💳 header).
-    assert "📈 Nous credits" not in out
+    assert "📈 Flashcredits" not in out
 
 
 def test_gateway_credits_not_logged_in(monkeypatch):
@@ -177,7 +177,7 @@ def test_gateway_credits_not_logged_in(monkeypatch):
     )
     stub = _make_gateway_stub()
     out = asyncio.run(stub._handle_credits_command(_FakeEvent()))
-    assert "Not logged into Nous Portal" in out
+    assert "Not logged into FlashPortal" in out
 
 
 def test_gateway_credits_fetch_exception_is_not_logged_in(monkeypatch):
@@ -187,7 +187,7 @@ def test_gateway_credits_fetch_exception_is_not_logged_in(monkeypatch):
     monkeypatch.setattr(account_usage, "build_credits_view", _boom)
     stub = _make_gateway_stub()
     out = asyncio.run(stub._handle_credits_command(_FakeEvent()))
-    assert "Not logged into Nous Portal" in out
+    assert "Not logged into FlashPortal" in out
 
 
 # ── command registry ────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ def test_cli_show_credits_non_interactive_renders_text_not_modal(monkeypatch, ca
         "build_credits_view",
         lambda *a, **k: CreditsView(
             logged_in=True,
-            balance_lines=("📈 Nous credits", "Total usable: $0.00"),
+            balance_lines=("📈 Flashcredits", "Total usable: $0.00"),
             identity_line="Topping up as a@b.c / org Acme",
             topup_url="https://prev.test/orgs/acme/billing?topup=open",
             depleted=True,
@@ -240,7 +240,7 @@ def test_cli_show_credits_non_interactive_renders_text_not_modal(monkeypatch, ca
     cli._show_credits()
 
     out = capsys.readouterr().out
-    assert "💳 Nous credits" in out
+    assert "💳 Flashcredits" in out
     assert "Total usable: $0.00" in out
     assert "Topping up as a@b.c / org Acme" in out
     assert "https://prev.test/orgs/acme/billing?topup=open" in out
@@ -257,4 +257,4 @@ def test_cli_show_credits_logged_out(monkeypatch, capsys):
     cli = FlashCLI.__new__(FlashCLI)
     cli._app = None
     cli._show_credits()
-    assert "Not logged into Nous Portal" in capsys.readouterr().out
+    assert "Not logged into FlashPortal" in capsys.readouterr().out

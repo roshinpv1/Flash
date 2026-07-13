@@ -1,10 +1,10 @@
-"""Client for uploading ``flash debug share`` bundles to Nous-internal S3.
+"""Client for uploading ``flash debug share`` bundles to Flash-internal S3.
 
 This is the opt-in (``--flash``) destination for ``flash debug share``.
-Unlike the public paste.rs path, bundles uploaded here go to a Nous-owned
-S3 bucket via a short-lived signed URL minted by the Nous account service
+Unlike the public paste.rs path, bundles uploaded here go to a Flash-owned
+S3 bucket via a short-lived signed URL minted by the Flashaccount service
 (NAS).  The bucket auto-expires objects after 14 days, and the contents are
-only viewable by Nous staff (and allowlisted Discord mods) through a
+only viewable by Flashstaff (and allowlisted Discord mods) through a
 Google-OAuth-gated viewer.
 
 Flow:
@@ -24,7 +24,7 @@ import json
 import os
 import urllib.request
 
-# Base URL of the Nous account service that mints the signed upload URL.
+# Base URL of the Flashaccount service that mints the signed upload URL.
 # Overridable via env so the feature can be pointed at staging / a local dev
 # NAS instance during testing.
 NAS_BASE = os.environ.get(
@@ -120,7 +120,7 @@ def put_bundle(
 
 
 def share_to_flash(report_bundle: bytes) -> dict:
-    """Orchestrate the full Nous-S3 upload of a gzipped *report_bundle*.
+    """Orchestrate the full Flash-S3 upload of a gzipped *report_bundle*.
 
     Two steps: mint a presigned PUT URL (sending the exact ``sizeBytes`` NAS
     signs into the URL's ``ContentLength``), then PUT the bundle. NAS is

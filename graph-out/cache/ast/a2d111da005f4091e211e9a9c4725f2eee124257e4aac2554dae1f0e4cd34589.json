@@ -1,1 +1,2287 @@
-{"nodes": [{"id": "users_roshinpv_documents_my_projects_flash_website_docs_integrations_providers_md", "label": "providers.md", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1"}, {"id": "integrations_providers_ai_providers", "label": "AI Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L7"}, {"id": "integrations_providers_inference_providers", "label": "Inference Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L11"}, {"id": "integrations_providers_nous_portal", "label": "Nous Portal", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L63"}, {"id": "integrations_providers_codeblock_1", "label": "code:bash (flash setup --portal     # fresh install \u2014 OAuth + provider )", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L67"}, {"id": "integrations_providers_two_commands_for_model_management", "label": "Two Commands for Model Management", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L96"}, {"id": "integrations_providers_anthropic_native", "label": "Anthropic (Native)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L108"}, {"id": "integrations_providers_codeblock_2", "label": "code:bash (# With an API key (pay-per-token))", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L118"}, {"id": "integrations_providers_codeblock_3", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L138"}, {"id": "integrations_providers_github_copilot", "label": "GitHub Copilot", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L148"}, {"id": "integrations_providers_codeblock_4", "label": "code:bash (flash chat --provider copilot --model gpt-5.4)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L154"}, {"id": "integrations_providers_codeblock_5", "label": "code:bash (flash chat --provider copilot-acp --model copilot-acp)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L195"}, {"id": "integrations_providers_codeblock_6", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L201"}, {"id": "integrations_providers_first_class_api_key_providers", "label": "First-Class API-Key Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L213"}, {"id": "integrations_providers_codeblock_7", "label": "code:bash (# Fireworks AI)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L217"}, {"id": "integrations_providers_codeblock_8", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L271"}, {"id": "integrations_providers_xai_grok_responses_api_prompt_caching", "label": "xAI (Grok) \u2014 Responses API + Prompt Caching", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L283"}, {"id": "integrations_providers_codeblock_9", "label": "code:bash (flash migrate xai          # preview replacements)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L297"}, {"id": "integrations_providers_novitaai", "label": "NovitaAI", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L304"}, {"id": "integrations_providers_codeblock_10", "label": "code:bash (# Use any available model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L308"}, {"id": "integrations_providers_codeblock_11", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L318"}, {"id": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key", "label": "Ollama Cloud \u2014 Managed Ollama Models, OAuth + API Key", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L327"}, {"id": "integrations_providers_codeblock_12", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L331"}, {"id": "integrations_providers_codeblock_13", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L339"}, {"id": "integrations_providers_aws_bedrock", "label": "AWS Bedrock", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L351"}, {"id": "integrations_providers_codeblock_14", "label": "code:bash (# Simplest \u2014 named profile in ~/.aws/credentials)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L355"}, {"id": "integrations_providers_codeblock_15", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L364"}, {"id": "integrations_providers_google_vertex_ai", "label": "Google Vertex AI", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L383"}, {"id": "integrations_providers_codeblock_16", "label": "code:bash (# Service account JSON (recommended for servers / gateways))", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L387"}, {"id": "integrations_providers_codeblock_17", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L397"}, {"id": "integrations_providers_qwen_portal_oauth", "label": "Qwen Portal (OAuth)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L408"}, {"id": "integrations_providers_codeblock_18", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L412"}, {"id": "integrations_providers_codeblock_19", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L422"}, {"id": "integrations_providers_alibaba_cloud_coding_plan", "label": "Alibaba Cloud (Coding Plan)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L434"}, {"id": "integrations_providers_codeblock_20", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L438"}, {"id": "integrations_providers_codeblock_21", "label": "code:bash (flash chat --provider alibaba_coding --model qwen3-coder-plu)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L446"}, {"id": "integrations_providers_minimax_oauth", "label": "MiniMax (OAuth)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L452"}, {"id": "integrations_providers_codeblock_22", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L456"}, {"id": "integrations_providers_codeblock_23", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L466"}, {"id": "integrations_providers_nvidia_nim", "label": "NVIDIA NIM", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L478"}, {"id": "integrations_providers_codeblock_24", "label": "code:bash (# Cloud (build.nvidia.com))", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L482"}, {"id": "integrations_providers_codeblock_25", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L492"}, {"id": "integrations_providers_gmi_cloud", "label": "GMI Cloud", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L504"}, {"id": "integrations_providers_codeblock_26", "label": "code:bash (# GMI Cloud)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L508"}, {"id": "integrations_providers_codeblock_27", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L515"}, {"id": "integrations_providers_stepfun", "label": "StepFun", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L523"}, {"id": "integrations_providers_codeblock_28", "label": "code:bash (# StepFun)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L527"}, {"id": "integrations_providers_codeblock_29", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L534"}, {"id": "integrations_providers_hugging_face_inference_providers", "label": "Hugging Face Inference Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L542"}, {"id": "integrations_providers_codeblock_30", "label": "code:bash (# Use any available model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L546"}, {"id": "integrations_providers_codeblock_31", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L556"}, {"id": "integrations_providers_custom_self_hosted_llm_providers", "label": "Custom & Self-Hosted LLM Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L568"}, {"id": "integrations_providers_general_setup", "label": "General Setup", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L572"}, {"id": "integrations_providers_codeblock_32", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L577"}, {"id": "integrations_providers_codeblock_33", "label": "code:yaml (# In ~/.flash/config.yaml)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L584"}, {"id": "integrations_providers_switching_models_with_model", "label": "Switching Models with `/model`", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L599"}, {"id": "integrations_providers_codeblock_34", "label": "code:block34 (/model custom:qwen-2.5          # Switch to a model on your )", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L611"}, {"id": "integrations_providers_codeblock_35", "label": "code:block35 (/model custom:local:qwen-2.5    # Use the \"local\" custom pro)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L619"}, {"id": "integrations_providers_ollama_local_models_zero_config", "label": "Ollama \u2014 Local Models, Zero Config", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L634"}, {"id": "integrations_providers_codeblock_36", "label": "code:bash (# Install and run a model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L638"}, {"id": "integrations_providers_codeblock_37", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L646"}, {"id": "integrations_providers_codeblock_38", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L656"}, {"id": "integrations_providers_codeblock_39", "label": "code:bash (# Option 1: Set server-wide via environment variable (recomm)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L677"}, {"id": "integrations_providers_codeblock_40", "label": "code:bash (ollama ps)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L696"}, {"id": "integrations_providers_vllm_high_performance_gpu_inference", "label": "vLLM \u2014 High-Performance GPU Inference", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L707"}, {"id": "integrations_providers_codeblock_41", "label": "code:bash (pip install vllm)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L711"}, {"id": "integrations_providers_codeblock_42", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L723"}, {"id": "integrations_providers_sglang_fast_serving_with_radixattention", "label": "SGLang \u2014 Fast Serving with RadixAttention", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L750"}, {"id": "integrations_providers_codeblock_43", "label": "code:bash (pip install \"sglang[all]\")", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L754"}, {"id": "integrations_providers_codeblock_44", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L766"}, {"id": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference", "label": "llama.cpp / llama-server \u2014 CPU & Metal Inference", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L783"}, {"id": "integrations_providers_codeblock_45", "label": "code:bash (# Build and start llama-server)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L787"}, {"id": "integrations_providers_codeblock_46", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L802"}, {"id": "integrations_providers_lm_studio_desktop_app_with_local_models", "label": "LM Studio \u2014 Desktop App with Local Models", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L826"}, {"id": "integrations_providers_codeblock_47", "label": "code:bash (lms server start                        # Starts on port 123)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L832"}, {"id": "integrations_providers_codeblock_48", "label": "code:bash (flash model)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L839"}, {"id": "integrations_providers_wsl2_networking_windows_users", "label": "WSL2 Networking (Windows Users)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L867"}, {"id": "integrations_providers_option_1_mirrored_networking_mode_recommended", "label": "Option 1: Mirrored Networking Mode (Recommended)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L875"}, {"id": "integrations_providers_codeblock_49", "label": "code:ini ([wsl2])", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L880"}, {"id": "integrations_providers_codeblock_50", "label": "code:powershell (wsl --shutdown)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L886"}, {"id": "integrations_providers_codeblock_51", "label": "code:bash (curl http://localhost:11434/v1/models   # Ollama on Windows )", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L891"}, {"id": "integrations_providers_codeblock_52", "label": "code:powershell (Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L897"}, {"id": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "label": "Option 2: Use the Windows Host IP (Windows 10 / older builds)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L902"}, {"id": "integrations_providers_codeblock_53", "label": "code:bash (# Get the Windows host IP (the default gateway of WSL2's vir)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L906"}, {"id": "integrations_providers_codeblock_54", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L914"}, {"id": "integrations_providers_codeblock_55", "label": "code:bash (export WSL_HOST=$(ip route show | grep -i default | awk '{ p)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L923"}, {"id": "integrations_providers_codeblock_56", "label": "code:bash (sudo apt install libnss-mdns)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L930"}, {"id": "integrations_providers_server_bind_address_required_for_nat_mode", "label": "Server Bind Address (Required for NAT Mode)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L936"}, {"id": "integrations_providers_windows_firewall", "label": "Windows Firewall", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L953"}, {"id": "integrations_providers_codeblock_57", "label": "code:powershell (# Run in Admin PowerShell \u2014 replace PORT with your server's )", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L957"}, {"id": "integrations_providers_quick_verification", "label": "Quick Verification", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L964"}, {"id": "integrations_providers_codeblock_58", "label": "code:bash (# Replace URL with your server's address and port)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L968"}, {"id": "integrations_providers_troubleshooting_local_models", "label": "Troubleshooting Local Models", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L978"}, {"id": "integrations_providers_connection_refused_from_wsl2_to_a_windows_hosted_model_server", "label": "\"Connection refused\" from WSL2 to a Windows-hosted model server", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L982"}, {"id": "integrations_providers_tool_calls_appear_as_text_instead_of_executing", "label": "Tool calls appear as text instead of executing", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L986"}, {"id": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses", "label": "Model seems to forget context or give incoherent responses", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1000"}, {"id": "integrations_providers_codeblock_59", "label": "code:bash (# Check what Flash thinks the context is)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1006"}, {"id": "integrations_providers_context_limit_2048_tokens_at_startup", "label": "\"Context limit: 2048 tokens\" at startup", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1018"}, {"id": "integrations_providers_codeblock_60", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1024"}, {"id": "integrations_providers_responses_get_cut_off_mid_sentence", "label": "Responses get cut off mid-sentence", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1032"}, {"id": "integrations_providers_litellm_proxy_multi_provider_gateway", "label": "LiteLLM Proxy \u2014 Multi-Provider Gateway", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1040"}, {"id": "integrations_providers_codeblock_61", "label": "code:bash (# Install and start)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1044"}, {"id": "integrations_providers_codeblock_62", "label": "code:yaml (model_list:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1056"}, {"id": "integrations_providers_clawrouter_cost_optimized_routing", "label": "ClawRouter \u2014 Cost-Optimized Routing", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1072"}, {"id": "integrations_providers_codeblock_63", "label": "code:bash (# Install and start)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1076"}, {"id": "integrations_providers_other_compatible_providers", "label": "Other Compatible Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1098"}, {"id": "integrations_providers_codeblock_64", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1118"}, {"id": "integrations_providers_context_length_detection", "label": "Context Length Detection", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1128"}, {"id": "integrations_providers_codeblock_65", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1155"}, {"id": "integrations_providers_codeblock_66", "label": "code:yaml (custom_providers:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1164"}, {"id": "integrations_providers_named_custom_providers", "label": "Named Custom Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1185"}, {"id": "integrations_providers_codeblock_67", "label": "code:yaml (custom_providers:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1189"}, {"id": "integrations_providers_codeblock_68", "label": "code:yaml (custom_providers:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1206"}, {"id": "integrations_providers_codeblock_69", "label": "code:yaml (extra_body:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1218"}, {"id": "integrations_providers_codeblock_70", "label": "code:yaml (extra_body:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1226"}, {"id": "integrations_providers_codeblock_71", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1236"}, {"id": "integrations_providers_codeblock_72", "label": "code:block72 (/model custom:local:qwen-2.5       # Use the \"local\" endpoin)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1248"}, {"id": "integrations_providers_cookbook_together_ai_groq_perplexity", "label": "Cookbook: Together AI, Groq, Perplexity", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1258"}, {"id": "integrations_providers_together_ai", "label": "Together AI", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1262"}, {"id": "integrations_providers_codeblock_73", "label": "code:yaml (# ~/.flash/config.yaml)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1266"}, {"id": "integrations_providers_codeblock_74", "label": "code:bash (# ~/.flash/.env)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1279"}, {"id": "integrations_providers_codeblock_75", "label": "code:block75 (/model custom:together:meta-llama/Llama-3.3-70B-Instruct-Tur)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1286"}, {"id": "integrations_providers_groq", "label": "Groq", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1294"}, {"id": "integrations_providers_codeblock_76", "label": "code:yaml (# ~/.flash/config.yaml)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1298"}, {"id": "integrations_providers_codeblock_77", "label": "code:bash (# ~/.flash/.env)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1310"}, {"id": "integrations_providers_perplexity", "label": "Perplexity", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1315"}, {"id": "integrations_providers_codeblock_78", "label": "code:yaml (# ~/.flash/config.yaml)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1319"}, {"id": "integrations_providers_codeblock_79", "label": "code:bash (# ~/.flash/.env)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1331"}, {"id": "integrations_providers_multiple_providers_in_one_config", "label": "Multiple providers in one config", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1336"}, {"id": "integrations_providers_codeblock_80", "label": "code:yaml (custom_providers:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1340"}, {"id": "integrations_providers_choosing_the_right_setup", "label": "Choosing the Right Setup", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1365"}, {"id": "integrations_providers_optional_api_keys", "label": "Optional API Keys", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1383"}, {"id": "integrations_providers_self_hosting_firecrawl", "label": "Self-Hosting Firecrawl", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1396"}, {"id": "integrations_providers_codeblock_81", "label": "code:bash (git clone https://github.com/firecrawl/firecrawl)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1407"}, {"id": "integrations_providers_codeblock_82", "label": "code:bash (flash config set FIRECRAWL_API_URL http://localhost:3002)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1415"}, {"id": "integrations_providers_openrouter_provider_routing", "label": "OpenRouter Provider Routing", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1421"}, {"id": "integrations_providers_codeblock_83", "label": "code:yaml (provider_routing:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1425"}, {"id": "integrations_providers_openrouter_pareto_code_router", "label": "OpenRouter Pareto Code Router", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1437"}, {"id": "integrations_providers_codeblock_84", "label": "code:yaml (model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1441"}, {"id": "integrations_providers_fallback_providers", "label": "Fallback Providers", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1458"}, {"id": "integrations_providers_codeblock_85", "label": "code:yaml (fallback_providers:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1462"}, {"id": "integrations_providers_codeblock_86", "label": "code:yaml (fallback_model:)", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1474"}, {"id": "integrations_providers_see_also", "label": "See Also", "file_type": "document", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1490"}], "edges": [{"source": "users_roshinpv_documents_my_projects_flash_website_docs_integrations_providers_md", "target": "integrations_providers_ai_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L7", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_inference_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L11", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_nous_portal", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L63", "weight": 1.0}, {"source": "integrations_providers_nous_portal", "target": "integrations_providers_codeblock_1", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L67", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_two_commands_for_model_management", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L96", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_anthropic_native", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L108", "weight": 1.0}, {"source": "integrations_providers_anthropic_native", "target": "integrations_providers_codeblock_2", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L118", "weight": 1.0}, {"source": "integrations_providers_anthropic_native", "target": "integrations_providers_codeblock_3", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L138", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_github_copilot", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L148", "weight": 1.0}, {"source": "integrations_providers_github_copilot", "target": "integrations_providers_codeblock_4", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L154", "weight": 1.0}, {"source": "integrations_providers_github_copilot", "target": "integrations_providers_codeblock_5", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L195", "weight": 1.0}, {"source": "integrations_providers_github_copilot", "target": "integrations_providers_codeblock_6", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L201", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_first_class_api_key_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L213", "weight": 1.0}, {"source": "integrations_providers_first_class_api_key_providers", "target": "integrations_providers_codeblock_7", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L217", "weight": 1.0}, {"source": "integrations_providers_first_class_api_key_providers", "target": "integrations_providers_codeblock_8", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L271", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_xai_grok_responses_api_prompt_caching", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L283", "weight": 1.0}, {"source": "integrations_providers_xai_grok_responses_api_prompt_caching", "target": "integrations_providers_codeblock_9", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L297", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_novitaai", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L304", "weight": 1.0}, {"source": "integrations_providers_novitaai", "target": "integrations_providers_codeblock_10", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L308", "weight": 1.0}, {"source": "integrations_providers_novitaai", "target": "integrations_providers_codeblock_11", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L318", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L327", "weight": 1.0}, {"source": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key", "target": "integrations_providers_codeblock_12", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L331", "weight": 1.0}, {"source": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key", "target": "integrations_providers_codeblock_13", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L339", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_aws_bedrock", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L351", "weight": 1.0}, {"source": "integrations_providers_aws_bedrock", "target": "integrations_providers_codeblock_14", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L355", "weight": 1.0}, {"source": "integrations_providers_aws_bedrock", "target": "integrations_providers_codeblock_15", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L364", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_google_vertex_ai", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L383", "weight": 1.0}, {"source": "integrations_providers_google_vertex_ai", "target": "integrations_providers_codeblock_16", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L387", "weight": 1.0}, {"source": "integrations_providers_google_vertex_ai", "target": "integrations_providers_codeblock_17", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L397", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_qwen_portal_oauth", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L408", "weight": 1.0}, {"source": "integrations_providers_qwen_portal_oauth", "target": "integrations_providers_codeblock_18", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L412", "weight": 1.0}, {"source": "integrations_providers_qwen_portal_oauth", "target": "integrations_providers_codeblock_19", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L422", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_alibaba_cloud_coding_plan", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L434", "weight": 1.0}, {"source": "integrations_providers_alibaba_cloud_coding_plan", "target": "integrations_providers_codeblock_20", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L438", "weight": 1.0}, {"source": "integrations_providers_alibaba_cloud_coding_plan", "target": "integrations_providers_codeblock_21", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L446", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_minimax_oauth", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L452", "weight": 1.0}, {"source": "integrations_providers_minimax_oauth", "target": "integrations_providers_codeblock_22", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L456", "weight": 1.0}, {"source": "integrations_providers_minimax_oauth", "target": "integrations_providers_codeblock_23", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L466", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_nvidia_nim", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L478", "weight": 1.0}, {"source": "integrations_providers_nvidia_nim", "target": "integrations_providers_codeblock_24", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L482", "weight": 1.0}, {"source": "integrations_providers_nvidia_nim", "target": "integrations_providers_codeblock_25", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L492", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_gmi_cloud", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L504", "weight": 1.0}, {"source": "integrations_providers_gmi_cloud", "target": "integrations_providers_codeblock_26", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L508", "weight": 1.0}, {"source": "integrations_providers_gmi_cloud", "target": "integrations_providers_codeblock_27", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L515", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_stepfun", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L523", "weight": 1.0}, {"source": "integrations_providers_stepfun", "target": "integrations_providers_codeblock_28", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L527", "weight": 1.0}, {"source": "integrations_providers_stepfun", "target": "integrations_providers_codeblock_29", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L534", "weight": 1.0}, {"source": "integrations_providers_inference_providers", "target": "integrations_providers_hugging_face_inference_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L542", "weight": 1.0}, {"source": "integrations_providers_hugging_face_inference_providers", "target": "integrations_providers_codeblock_30", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L546", "weight": 1.0}, {"source": "integrations_providers_hugging_face_inference_providers", "target": "integrations_providers_codeblock_31", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L556", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_custom_self_hosted_llm_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L568", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_general_setup", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L572", "weight": 1.0}, {"source": "integrations_providers_general_setup", "target": "integrations_providers_codeblock_32", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L577", "weight": 1.0}, {"source": "integrations_providers_general_setup", "target": "integrations_providers_codeblock_33", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L584", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_switching_models_with_model", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L599", "weight": 1.0}, {"source": "integrations_providers_switching_models_with_model", "target": "integrations_providers_codeblock_34", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L611", "weight": 1.0}, {"source": "integrations_providers_switching_models_with_model", "target": "integrations_providers_codeblock_35", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L619", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_ollama_local_models_zero_config", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L634", "weight": 1.0}, {"source": "integrations_providers_ollama_local_models_zero_config", "target": "integrations_providers_codeblock_36", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L638", "weight": 1.0}, {"source": "integrations_providers_ollama_local_models_zero_config", "target": "integrations_providers_codeblock_37", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L646", "weight": 1.0}, {"source": "integrations_providers_ollama_local_models_zero_config", "target": "integrations_providers_codeblock_38", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L656", "weight": 1.0}, {"source": "integrations_providers_ollama_local_models_zero_config", "target": "integrations_providers_codeblock_39", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L677", "weight": 1.0}, {"source": "integrations_providers_ollama_local_models_zero_config", "target": "integrations_providers_codeblock_40", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L696", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_vllm_high_performance_gpu_inference", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L707", "weight": 1.0}, {"source": "integrations_providers_vllm_high_performance_gpu_inference", "target": "integrations_providers_codeblock_41", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L711", "weight": 1.0}, {"source": "integrations_providers_vllm_high_performance_gpu_inference", "target": "integrations_providers_codeblock_42", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L723", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_sglang_fast_serving_with_radixattention", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L750", "weight": 1.0}, {"source": "integrations_providers_sglang_fast_serving_with_radixattention", "target": "integrations_providers_codeblock_43", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L754", "weight": 1.0}, {"source": "integrations_providers_sglang_fast_serving_with_radixattention", "target": "integrations_providers_codeblock_44", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L766", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L783", "weight": 1.0}, {"source": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference", "target": "integrations_providers_codeblock_45", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L787", "weight": 1.0}, {"source": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference", "target": "integrations_providers_codeblock_46", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L802", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_lm_studio_desktop_app_with_local_models", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L826", "weight": 1.0}, {"source": "integrations_providers_lm_studio_desktop_app_with_local_models", "target": "integrations_providers_codeblock_47", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L832", "weight": 1.0}, {"source": "integrations_providers_lm_studio_desktop_app_with_local_models", "target": "integrations_providers_codeblock_48", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L839", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_wsl2_networking_windows_users", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L867", "weight": 1.0}, {"source": "integrations_providers_wsl2_networking_windows_users", "target": "integrations_providers_option_1_mirrored_networking_mode_recommended", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L875", "weight": 1.0}, {"source": "integrations_providers_option_1_mirrored_networking_mode_recommended", "target": "integrations_providers_codeblock_49", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L880", "weight": 1.0}, {"source": "integrations_providers_option_1_mirrored_networking_mode_recommended", "target": "integrations_providers_codeblock_50", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L886", "weight": 1.0}, {"source": "integrations_providers_option_1_mirrored_networking_mode_recommended", "target": "integrations_providers_codeblock_51", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L891", "weight": 1.0}, {"source": "integrations_providers_option_1_mirrored_networking_mode_recommended", "target": "integrations_providers_codeblock_52", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L897", "weight": 1.0}, {"source": "integrations_providers_wsl2_networking_windows_users", "target": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L902", "weight": 1.0}, {"source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "target": "integrations_providers_codeblock_53", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L906", "weight": 1.0}, {"source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "target": "integrations_providers_codeblock_54", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L914", "weight": 1.0}, {"source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "target": "integrations_providers_codeblock_55", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L923", "weight": 1.0}, {"source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds", "target": "integrations_providers_codeblock_56", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L930", "weight": 1.0}, {"source": "integrations_providers_wsl2_networking_windows_users", "target": "integrations_providers_server_bind_address_required_for_nat_mode", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L936", "weight": 1.0}, {"source": "integrations_providers_wsl2_networking_windows_users", "target": "integrations_providers_windows_firewall", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L953", "weight": 1.0}, {"source": "integrations_providers_windows_firewall", "target": "integrations_providers_codeblock_57", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L957", "weight": 1.0}, {"source": "integrations_providers_wsl2_networking_windows_users", "target": "integrations_providers_quick_verification", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L964", "weight": 1.0}, {"source": "integrations_providers_quick_verification", "target": "integrations_providers_codeblock_58", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L968", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_troubleshooting_local_models", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L978", "weight": 1.0}, {"source": "integrations_providers_troubleshooting_local_models", "target": "integrations_providers_connection_refused_from_wsl2_to_a_windows_hosted_model_server", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L982", "weight": 1.0}, {"source": "integrations_providers_troubleshooting_local_models", "target": "integrations_providers_tool_calls_appear_as_text_instead_of_executing", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L986", "weight": 1.0}, {"source": "integrations_providers_troubleshooting_local_models", "target": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1000", "weight": 1.0}, {"source": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses", "target": "integrations_providers_codeblock_59", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1006", "weight": 1.0}, {"source": "integrations_providers_troubleshooting_local_models", "target": "integrations_providers_context_limit_2048_tokens_at_startup", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1018", "weight": 1.0}, {"source": "integrations_providers_context_limit_2048_tokens_at_startup", "target": "integrations_providers_codeblock_60", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1024", "weight": 1.0}, {"source": "integrations_providers_troubleshooting_local_models", "target": "integrations_providers_responses_get_cut_off_mid_sentence", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1032", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_litellm_proxy_multi_provider_gateway", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1040", "weight": 1.0}, {"source": "integrations_providers_litellm_proxy_multi_provider_gateway", "target": "integrations_providers_codeblock_61", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1044", "weight": 1.0}, {"source": "integrations_providers_litellm_proxy_multi_provider_gateway", "target": "integrations_providers_codeblock_62", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1056", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_clawrouter_cost_optimized_routing", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1072", "weight": 1.0}, {"source": "integrations_providers_clawrouter_cost_optimized_routing", "target": "integrations_providers_codeblock_63", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1076", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_other_compatible_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1098", "weight": 1.0}, {"source": "integrations_providers_other_compatible_providers", "target": "integrations_providers_codeblock_64", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1118", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_context_length_detection", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1128", "weight": 1.0}, {"source": "integrations_providers_context_length_detection", "target": "integrations_providers_codeblock_65", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1155", "weight": 1.0}, {"source": "integrations_providers_context_length_detection", "target": "integrations_providers_codeblock_66", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1164", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_named_custom_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1185", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_67", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1189", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_68", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1206", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_69", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1218", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_70", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1226", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_71", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1236", "weight": 1.0}, {"source": "integrations_providers_named_custom_providers", "target": "integrations_providers_codeblock_72", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1248", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_cookbook_together_ai_groq_perplexity", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1258", "weight": 1.0}, {"source": "integrations_providers_cookbook_together_ai_groq_perplexity", "target": "integrations_providers_together_ai", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1262", "weight": 1.0}, {"source": "integrations_providers_together_ai", "target": "integrations_providers_codeblock_73", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1266", "weight": 1.0}, {"source": "integrations_providers_together_ai", "target": "integrations_providers_codeblock_74", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1279", "weight": 1.0}, {"source": "integrations_providers_together_ai", "target": "integrations_providers_codeblock_75", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1286", "weight": 1.0}, {"source": "integrations_providers_cookbook_together_ai_groq_perplexity", "target": "integrations_providers_groq", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1294", "weight": 1.0}, {"source": "integrations_providers_groq", "target": "integrations_providers_codeblock_76", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1298", "weight": 1.0}, {"source": "integrations_providers_groq", "target": "integrations_providers_codeblock_77", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1310", "weight": 1.0}, {"source": "integrations_providers_cookbook_together_ai_groq_perplexity", "target": "integrations_providers_perplexity", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1315", "weight": 1.0}, {"source": "integrations_providers_perplexity", "target": "integrations_providers_codeblock_78", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1319", "weight": 1.0}, {"source": "integrations_providers_perplexity", "target": "integrations_providers_codeblock_79", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1331", "weight": 1.0}, {"source": "integrations_providers_cookbook_together_ai_groq_perplexity", "target": "integrations_providers_multiple_providers_in_one_config", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1336", "weight": 1.0}, {"source": "integrations_providers_multiple_providers_in_one_config", "target": "integrations_providers_codeblock_80", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1340", "weight": 1.0}, {"source": "integrations_providers_custom_self_hosted_llm_providers", "target": "integrations_providers_choosing_the_right_setup", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1365", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_optional_api_keys", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1383", "weight": 1.0}, {"source": "integrations_providers_optional_api_keys", "target": "integrations_providers_self_hosting_firecrawl", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1396", "weight": 1.0}, {"source": "integrations_providers_self_hosting_firecrawl", "target": "integrations_providers_codeblock_81", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1407", "weight": 1.0}, {"source": "integrations_providers_self_hosting_firecrawl", "target": "integrations_providers_codeblock_82", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1415", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_openrouter_provider_routing", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1421", "weight": 1.0}, {"source": "integrations_providers_openrouter_provider_routing", "target": "integrations_providers_codeblock_83", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1425", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_openrouter_pareto_code_router", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1437", "weight": 1.0}, {"source": "integrations_providers_openrouter_pareto_code_router", "target": "integrations_providers_codeblock_84", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1441", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_fallback_providers", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1458", "weight": 1.0}, {"source": "integrations_providers_fallback_providers", "target": "integrations_providers_codeblock_85", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1462", "weight": 1.0}, {"source": "integrations_providers_fallback_providers", "target": "integrations_providers_codeblock_86", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1474", "weight": 1.0}, {"source": "integrations_providers_ai_providers", "target": "integrations_providers_see_also", "relation": "contains", "confidence": "EXTRACTED", "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md", "source_location": "L1490", "weight": 1.0}], "input_tokens": 0, "output_tokens": 0}
+{
+    "nodes": [
+        {
+            "id": "users_roshinpv_documents_my_projects_flash_website_docs_integrations_providers_md",
+            "label": "providers.md",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1"
+        },
+        {
+            "id": "integrations_providers_ai_providers",
+            "label": "AI Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L7"
+        },
+        {
+            "id": "integrations_providers_inference_providers",
+            "label": "Inference Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L11"
+        },
+        {
+            "id": "integrations_providers_nous_portal",
+            "label": "FlashPortal",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L63"
+        },
+        {
+            "id": "integrations_providers_codeblock_1",
+            "label": "code:bash (flash setup --portal     # fresh install \u2014 OAuth + provider )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L67"
+        },
+        {
+            "id": "integrations_providers_two_commands_for_model_management",
+            "label": "Two Commands for Model Management",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L96"
+        },
+        {
+            "id": "integrations_providers_anthropic_native",
+            "label": "Anthropic (Native)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L108"
+        },
+        {
+            "id": "integrations_providers_codeblock_2",
+            "label": "code:bash (# With an API key (pay-per-token))",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L118"
+        },
+        {
+            "id": "integrations_providers_codeblock_3",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L138"
+        },
+        {
+            "id": "integrations_providers_github_copilot",
+            "label": "GitHub Copilot",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L148"
+        },
+        {
+            "id": "integrations_providers_codeblock_4",
+            "label": "code:bash (flash chat --provider copilot --model gpt-5.4)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L154"
+        },
+        {
+            "id": "integrations_providers_codeblock_5",
+            "label": "code:bash (flash chat --provider copilot-acp --model copilot-acp)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L195"
+        },
+        {
+            "id": "integrations_providers_codeblock_6",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L201"
+        },
+        {
+            "id": "integrations_providers_first_class_api_key_providers",
+            "label": "First-Class API-Key Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L213"
+        },
+        {
+            "id": "integrations_providers_codeblock_7",
+            "label": "code:bash (# Fireworks AI)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L217"
+        },
+        {
+            "id": "integrations_providers_codeblock_8",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L271"
+        },
+        {
+            "id": "integrations_providers_xai_grok_responses_api_prompt_caching",
+            "label": "xAI (Grok) \u2014 Responses API + Prompt Caching",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L283"
+        },
+        {
+            "id": "integrations_providers_codeblock_9",
+            "label": "code:bash (flash migrate xai          # preview replacements)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L297"
+        },
+        {
+            "id": "integrations_providers_novitaai",
+            "label": "NovitaAI",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L304"
+        },
+        {
+            "id": "integrations_providers_codeblock_10",
+            "label": "code:bash (# Use any available model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L308"
+        },
+        {
+            "id": "integrations_providers_codeblock_11",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L318"
+        },
+        {
+            "id": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key",
+            "label": "Ollama Cloud \u2014 Managed Ollama Models, OAuth + API Key",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L327"
+        },
+        {
+            "id": "integrations_providers_codeblock_12",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L331"
+        },
+        {
+            "id": "integrations_providers_codeblock_13",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L339"
+        },
+        {
+            "id": "integrations_providers_aws_bedrock",
+            "label": "AWS Bedrock",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L351"
+        },
+        {
+            "id": "integrations_providers_codeblock_14",
+            "label": "code:bash (# Simplest \u2014 named profile in ~/.aws/credentials)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L355"
+        },
+        {
+            "id": "integrations_providers_codeblock_15",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L364"
+        },
+        {
+            "id": "integrations_providers_google_vertex_ai",
+            "label": "Google Vertex AI",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L383"
+        },
+        {
+            "id": "integrations_providers_codeblock_16",
+            "label": "code:bash (# Service account JSON (recommended for servers / gateways))",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L387"
+        },
+        {
+            "id": "integrations_providers_codeblock_17",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L397"
+        },
+        {
+            "id": "integrations_providers_qwen_portal_oauth",
+            "label": "Qwen Portal (OAuth)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L408"
+        },
+        {
+            "id": "integrations_providers_codeblock_18",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L412"
+        },
+        {
+            "id": "integrations_providers_codeblock_19",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L422"
+        },
+        {
+            "id": "integrations_providers_alibaba_cloud_coding_plan",
+            "label": "Alibaba Cloud (Coding Plan)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L434"
+        },
+        {
+            "id": "integrations_providers_codeblock_20",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L438"
+        },
+        {
+            "id": "integrations_providers_codeblock_21",
+            "label": "code:bash (flash chat --provider alibaba_coding --model qwen3-coder-plu)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L446"
+        },
+        {
+            "id": "integrations_providers_minimax_oauth",
+            "label": "MiniMax (OAuth)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L452"
+        },
+        {
+            "id": "integrations_providers_codeblock_22",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L456"
+        },
+        {
+            "id": "integrations_providers_codeblock_23",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L466"
+        },
+        {
+            "id": "integrations_providers_nvidia_nim",
+            "label": "NVIDIA NIM",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L478"
+        },
+        {
+            "id": "integrations_providers_codeblock_24",
+            "label": "code:bash (# Cloud (build.nvidia.com))",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L482"
+        },
+        {
+            "id": "integrations_providers_codeblock_25",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L492"
+        },
+        {
+            "id": "integrations_providers_gmi_cloud",
+            "label": "GMI Cloud",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L504"
+        },
+        {
+            "id": "integrations_providers_codeblock_26",
+            "label": "code:bash (# GMI Cloud)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L508"
+        },
+        {
+            "id": "integrations_providers_codeblock_27",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L515"
+        },
+        {
+            "id": "integrations_providers_stepfun",
+            "label": "StepFun",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L523"
+        },
+        {
+            "id": "integrations_providers_codeblock_28",
+            "label": "code:bash (# StepFun)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L527"
+        },
+        {
+            "id": "integrations_providers_codeblock_29",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L534"
+        },
+        {
+            "id": "integrations_providers_hugging_face_inference_providers",
+            "label": "Hugging Face Inference Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L542"
+        },
+        {
+            "id": "integrations_providers_codeblock_30",
+            "label": "code:bash (# Use any available model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L546"
+        },
+        {
+            "id": "integrations_providers_codeblock_31",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L556"
+        },
+        {
+            "id": "integrations_providers_custom_self_hosted_llm_providers",
+            "label": "Custom & Self-Hosted LLM Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L568"
+        },
+        {
+            "id": "integrations_providers_general_setup",
+            "label": "General Setup",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L572"
+        },
+        {
+            "id": "integrations_providers_codeblock_32",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L577"
+        },
+        {
+            "id": "integrations_providers_codeblock_33",
+            "label": "code:yaml (# In ~/.flash/config.yaml)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L584"
+        },
+        {
+            "id": "integrations_providers_switching_models_with_model",
+            "label": "Switching Models with `/model`",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L599"
+        },
+        {
+            "id": "integrations_providers_codeblock_34",
+            "label": "code:block34 (/model custom:qwen-2.5          # Switch to a model on your )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L611"
+        },
+        {
+            "id": "integrations_providers_codeblock_35",
+            "label": "code:block35 (/model custom:local:qwen-2.5    # Use the \"local\" custom pro)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L619"
+        },
+        {
+            "id": "integrations_providers_ollama_local_models_zero_config",
+            "label": "Ollama \u2014 Local Models, Zero Config",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L634"
+        },
+        {
+            "id": "integrations_providers_codeblock_36",
+            "label": "code:bash (# Install and run a model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L638"
+        },
+        {
+            "id": "integrations_providers_codeblock_37",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L646"
+        },
+        {
+            "id": "integrations_providers_codeblock_38",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L656"
+        },
+        {
+            "id": "integrations_providers_codeblock_39",
+            "label": "code:bash (# Option 1: Set server-wide via environment variable (recomm)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L677"
+        },
+        {
+            "id": "integrations_providers_codeblock_40",
+            "label": "code:bash (ollama ps)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L696"
+        },
+        {
+            "id": "integrations_providers_vllm_high_performance_gpu_inference",
+            "label": "vLLM \u2014 High-Performance GPU Inference",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L707"
+        },
+        {
+            "id": "integrations_providers_codeblock_41",
+            "label": "code:bash (pip install vllm)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L711"
+        },
+        {
+            "id": "integrations_providers_codeblock_42",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L723"
+        },
+        {
+            "id": "integrations_providers_sglang_fast_serving_with_radixattention",
+            "label": "SGLang \u2014 Fast Serving with RadixAttention",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L750"
+        },
+        {
+            "id": "integrations_providers_codeblock_43",
+            "label": "code:bash (pip install \"sglang[all]\")",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L754"
+        },
+        {
+            "id": "integrations_providers_codeblock_44",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L766"
+        },
+        {
+            "id": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference",
+            "label": "llama.cpp / llama-server \u2014 CPU & Metal Inference",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L783"
+        },
+        {
+            "id": "integrations_providers_codeblock_45",
+            "label": "code:bash (# Build and start llama-server)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L787"
+        },
+        {
+            "id": "integrations_providers_codeblock_46",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L802"
+        },
+        {
+            "id": "integrations_providers_lm_studio_desktop_app_with_local_models",
+            "label": "LM Studio \u2014 Desktop App with Local Models",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L826"
+        },
+        {
+            "id": "integrations_providers_codeblock_47",
+            "label": "code:bash (lms server start                        # Starts on port 123)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L832"
+        },
+        {
+            "id": "integrations_providers_codeblock_48",
+            "label": "code:bash (flash model)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L839"
+        },
+        {
+            "id": "integrations_providers_wsl2_networking_windows_users",
+            "label": "WSL2 Networking (Windows Users)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L867"
+        },
+        {
+            "id": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "label": "Option 1: Mirrored Networking Mode (Recommended)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L875"
+        },
+        {
+            "id": "integrations_providers_codeblock_49",
+            "label": "code:ini ([wsl2])",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L880"
+        },
+        {
+            "id": "integrations_providers_codeblock_50",
+            "label": "code:powershell (wsl --shutdown)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L886"
+        },
+        {
+            "id": "integrations_providers_codeblock_51",
+            "label": "code:bash (curl http://localhost:11434/v1/models   # Ollama on Windows )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L891"
+        },
+        {
+            "id": "integrations_providers_codeblock_52",
+            "label": "code:powershell (Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L897"
+        },
+        {
+            "id": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "label": "Option 2: Use the Windows Host IP (Windows 10 / older builds)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L902"
+        },
+        {
+            "id": "integrations_providers_codeblock_53",
+            "label": "code:bash (# Get the Windows host IP (the default gateway of WSL2's vir)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L906"
+        },
+        {
+            "id": "integrations_providers_codeblock_54",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L914"
+        },
+        {
+            "id": "integrations_providers_codeblock_55",
+            "label": "code:bash (export WSL_HOST=$(ip route show | grep -i default | awk '{ p)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L923"
+        },
+        {
+            "id": "integrations_providers_codeblock_56",
+            "label": "code:bash (sudo apt install libnss-mdns)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L930"
+        },
+        {
+            "id": "integrations_providers_server_bind_address_required_for_nat_mode",
+            "label": "Server Bind Address (Required for NAT Mode)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L936"
+        },
+        {
+            "id": "integrations_providers_windows_firewall",
+            "label": "Windows Firewall",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L953"
+        },
+        {
+            "id": "integrations_providers_codeblock_57",
+            "label": "code:powershell (# Run in Admin PowerShell \u2014 replace PORT with your server's )",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L957"
+        },
+        {
+            "id": "integrations_providers_quick_verification",
+            "label": "Quick Verification",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L964"
+        },
+        {
+            "id": "integrations_providers_codeblock_58",
+            "label": "code:bash (# Replace URL with your server's address and port)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L968"
+        },
+        {
+            "id": "integrations_providers_troubleshooting_local_models",
+            "label": "Troubleshooting Local Models",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L978"
+        },
+        {
+            "id": "integrations_providers_connection_refused_from_wsl2_to_a_windows_hosted_model_server",
+            "label": "\"Connection refused\" from WSL2 to a Windows-hosted model server",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L982"
+        },
+        {
+            "id": "integrations_providers_tool_calls_appear_as_text_instead_of_executing",
+            "label": "Tool calls appear as text instead of executing",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L986"
+        },
+        {
+            "id": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses",
+            "label": "Model seems to forget context or give incoherent responses",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1000"
+        },
+        {
+            "id": "integrations_providers_codeblock_59",
+            "label": "code:bash (# Check what Flash thinks the context is)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1006"
+        },
+        {
+            "id": "integrations_providers_context_limit_2048_tokens_at_startup",
+            "label": "\"Context limit: 2048 tokens\" at startup",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1018"
+        },
+        {
+            "id": "integrations_providers_codeblock_60",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1024"
+        },
+        {
+            "id": "integrations_providers_responses_get_cut_off_mid_sentence",
+            "label": "Responses get cut off mid-sentence",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1032"
+        },
+        {
+            "id": "integrations_providers_litellm_proxy_multi_provider_gateway",
+            "label": "LiteLLM Proxy \u2014 Multi-Provider Gateway",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1040"
+        },
+        {
+            "id": "integrations_providers_codeblock_61",
+            "label": "code:bash (# Install and start)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1044"
+        },
+        {
+            "id": "integrations_providers_codeblock_62",
+            "label": "code:yaml (model_list:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1056"
+        },
+        {
+            "id": "integrations_providers_clawrouter_cost_optimized_routing",
+            "label": "ClawRouter \u2014 Cost-Optimized Routing",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1072"
+        },
+        {
+            "id": "integrations_providers_codeblock_63",
+            "label": "code:bash (# Install and start)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1076"
+        },
+        {
+            "id": "integrations_providers_other_compatible_providers",
+            "label": "Other Compatible Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1098"
+        },
+        {
+            "id": "integrations_providers_codeblock_64",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1118"
+        },
+        {
+            "id": "integrations_providers_context_length_detection",
+            "label": "Context Length Detection",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1128"
+        },
+        {
+            "id": "integrations_providers_codeblock_65",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1155"
+        },
+        {
+            "id": "integrations_providers_codeblock_66",
+            "label": "code:yaml (custom_providers:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1164"
+        },
+        {
+            "id": "integrations_providers_named_custom_providers",
+            "label": "Named Custom Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1185"
+        },
+        {
+            "id": "integrations_providers_codeblock_67",
+            "label": "code:yaml (custom_providers:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1189"
+        },
+        {
+            "id": "integrations_providers_codeblock_68",
+            "label": "code:yaml (custom_providers:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1206"
+        },
+        {
+            "id": "integrations_providers_codeblock_69",
+            "label": "code:yaml (extra_body:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1218"
+        },
+        {
+            "id": "integrations_providers_codeblock_70",
+            "label": "code:yaml (extra_body:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1226"
+        },
+        {
+            "id": "integrations_providers_codeblock_71",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1236"
+        },
+        {
+            "id": "integrations_providers_codeblock_72",
+            "label": "code:block72 (/model custom:local:qwen-2.5       # Use the \"local\" endpoin)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1248"
+        },
+        {
+            "id": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "label": "Cookbook: Together AI, Groq, Perplexity",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1258"
+        },
+        {
+            "id": "integrations_providers_together_ai",
+            "label": "Together AI",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1262"
+        },
+        {
+            "id": "integrations_providers_codeblock_73",
+            "label": "code:yaml (# ~/.flash/config.yaml)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1266"
+        },
+        {
+            "id": "integrations_providers_codeblock_74",
+            "label": "code:bash (# ~/.flash/.env)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1279"
+        },
+        {
+            "id": "integrations_providers_codeblock_75",
+            "label": "code:block75 (/model custom:together:meta-llama/Llama-3.3-70B-Instruct-Tur)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1286"
+        },
+        {
+            "id": "integrations_providers_groq",
+            "label": "Groq",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1294"
+        },
+        {
+            "id": "integrations_providers_codeblock_76",
+            "label": "code:yaml (# ~/.flash/config.yaml)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1298"
+        },
+        {
+            "id": "integrations_providers_codeblock_77",
+            "label": "code:bash (# ~/.flash/.env)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1310"
+        },
+        {
+            "id": "integrations_providers_perplexity",
+            "label": "Perplexity",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1315"
+        },
+        {
+            "id": "integrations_providers_codeblock_78",
+            "label": "code:yaml (# ~/.flash/config.yaml)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1319"
+        },
+        {
+            "id": "integrations_providers_codeblock_79",
+            "label": "code:bash (# ~/.flash/.env)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1331"
+        },
+        {
+            "id": "integrations_providers_multiple_providers_in_one_config",
+            "label": "Multiple providers in one config",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1336"
+        },
+        {
+            "id": "integrations_providers_codeblock_80",
+            "label": "code:yaml (custom_providers:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1340"
+        },
+        {
+            "id": "integrations_providers_choosing_the_right_setup",
+            "label": "Choosing the Right Setup",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1365"
+        },
+        {
+            "id": "integrations_providers_optional_api_keys",
+            "label": "Optional API Keys",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1383"
+        },
+        {
+            "id": "integrations_providers_self_hosting_firecrawl",
+            "label": "Self-Hosting Firecrawl",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1396"
+        },
+        {
+            "id": "integrations_providers_codeblock_81",
+            "label": "code:bash (git clone https://github.com/firecrawl/firecrawl)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1407"
+        },
+        {
+            "id": "integrations_providers_codeblock_82",
+            "label": "code:bash (flash config set FIRECRAWL_API_URL http://localhost:3002)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1415"
+        },
+        {
+            "id": "integrations_providers_openrouter_provider_routing",
+            "label": "OpenRouter Provider Routing",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1421"
+        },
+        {
+            "id": "integrations_providers_codeblock_83",
+            "label": "code:yaml (provider_routing:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1425"
+        },
+        {
+            "id": "integrations_providers_openrouter_pareto_code_router",
+            "label": "OpenRouter Pareto Code Router",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1437"
+        },
+        {
+            "id": "integrations_providers_codeblock_84",
+            "label": "code:yaml (model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1441"
+        },
+        {
+            "id": "integrations_providers_fallback_providers",
+            "label": "Fallback Providers",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1458"
+        },
+        {
+            "id": "integrations_providers_codeblock_85",
+            "label": "code:yaml (fallback_providers:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1462"
+        },
+        {
+            "id": "integrations_providers_codeblock_86",
+            "label": "code:yaml (fallback_model:)",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1474"
+        },
+        {
+            "id": "integrations_providers_see_also",
+            "label": "See Also",
+            "file_type": "document",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1490"
+        }
+    ],
+    "edges": [
+        {
+            "source": "users_roshinpv_documents_my_projects_flash_website_docs_integrations_providers_md",
+            "target": "integrations_providers_ai_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L7",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_inference_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L11",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_nous_portal",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L63",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_nous_portal",
+            "target": "integrations_providers_codeblock_1",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L67",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_two_commands_for_model_management",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L96",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_anthropic_native",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L108",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_anthropic_native",
+            "target": "integrations_providers_codeblock_2",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L118",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_anthropic_native",
+            "target": "integrations_providers_codeblock_3",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L138",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_github_copilot",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L148",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_github_copilot",
+            "target": "integrations_providers_codeblock_4",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L154",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_github_copilot",
+            "target": "integrations_providers_codeblock_5",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L195",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_github_copilot",
+            "target": "integrations_providers_codeblock_6",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L201",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_first_class_api_key_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L213",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_first_class_api_key_providers",
+            "target": "integrations_providers_codeblock_7",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L217",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_first_class_api_key_providers",
+            "target": "integrations_providers_codeblock_8",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L271",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_xai_grok_responses_api_prompt_caching",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L283",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_xai_grok_responses_api_prompt_caching",
+            "target": "integrations_providers_codeblock_9",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L297",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_novitaai",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L304",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_novitaai",
+            "target": "integrations_providers_codeblock_10",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L308",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_novitaai",
+            "target": "integrations_providers_codeblock_11",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L318",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L327",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key",
+            "target": "integrations_providers_codeblock_12",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L331",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_cloud_managed_ollama_models_oauth_api_key",
+            "target": "integrations_providers_codeblock_13",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L339",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_aws_bedrock",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L351",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_aws_bedrock",
+            "target": "integrations_providers_codeblock_14",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L355",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_aws_bedrock",
+            "target": "integrations_providers_codeblock_15",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L364",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_google_vertex_ai",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L383",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_google_vertex_ai",
+            "target": "integrations_providers_codeblock_16",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L387",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_google_vertex_ai",
+            "target": "integrations_providers_codeblock_17",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L397",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_qwen_portal_oauth",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L408",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_qwen_portal_oauth",
+            "target": "integrations_providers_codeblock_18",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L412",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_qwen_portal_oauth",
+            "target": "integrations_providers_codeblock_19",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L422",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_alibaba_cloud_coding_plan",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L434",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_alibaba_cloud_coding_plan",
+            "target": "integrations_providers_codeblock_20",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L438",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_alibaba_cloud_coding_plan",
+            "target": "integrations_providers_codeblock_21",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L446",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_minimax_oauth",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L452",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_minimax_oauth",
+            "target": "integrations_providers_codeblock_22",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L456",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_minimax_oauth",
+            "target": "integrations_providers_codeblock_23",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L466",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_nvidia_nim",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L478",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_nvidia_nim",
+            "target": "integrations_providers_codeblock_24",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L482",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_nvidia_nim",
+            "target": "integrations_providers_codeblock_25",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L492",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_gmi_cloud",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L504",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_gmi_cloud",
+            "target": "integrations_providers_codeblock_26",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L508",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_gmi_cloud",
+            "target": "integrations_providers_codeblock_27",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L515",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_stepfun",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L523",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_stepfun",
+            "target": "integrations_providers_codeblock_28",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L527",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_stepfun",
+            "target": "integrations_providers_codeblock_29",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L534",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_inference_providers",
+            "target": "integrations_providers_hugging_face_inference_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L542",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_hugging_face_inference_providers",
+            "target": "integrations_providers_codeblock_30",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L546",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_hugging_face_inference_providers",
+            "target": "integrations_providers_codeblock_31",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L556",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_custom_self_hosted_llm_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L568",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_general_setup",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L572",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_general_setup",
+            "target": "integrations_providers_codeblock_32",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L577",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_general_setup",
+            "target": "integrations_providers_codeblock_33",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L584",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_switching_models_with_model",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L599",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_switching_models_with_model",
+            "target": "integrations_providers_codeblock_34",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L611",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_switching_models_with_model",
+            "target": "integrations_providers_codeblock_35",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L619",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_ollama_local_models_zero_config",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L634",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_local_models_zero_config",
+            "target": "integrations_providers_codeblock_36",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L638",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_local_models_zero_config",
+            "target": "integrations_providers_codeblock_37",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L646",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_local_models_zero_config",
+            "target": "integrations_providers_codeblock_38",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L656",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_local_models_zero_config",
+            "target": "integrations_providers_codeblock_39",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L677",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ollama_local_models_zero_config",
+            "target": "integrations_providers_codeblock_40",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L696",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_vllm_high_performance_gpu_inference",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L707",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_vllm_high_performance_gpu_inference",
+            "target": "integrations_providers_codeblock_41",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L711",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_vllm_high_performance_gpu_inference",
+            "target": "integrations_providers_codeblock_42",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L723",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_sglang_fast_serving_with_radixattention",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L750",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_sglang_fast_serving_with_radixattention",
+            "target": "integrations_providers_codeblock_43",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L754",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_sglang_fast_serving_with_radixattention",
+            "target": "integrations_providers_codeblock_44",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L766",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L783",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference",
+            "target": "integrations_providers_codeblock_45",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L787",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_llama_cpp_llama_server_cpu_metal_inference",
+            "target": "integrations_providers_codeblock_46",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L802",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_lm_studio_desktop_app_with_local_models",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L826",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_lm_studio_desktop_app_with_local_models",
+            "target": "integrations_providers_codeblock_47",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L832",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_lm_studio_desktop_app_with_local_models",
+            "target": "integrations_providers_codeblock_48",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L839",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_wsl2_networking_windows_users",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L867",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_wsl2_networking_windows_users",
+            "target": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L875",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "target": "integrations_providers_codeblock_49",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L880",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "target": "integrations_providers_codeblock_50",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L886",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "target": "integrations_providers_codeblock_51",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L891",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_1_mirrored_networking_mode_recommended",
+            "target": "integrations_providers_codeblock_52",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L897",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_wsl2_networking_windows_users",
+            "target": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L902",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "target": "integrations_providers_codeblock_53",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L906",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "target": "integrations_providers_codeblock_54",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L914",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "target": "integrations_providers_codeblock_55",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L923",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_option_2_use_the_windows_host_ip_windows_10_older_builds",
+            "target": "integrations_providers_codeblock_56",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L930",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_wsl2_networking_windows_users",
+            "target": "integrations_providers_server_bind_address_required_for_nat_mode",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L936",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_wsl2_networking_windows_users",
+            "target": "integrations_providers_windows_firewall",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L953",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_windows_firewall",
+            "target": "integrations_providers_codeblock_57",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L957",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_wsl2_networking_windows_users",
+            "target": "integrations_providers_quick_verification",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L964",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_quick_verification",
+            "target": "integrations_providers_codeblock_58",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L968",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_troubleshooting_local_models",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L978",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_troubleshooting_local_models",
+            "target": "integrations_providers_connection_refused_from_wsl2_to_a_windows_hosted_model_server",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L982",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_troubleshooting_local_models",
+            "target": "integrations_providers_tool_calls_appear_as_text_instead_of_executing",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L986",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_troubleshooting_local_models",
+            "target": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1000",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_model_seems_to_forget_context_or_give_incoherent_responses",
+            "target": "integrations_providers_codeblock_59",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1006",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_troubleshooting_local_models",
+            "target": "integrations_providers_context_limit_2048_tokens_at_startup",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1018",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_context_limit_2048_tokens_at_startup",
+            "target": "integrations_providers_codeblock_60",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1024",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_troubleshooting_local_models",
+            "target": "integrations_providers_responses_get_cut_off_mid_sentence",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1032",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_litellm_proxy_multi_provider_gateway",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1040",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_litellm_proxy_multi_provider_gateway",
+            "target": "integrations_providers_codeblock_61",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1044",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_litellm_proxy_multi_provider_gateway",
+            "target": "integrations_providers_codeblock_62",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1056",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_clawrouter_cost_optimized_routing",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1072",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_clawrouter_cost_optimized_routing",
+            "target": "integrations_providers_codeblock_63",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1076",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_other_compatible_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1098",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_other_compatible_providers",
+            "target": "integrations_providers_codeblock_64",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1118",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_context_length_detection",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1128",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_context_length_detection",
+            "target": "integrations_providers_codeblock_65",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1155",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_context_length_detection",
+            "target": "integrations_providers_codeblock_66",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1164",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_named_custom_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1185",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_67",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1189",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_68",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1206",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_69",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1218",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_70",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1226",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_71",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1236",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_named_custom_providers",
+            "target": "integrations_providers_codeblock_72",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1248",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1258",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "target": "integrations_providers_together_ai",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1262",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_together_ai",
+            "target": "integrations_providers_codeblock_73",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1266",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_together_ai",
+            "target": "integrations_providers_codeblock_74",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1279",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_together_ai",
+            "target": "integrations_providers_codeblock_75",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1286",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "target": "integrations_providers_groq",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1294",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_groq",
+            "target": "integrations_providers_codeblock_76",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1298",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_groq",
+            "target": "integrations_providers_codeblock_77",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1310",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "target": "integrations_providers_perplexity",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1315",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_perplexity",
+            "target": "integrations_providers_codeblock_78",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1319",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_perplexity",
+            "target": "integrations_providers_codeblock_79",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1331",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_cookbook_together_ai_groq_perplexity",
+            "target": "integrations_providers_multiple_providers_in_one_config",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1336",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_multiple_providers_in_one_config",
+            "target": "integrations_providers_codeblock_80",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1340",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_custom_self_hosted_llm_providers",
+            "target": "integrations_providers_choosing_the_right_setup",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1365",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_optional_api_keys",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1383",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_optional_api_keys",
+            "target": "integrations_providers_self_hosting_firecrawl",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1396",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_self_hosting_firecrawl",
+            "target": "integrations_providers_codeblock_81",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1407",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_self_hosting_firecrawl",
+            "target": "integrations_providers_codeblock_82",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1415",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_openrouter_provider_routing",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1421",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_openrouter_provider_routing",
+            "target": "integrations_providers_codeblock_83",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1425",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_openrouter_pareto_code_router",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1437",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_openrouter_pareto_code_router",
+            "target": "integrations_providers_codeblock_84",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1441",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_fallback_providers",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1458",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_fallback_providers",
+            "target": "integrations_providers_codeblock_85",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1462",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_fallback_providers",
+            "target": "integrations_providers_codeblock_86",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1474",
+            "weight": 1.0
+        },
+        {
+            "source": "integrations_providers_ai_providers",
+            "target": "integrations_providers_see_also",
+            "relation": "contains",
+            "confidence": "EXTRACTED",
+            "source_file": "/Users/roshinpv/Documents/my projects/Flash/website/docs/integrations/providers.md",
+            "source_location": "L1490",
+            "weight": 1.0
+        }
+    ],
+    "input_tokens": 0,
+    "output_tokens": 0
+}

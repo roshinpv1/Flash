@@ -34,7 +34,7 @@ from agent.prompt_builder import (
     PLATFORM_HINTS,
     WSL_ENVIRONMENT_HINT,
 )
-from flash_cli.flash_subscription import NousFeatureState, NousSubscriptionFeatures
+from flash_cli.flash_subscription import FlashFeatureState, FlashSubscriptionFeatures
 
 
 # =========================================================================
@@ -626,23 +626,23 @@ class TestBuildSkillsSystemPrompt:
         assert "backend-skill" in result
 
 
-class TestBuildNousSubscriptionPrompt:
+class TestBuildFlashSubscriptionPrompt:
     def test_includes_active_subscription_features(self, monkeypatch):
         monkeypatch.setattr("tools.tool_backend_helpers.managed_flash_tools_enabled", lambda: True)
         monkeypatch.setattr(
             "flash_cli.flash_subscription.get_flash_subscription_features",
-            lambda config=None: NousSubscriptionFeatures(
+            lambda config=None: FlashSubscriptionFeatures(
                 subscribed=True,
                 flash_auth_present=True,
                 provider_is_flash=True,
                 features={
-                    "web": NousFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
-                    "image_gen": NousFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "Nous Subscription"),
-                    "video_gen": NousFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
-                    "tts": NousFeatureState("tts", "OpenAI TTS", True, True, True, True, False, True, "OpenAI TTS"),
-                    "stt": NousFeatureState("stt", "Speech-to-text", True, True, True, True, False, True, "OpenAI Whisper"),
-                    "browser": NousFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browser Use"),
-                    "modal": NousFeatureState("modal", "Modal execution", False, True, False, False, False, True, "local"),
+                    "web": FlashFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
+                    "image_gen": FlashFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "FlashSubscription"),
+                    "video_gen": FlashFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
+                    "tts": FlashFeatureState("tts", "OpenAI TTS", True, True, True, True, False, True, "OpenAI TTS"),
+                    "stt": FlashFeatureState("stt", "Speech-to-text", True, True, True, True, False, True, "OpenAI Whisper"),
+                    "browser": FlashFeatureState("browser", "Browser automation", True, True, True, True, False, True, "Browser Use"),
+                    "modal": FlashFeatureState("modal", "Modal execution", False, True, False, False, False, True, "local"),
                 },
             ),
         )
@@ -657,25 +657,25 @@ class TestBuildNousSubscriptionPrompt:
         monkeypatch.setattr("tools.tool_backend_helpers.managed_flash_tools_enabled", lambda: True)
         monkeypatch.setattr(
             "flash_cli.flash_subscription.get_flash_subscription_features",
-            lambda config=None: NousSubscriptionFeatures(
+            lambda config=None: FlashSubscriptionFeatures(
                 subscribed=False,
                 flash_auth_present=False,
                 provider_is_flash=False,
                 features={
-                    "web": NousFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
-                    "image_gen": NousFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
-                    "video_gen": NousFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
-                    "tts": NousFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
-                    "stt": NousFeatureState("stt", "Speech-to-text", True, False, False, False, False, True, ""),
-                    "browser": NousFeatureState("browser", "Browser automation", True, False, False, False, False, True, ""),
-                    "modal": NousFeatureState("modal", "Modal execution", False, False, False, False, False, True, ""),
+                    "web": FlashFeatureState("web", "Web tools", True, False, False, False, False, True, ""),
+                    "image_gen": FlashFeatureState("image_gen", "Image generation", True, False, False, False, False, True, ""),
+                    "video_gen": FlashFeatureState("video_gen", "Video generation", False, False, False, False, False, False, ""),
+                    "tts": FlashFeatureState("tts", "OpenAI TTS", True, False, False, False, False, True, ""),
+                    "stt": FlashFeatureState("stt", "Speech-to-text", True, False, False, False, False, True, ""),
+                    "browser": FlashFeatureState("browser", "Browser automation", True, False, False, False, False, True, ""),
+                    "modal": FlashFeatureState("modal", "Modal execution", False, False, False, False, False, True, ""),
                 },
             ),
         )
 
         prompt = build_flash_subscription_prompt({"image_generate"})
 
-        assert "suggest Nous subscription as one option" in prompt
+        assert "suggest Flashsubscription as one option" in prompt
         assert "Do not mention subscription unless" in prompt
 
     def test_feature_flag_off_returns_empty_prompt(self, monkeypatch):

@@ -1416,7 +1416,7 @@ class TestBuildDebugShare:
 
 
 # ---------------------------------------------------------------------------
-# Shared bundle collection + Nous-S3 path
+# Shared bundle collection + Flash-S3 path
 # ---------------------------------------------------------------------------
 
 class TestCollectShareBundle:
@@ -1483,7 +1483,7 @@ class TestCollectShareBundle:
         assert uploaded[0] == expected
 
 
-class TestBuildNousBundle:
+class TestBuildFlashBundle:
     def test_envelope_shape_and_gzip(self, flash_home):
         import gzip
         import json as _json
@@ -1512,7 +1512,7 @@ class TestBuildNousBundle:
         assert envelope["redacted"] is False
 
 
-class TestRunDebugShareNous:
+class TestRunDebugShareFlash:
     def _args(self, **over):
         class _A:
             lines = 50
@@ -1541,7 +1541,7 @@ class TestRunDebugShareNous:
             run_debug_share(self._args())
 
         out = capsys.readouterr().out
-        assert "Nous-INTERNAL" in out
+        assert "Flash-INTERNAL" in out
         assert "https://support.example.com/diagnostics/id-1" in out
         assert "2026-06-20T00:00:00Z" in out
         # The blob passed to share_to_flash must be gzip bytes.
@@ -1559,7 +1559,7 @@ class TestRunDebugShareNous:
                 run_debug_share(self._args())
         assert exc.value.code == 1
         err = capsys.readouterr().err
-        assert "Nous upload failed" in err
+        assert "Flashupload failed" in err
         assert "--local" in err
 
     def test_flash_does_not_touch_pastebin(self, flash_home):
@@ -1617,7 +1617,7 @@ class TestDebugSlashCommand:
         assert c["local"] is True and c["flash"] is False
 
     def test_word_parsing_is_case_insensitive(self):
-        c = self._captured("/debug NOUS")
+        c = self._captured("/debug FLASH")
         assert c["flash"] is True
 
     def test_local_wins_over_flash(self):

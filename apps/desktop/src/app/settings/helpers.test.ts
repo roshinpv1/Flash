@@ -121,7 +121,7 @@ describe('settings helpers', () => {
   describe('providerGroup', () => {
     it('maps a provider env var to its labeled group', () => {
       expect(providerGroup('XAI_API_KEY')).toBe('xAI')
-      expect(providerGroup('NOUS_API_KEY')).toBe('Nous Portal')
+      expect(providerGroup('FLASH_API_KEY')).toBe('FlashPortal')
       expect(providerGroup('OPENROUTER_API_KEY')).toBe('OpenRouter')
     })
 

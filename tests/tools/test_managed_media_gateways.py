@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from flash_cli.flash_account import NousPortalAccountInfo
+from flash_cli.flash_account import FlashPortalAccountInfo
 
 
 TOOLS_DIR = Path(__file__).resolve().parents[2] / "tools"
@@ -52,7 +52,7 @@ def _enable_managed_flash_tools(monkeypatch):
     even after tool modules are dynamically reloaded."""
     monkeypatch.setattr(
         "flash_cli.flash_account.get_flash_portal_account_info",
-        lambda: NousPortalAccountInfo(
+        lambda: FlashPortalAccountInfo(
             logged_in=True,
             source="jwt",
             fresh=False,

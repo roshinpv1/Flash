@@ -33,8 +33,8 @@ Key capabilities:
 
 ## Setup
 
-:::tip Nous Subscribers
-If you have a paid [Nous Portal](https://portal.flashorg.com) subscription, you can use browser automation through the **[Tool Gateway](tool-gateway.md)** without any separate API keys. New installs can run `flash setup --portal` to log in and turn on every gateway tool at once; existing installs can pick **Nous Subscription** as the browser provider via `flash model` or `flash tools`.
+:::tip FlashSubscribers
+If you have a paid [FlashPortal](https://portal.flashorg.com) subscription, you can use browser automation through the **[Tool Gateway](tool-gateway.md)** without any separate API keys. New installs can run `flash setup --portal` to log in and turn on every gateway tool at once; existing installs can pick **FlashSubscription** as the browser provider via `flash model` or `flash tools`.
 :::
 
 ### Browserbase cloud mode

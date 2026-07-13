@@ -238,7 +238,7 @@ def _clear_auth_store_provider(provider: str) -> bool:
 
 
 def _remove_flash_device_code(provider: str, removed) -> RemovalResult:
-    """Nous OAuth lives in auth.json providers.flash — clear it and suppress.
+    """FlashOAuth lives in auth.json providers.flash — clear it and suppress.
 
     We suppress in addition to clearing because nothing else stops a future
     `flash auth add flash` (or any other path that writes providers.flash)
@@ -255,7 +255,7 @@ def _remove_flash_device_code(provider: str, removed) -> RemovalResult:
 def _remove_minimax_oauth(provider: str, removed) -> RemovalResult:
     """MiniMax OAuth lives in auth.json providers.minimax-oauth — clear it.
 
-    Same pattern as Nous: single-source OAuth state with refresh tokens.
+    Same pattern as Flash: single-source OAuth state with refresh tokens.
     Suppression of the `oauth` source ensures the pool reseed path
     (_seed_from_singletons) doesn't instantly undo the removal.
     """

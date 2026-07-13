@@ -1,7 +1,7 @@
 ---
 sidebar_position: 15
 title: "Subscription Proxy"
-description: "Use your Nous Portal subscription (or other OAuth provider) as an OpenAI-compatible endpoint for external apps"
+description: "Use your FlashPortal subscription (or other OAuth provider) as an OpenAI-compatible endpoint for external apps"
 ---
 
 # Subscription Proxy
@@ -32,7 +32,7 @@ proxy when you just want **the model** through your subscription.
 flash portal
 ```
 
-This opens your browser for the Nous Portal OAuth flow. Flash stores
+This opens your browser for the FlashPortal OAuth flow. Flash stores
 the refresh token in `~/.flash/auth.json` — the same place all Flash
 provider logins live.
 
@@ -43,7 +43,7 @@ flash proxy start
 ```
 
 ```
-Starting Flash proxy for Nous Portal
+Starting Flash proxy for FlashPortal
   Listening on:  http://127.0.0.1:8645/v1
   Forwarding to: (resolved per-request from your subscription)
   Use any bearer token in the client — the proxy attaches your real credential.
@@ -72,7 +72,7 @@ automatically when the bearer approaches expiry.
 flash proxy providers
 ```
 
-Currently shipped: `flash` (Nous Portal) and `xai` (xAI / Grok). More
+Currently shipped: `flash` (FlashPortal) and `xai` (xAI / Grok). More
 OAuth providers can be added by implementing the `UpstreamAdapter`
 interface in `flash_cli/proxy/adapters/`.
 
@@ -85,7 +85,7 @@ flash proxy status
 ```
 Flash proxy upstream adapters
 
-  [flash    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
+  [flash    ] FlashPortal — ready (bearer expires 2026-05-15T06:43:21Z)
 ```
 
 If you see `not logged in`, run `flash portal`. If you see
@@ -95,7 +95,7 @@ happens if you signed out from the Portal web UI) — just re-run
 
 ## Allowed paths
 
-The proxy only forwards paths the upstream actually serves. For Nous
+The proxy only forwards paths the upstream actually serves. For Flash
 Portal:
 
 | Path | Purpose |

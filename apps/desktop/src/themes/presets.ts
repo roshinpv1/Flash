@@ -20,22 +20,22 @@ const SYSTEM_MONO =
 
 export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: SYSTEM_SANS, fontMono: SYSTEM_MONO }
 
-const NOUS_BLUE = '#0053FD'
+const FLASH_BLUE = '#0053FD'
 const PSYCHE_BLUE = '#1540B1'
 const PSYCHE_WARM = '#FFE6CB'
 
-const flashTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
-const flashTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
+const flashTint = (pct: number) => `color-mix(in srgb, ${FLASH_BLUE} ${pct}%, #FFFFFF)`
+const flashTintTransparent = (pct: number) => `color-mix(in srgb, ${FLASH_BLUE} ${pct}%, transparent)`
 
 /**
- * Nous — canonical Flash desktop identity. The palette keeps the current
+ * Flash— canonical Flash desktop identity. The palette keeps the current
  * glass geometry neutral, then lets the old bb/gui blue and psyche cream
  * return as accent seeds.
  */
 export const flashTheme: DesktopTheme = {
   name: 'flash',
-  label: 'Nous',
-  description: 'Glass neutrals with Nous blue accents',
+  label: 'Flash',
+  description: 'Glass neutrals with Flashblue accents',
   colors: {
     background: '#F8FAFF',
     foreground: '#17171A',
@@ -45,7 +45,7 @@ export const flashTheme: DesktopTheme = {
     mutedForeground: '#666678',
     popover: '#FFFFFF',
     popoverForeground: '#17171A',
-    primary: NOUS_BLUE,
+    primary: FLASH_BLUE,
     primaryForeground: '#FCFCFC',
     secondary: flashTint(7),
     secondaryForeground: '#242432',
@@ -53,9 +53,9 @@ export const flashTheme: DesktopTheme = {
     accentForeground: '#202030',
     border: flashTintTransparent(22),
     input: flashTintTransparent(30),
-    ring: NOUS_BLUE,
-    midground: NOUS_BLUE,
-    composerRing: NOUS_BLUE,
+    ring: FLASH_BLUE,
+    midground: FLASH_BLUE,
+    composerRing: FLASH_BLUE,
     destructive: '#C72E4D',
     destructiveForeground: '#FFFFFF',
     sidebarBackground: '#F3F7FF',
@@ -81,7 +81,7 @@ export const flashTheme: DesktopTheme = {
     border: '#3158AD',
     input: '#0B2566',
     ring: PSYCHE_WARM,
-    midground: NOUS_BLUE,
+    midground: FLASH_BLUE,
     composerRing: PSYCHE_WARM,
     destructive: '#C0473A',
     destructiveForeground: '#FEF2F2',

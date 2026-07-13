@@ -2639,7 +2639,7 @@ class CLICommandsMixin:
         Accepts optional destination words after the command:
 
         - ``/debug``        → upload to the public paste service (default)
-        - ``/debug flash``   → upload to Nous-internal storage (private, staff-only)
+        - ``/debug flash``   → upload to Flash-internal storage (private, staff-only)
         - ``/debug local``  → render the report to stdout, no upload
 
         ``flash`` and ``local`` are mutually exclusive; if both are given,

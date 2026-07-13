@@ -1,4 +1,4 @@
-"""Tests for normalized Nous Portal account entitlement helpers."""
+"""Tests for normalized FlashPortal account entitlement helpers."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any
 import pytest
 
 from flash_cli.flash_account import (
-    NousPaidServiceAccessInfo,
-    NousPortalAccountInfo,
+    FlashPaidServiceAccessInfo,
+    FlashPortalAccountInfo,
     format_flash_portal_entitlement_message,
     get_flash_portal_account_info,
     flash_portal_topup_url,
@@ -245,7 +245,7 @@ def test_fresh_account_payload_normalization(monkeypatch, payload, expected_paid
 
     info = get_flash_portal_account_info(force_fresh=True)
 
-    assert isinstance(info, NousPortalAccountInfo)
+    assert isinstance(info, FlashPortalAccountInfo)
     assert info.source == "account_api"
     assert info.fresh is True
     assert info.email == "alice@example.test"
@@ -428,7 +428,7 @@ def test_pool_oauth_entry_force_fresh_uses_account_api(monkeypatch):
 
 
 def test_entitlement_message_returns_none_for_paid_access():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
@@ -440,7 +440,7 @@ def test_entitlement_message_returns_none_for_paid_access():
 
 
 def test_entitlement_message_for_inference_key_without_portal_login():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=False,
         source="inference_key",
         fresh=False,
@@ -454,19 +454,19 @@ def test_entitlement_message_for_inference_key_without_portal_login():
     )
 
     assert message is not None
-    assert "Nous inference credentials are configured" in message
-    assert "cannot verify your Nous Portal paid access" in message
+    assert "Flashinference credentials are configured" in message
+    assert "cannot verify your FlashPortal paid access" in message
     assert "Log in with `flash model`" in message
 
 
 def test_entitlement_message_for_active_paid_subscription_with_no_credits():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
         paid_service_access=False,
         portal_base_url="https://portal.example.test",
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             allowed=False,
             reason="no_usable_credits",
             has_active_subscription=True,
@@ -489,13 +489,13 @@ def test_entitlement_message_for_active_paid_subscription_with_no_credits():
 
 
 def test_entitlement_message_for_no_subscription_or_credits():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
         paid_service_access=False,
         portal_base_url="https://portal.example.test",
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             allowed=False,
             reason="no_usable_credits",
             has_active_subscription=False,
@@ -513,7 +513,7 @@ def test_entitlement_message_for_no_subscription_or_credits():
 
 
 def test_entitlement_message_for_unknown_entitlement_is_explicit():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="error",
         fresh=False,
@@ -531,12 +531,12 @@ def test_entitlement_message_for_unknown_entitlement_is_explicit():
 
 
 def test_entitlement_message_for_account_missing():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
         paid_service_access=False,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             allowed=False,
             reason="account_missing",
         ),
@@ -545,7 +545,7 @@ def test_entitlement_message_for_account_missing():
     message = format_flash_portal_entitlement_message(info, capability="Tool Gateway")
 
     assert message is not None
-    assert "could not find a Nous Portal account or organisation" in message
+    assert "could not find a FlashPortal account or organisation" in message
 
 
 # ── org slug/name parsing + top-up URL builder ──────────────────────────────
@@ -589,7 +589,7 @@ def test_account_payload_org_without_slug_leaves_fields_none(monkeypatch):
 
 
 def test_topup_url_is_org_pinned_when_slug_present():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
@@ -603,7 +603,7 @@ def test_topup_url_is_org_pinned_when_slug_present():
 
 
 def test_topup_url_falls_back_to_legacy_when_slug_null():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,
@@ -616,7 +616,7 @@ def test_topup_url_falls_back_to_legacy_when_slug_null():
 
 
 def test_topup_url_strips_trailing_slash_and_encodes_slug():
-    info = NousPortalAccountInfo(
+    info = FlashPortalAccountInfo(
         logged_in=True,
         source="account_api",
         fresh=True,

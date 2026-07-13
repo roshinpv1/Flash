@@ -260,7 +260,7 @@ def test_start_server_gate_without_provider_fails_closed(monkeypatch):
 
 
 def test_start_server_surfaces_flash_skip_reason_when_unconfigured(monkeypatch):
-    """When the bundled Nous plugin loaded but skipped registration (no
+    """When the bundled Flashplugin loaded but skipped registration (no
     env vars set), the gate's fail-closed message should surface the
     plugin's LAST_SKIP_REASON so the operator knows the config fix is
     'set HERMES_DASHBOARD_OAUTH_CLIENT_ID', not 'install a plugin'."""
@@ -283,7 +283,7 @@ def test_start_server_surfaces_flash_skip_reason_when_unconfigured(monkeypatch):
             open_browser=False, allow_public=False,
         )
     # The error message embeds the plugin's specific skip reason rather
-    # than the generic "Install the default Nous provider" boilerplate.
+    # than the generic "Install the default Flashprovider" boilerplate.
     msg = str(exc_info.value)
     assert "HERMES_DASHBOARD_OAUTH_CLIENT_ID" in msg
     assert "flash:" in msg

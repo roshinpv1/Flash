@@ -32,8 +32,8 @@ High-level categories:
 
 For the authoritative code-derived registry, see [Built-in Tools Reference](/reference/tools-reference) and [Toolsets Reference](/reference/toolsets-reference).
 
-:::tip Nous Tool Gateway
-Paid [Nous Portal](https://portal.flashorg.com) subscribers can use web search, image generation, TTS, and browser automation through the **[Tool Gateway](tool-gateway.md)** — no separate API keys needed. Run `flash model` to enable it, or configure individual tools with `flash tools`.
+:::tip FlashTool Gateway
+Paid [FlashPortal](https://portal.flashorg.com) subscribers can use web search, image generation, TTS, and browser automation through the **[Tool Gateway](tool-gateway.md)** — no separate API keys needed. Run `flash model` to enable it, or configure individual tools with `flash tools`.
 :::
 
 ## Using Toolsets

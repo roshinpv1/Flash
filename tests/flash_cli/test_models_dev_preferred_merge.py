@@ -8,8 +8,8 @@ These guard the contract:
     picker path (``provider_model_ids``) and the gateway ``/model`` picker
     path (``list_authenticated_providers``) merge fresh models.dev entries
     on top of the curated static list.
-  * OpenRouter and Nous Portal are NEVER merged — they keep their curated
-    (OpenRouter) or live-Portal (Nous) semantics.
+  * OpenRouter and FlashPortal are NEVER merged — they keep their curated
+    (OpenRouter) or live-Portal (Flash) semantics.
   * If models.dev is unreachable (offline / CI), the curated list is the
     fallback — no crash, no empty list.
 
@@ -139,7 +139,7 @@ class TestProviderModelIdsPreferred:
         assert captured["models"][0] == "kimi-k2.7-code"
 
 
-class TestOpenRouterAndNousUnchanged:
+class TestOpenRouterAndFlashUnchanged:
     """Per Teknium: openrouter and flash are NEVER merged with models.dev."""
 
     def test_openrouter_not_in_preferred_set(self):

@@ -1072,7 +1072,7 @@ def _build_child_agent(
     When override_* params are set (from delegation config), the child uses
     those credentials instead of inheriting from the parent.  This enables
     routing subagents to a different provider:model pair (e.g. cheap/fast
-    model on OpenRouter while the parent runs on Nous Portal).
+    model on OpenRouter while the parent runs on FlashPortal).
     """
     from run_agent import AIAgent
     import uuid as _uuid
@@ -1152,7 +1152,7 @@ def _build_child_agent(
         max_spawn_depth=max_spawn,
         child_depth=child_depth,
     )
-    # Extract parent's API key so subagents inherit auth (e.g. Nous Portal).
+    # Extract parent's API key so subagents inherit auth (e.g. FlashPortal).
     parent_api_key = getattr(parent_agent, "api_key", None)
     if (not parent_api_key) and hasattr(parent_agent, "_client_kwargs"):
         parent_api_key = parent_agent._client_kwargs.get("api_key")
@@ -2800,7 +2800,7 @@ def delegate_task(
         # cannot route a detached subagent result back to the agent after the
         # turn ends — there is no persistent channel and the adapter's send()
         # is a no-op, so a background dispatch would silently never re-enter the
-        # conversation (issue #10760). Fall back to SYNCHRONOUS execution: the
+        # conversation (issue #10760). Fall back to SYNCHROFLASHexecution: the
         # work still runs and its result returns in this same response, which is
         # strictly better than a handle that never resolves. Mirrors the
         # pool-at-capacity inline fallback below.
@@ -2819,7 +2819,7 @@ def delegate_task(
                 _sync_result["note"] = (
                     "background=true is not available on this endpoint (stateless "
                     "HTTP API — no channel to deliver a detached subagent result "
-                    "after the turn ends), so the subagent(s) ran SYNCHRONOUSLY and "
+                    "after the turn ends), so the subagent(s) ran SYNCHROFLASHLY and "
                     "the result is included above."
                 )
             return json.dumps(_sync_result, ensure_ascii=False)
@@ -2929,7 +2929,7 @@ def delegate_task(
             _cap_result["note"] = (
                 "The background delegation pool was at capacity "
                 "(delegation.max_concurrent_children), so the subagent(s) ran "
-                "SYNCHRONOUSLY and the result is included above. Raise "
+                "SYNCHROFLASHLY and the result is included above. Raise "
                 "delegation.max_concurrent_children in config.yaml to allow "
                 "more concurrent background delegations."
             )

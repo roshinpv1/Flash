@@ -2,7 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 
-from flash_cli.flash_account import NousPortalAccountInfo
+from flash_cli.flash_account import FlashPortalAccountInfo
 from flash_cli.models import (
     OPENROUTER_MODELS, fetch_openrouter_models, model_ids, detect_provider_for_model,
     is_flash_free_tier, partition_flash_models_by_tier,
@@ -142,7 +142,7 @@ class TestFetchOpenRouterModels:
     def test_permissive_when_supported_parameters_missing(self, monkeypatch):
         """Models missing the supported_parameters field keep appearing in the picker.
 
-        Some OpenRouter-compatible gateways (Nous Portal, private mirrors, older
+        Some OpenRouter-compatible gateways (FlashPortal, private mirrors, older
         catalog snapshots) don't populate supported_parameters. Treating missing
         as 'unknown → allow' prevents the picker from silently emptying on
         those gateways.
@@ -326,7 +326,7 @@ class TestDetectProviderForModel:
         assert result is not None and result[0] == "openai"
 
 
-class TestIsNousFreeTier:
+class TestIsFlashFreeTier:
     """Tests for is_flash_free_tier — account tier detection."""
 
     def test_paid_service_access_allowed_true_is_not_free(self):
@@ -365,7 +365,7 @@ class TestIsNousFreeTier:
         assert is_flash_free_tier({}) is False
 
 
-class TestPartitionNousModelsByTier:
+class TestPartitionFlashModelsByTier:
     """Tests for partition_flash_models_by_tier — free vs paid tier model split."""
 
     _PAID = {"prompt": "0.000003", "completion": "0.000015"}
@@ -680,7 +680,7 @@ class TestUnionWithPortalPaidRecommendations:
         ]
 
 
-class TestCheckNousFreeTierCache:
+class TestCheckFlashFreeTierCache:
     """Tests for the TTL cache on check_flash_free_tier()."""
 
     def setup_method(self):
@@ -692,7 +692,7 @@ class TestCheckNousFreeTierCache:
     @patch("flash_cli.flash_account.get_flash_portal_account_info")
     def test_result_is_cached(self, mock_account):
         """Second call within TTL returns cached result without account lookup."""
-        mock_account.return_value = NousPortalAccountInfo(
+        mock_account.return_value = FlashPortalAccountInfo(
             logged_in=True,
             source="jwt",
             fresh=False,
@@ -708,7 +708,7 @@ class TestCheckNousFreeTierCache:
     @patch("flash_cli.flash_account.get_flash_portal_account_info")
     def test_cache_expires_after_ttl(self, mock_account):
         """After TTL expires, account info is resolved again."""
-        mock_account.return_value = NousPortalAccountInfo(
+        mock_account.return_value = FlashPortalAccountInfo(
             logged_in=True,
             source="jwt",
             fresh=False,
@@ -728,7 +728,7 @@ class TestCheckNousFreeTierCache:
 
     @patch("flash_cli.flash_account.get_flash_portal_account_info")
     def test_force_fresh_bypasses_cache(self, mock_account):
-        mock_account.return_value = NousPortalAccountInfo(
+        mock_account.return_value = FlashPortalAccountInfo(
             logged_in=True,
             source="account_api",
             fresh=True,
@@ -746,7 +746,7 @@ class TestCheckNousFreeTierCache:
         assert _FREE_TIER_CACHE_TTL <= 300
 
 
-class TestNousRecommendedModels:
+class TestFlashRecommendedModels:
     """Tests for fetch_flash_recommended_models + get_flash_recommended_aux_model."""
 
     _SAMPLE_PAYLOAD = {

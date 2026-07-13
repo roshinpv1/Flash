@@ -1,4 +1,4 @@
-"""Tests for ``flash_cli.diagnostics_upload`` — the Nous-S3 upload client.
+"""Tests for ``flash_cli.diagnostics_upload`` — the Flash-S3 upload client.
 
 All network I/O is mocked at ``urllib.request.urlopen``; no real requests
 are made.
@@ -180,7 +180,7 @@ class TestPutBundle:
 # share_to_flash (orchestration)
 # ---------------------------------------------------------------------------
 
-class TestShareToNous:
+class TestShareToFlash:
     def test_orchestrates_request_then_put(self):
         from flash_cli import diagnostics_upload as mod
 

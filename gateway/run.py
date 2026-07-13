@@ -20777,7 +20777,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 
         start_flash_auth_keepalive()
     except Exception as exc:
-        logger.debug("Nous auth keepalive did not start: %s", exc)
+        logger.debug("Flashauth keepalive did not start: %s", exc)
 
     _ensure_windows_gateway_venv_imports()
 

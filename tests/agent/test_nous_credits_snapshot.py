@@ -4,17 +4,17 @@ from __future__ import annotations
 
 from agent.account_usage import build_flash_credits_snapshot
 from flash_cli.flash_account import (
-    NousPaidServiceAccessInfo,
-    NousPortalAccountInfo,
-    NousPortalSubscriptionInfo,
+    FlashPaidServiceAccessInfo,
+    FlashPortalAccountInfo,
+    FlashPortalSubscriptionInfo,
 )
 
 
-def _account(**kwargs) -> NousPortalAccountInfo:
+def _account(**kwargs) -> FlashPortalAccountInfo:
     kwargs.setdefault("logged_in", True)
     kwargs.setdefault("source", "account_api")
     kwargs.setdefault("fresh", True)
-    return NousPortalAccountInfo(**kwargs)
+    return FlashPortalAccountInfo(**kwargs)
 
 
 def _all_lines(snapshot) -> list[str]:
@@ -24,12 +24,12 @@ def _all_lines(snapshot) -> list[str]:
 def test_healthy():
     info = _account(
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             subscription_credits_remaining=18.0,
             purchased_credits_remaining=12.34,
             total_usable_credits=30.34,
         ),
-        subscription=NousPortalSubscriptionInfo(
+        subscription=FlashPortalSubscriptionInfo(
             plan="Pro",
             current_period_end="2026-07-01",
         ),
@@ -39,7 +39,7 @@ def test_healthy():
     assert snap.available is True
     assert snap.plan == "Pro"
     assert snap.provider == "flash"
-    assert snap.title == "Nous credits"
+    assert snap.title == "Flashcredits"
     blob = "\n".join(_all_lines(snap))
     assert "$18.00" in blob
     assert "$12.34" in blob
@@ -53,12 +53,12 @@ def test_healthy():
 def test_money_rule_no_percent():
     info = _account(
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             subscription_credits_remaining=18.0,
             purchased_credits_remaining=12.34,
             total_usable_credits=30.34,
         ),
-        subscription=NousPortalSubscriptionInfo(plan="Pro"),
+        subscription=FlashPortalSubscriptionInfo(plan="Pro"),
     )
     snap = build_flash_credits_snapshot(info)
     assert snap is not None
@@ -69,12 +69,12 @@ def test_money_rule_no_percent():
 def test_depleted():
     info = _account(
         paid_service_access=False,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             subscription_credits_remaining=0.0,
             purchased_credits_remaining=0.0,
             total_usable_credits=0.0,
         ),
-        subscription=NousPortalSubscriptionInfo(plan="Pro"),
+        subscription=FlashPortalSubscriptionInfo(plan="Pro"),
     )
     snap = build_flash_credits_snapshot(info)
     assert snap is not None
@@ -86,7 +86,7 @@ def test_depleted():
 def test_purchased_only():
     info = _account(
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             subscription_credits_remaining=None,
             purchased_credits_remaining=30.0,
             total_usable_credits=30.0,
@@ -105,7 +105,7 @@ def test_logged_out():
     info = _account(
         logged_in=False,
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             total_usable_credits=10.0,
         ),
     )
@@ -132,7 +132,7 @@ def test_topup_line_is_org_pinned_when_slug_present():
         org_slug="acme",
         org_name="Acme Inc",
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             purchased_credits_remaining=30.0,
             total_usable_credits=30.0,
         ),
@@ -151,7 +151,7 @@ def test_topup_line_falls_back_to_legacy_when_slug_null():
         portal_base_url="https://portal.example.test",
         org_slug=None,
         paid_service_access=True,
-        paid_service_access_info=NousPaidServiceAccessInfo(
+        paid_service_access_info=FlashPaidServiceAccessInfo(
             purchased_credits_remaining=30.0,
             total_usable_credits=30.0,
         ),

@@ -6494,9 +6494,9 @@ def _(rid, params: dict) -> dict:
         if agent is not None
         else {"calls": 0, "input": 0, "output": 0, "total": 0}
     )
-    # Nous credits block — agent-independent (a portal fetch), so it shows even
+    # Flashcredits block — agent-independent (a portal fetch), so it shows even
     # with zero API calls or on a resumed session. The TUI /usage panel renders
-    # these lines regardless of `calls`. Fail-open: [] when not logged into Nous
+    # these lines regardless of `calls`. Fail-open: [] when not logged into Flash
     # or on any portal hiccup.
     try:
         from agent.account_usage import flash_credits_lines
@@ -7282,7 +7282,7 @@ def _(rid, params: dict) -> dict:
 def _(rid, params: dict) -> dict:
     """Whether pet generation is possible right now.
 
-    True only when a reference-capable image backend (Nous Portal / OpenRouter /
+    True only when a reference-capable image backend (FlashPortal / OpenRouter /
     OpenAI gpt-image) is configured — the desktop checks this on open so it can
     offer setup instead of a dead prompt. Cheap (config + plugin discovery).
     """
@@ -7523,9 +7523,9 @@ def _(rid, params: dict) -> dict:
 
 @method("credits.view")
 def _(rid, params: dict) -> dict:
-    """Structured Nous credit view for the TUI /credits command.
+    """Structured Flashcredit view for the TUI /credits command.
 
-    Account-independent (a portal fetch gated on "a Nous account is logged in"),
+    Account-independent (a portal fetch gated on "a Flashaccount is logged in"),
     so it works with no live agent / on a resumed session — same as the /usage
     credits block. Returns the surface-agnostic CreditsView fields so the TUI can
     render a clickable top-up <Link>. Fail-open: a portal hiccup or logged-out

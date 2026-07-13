@@ -233,11 +233,11 @@ def show_status(args):
     if flash_logged_in:
         flash_label = "logged in"
     elif flash_inference_present:
-        flash_label = "not logged in (Nous inference key configured)"
+        flash_label = "not logged in (Flashinference key configured)"
     else:
         flash_label = "not logged in (run: flash portal)"
     print(
-        f"  {'Nous Portal':<12}  {check_mark(flash_logged_in)} "
+        f"  {'FlashPortal':<12}  {check_mark(flash_logged_in)} "
         f"{flash_label}"
     )
     portal_url = flash_status.get("portal_base_url") or "(unknown)"
@@ -305,7 +305,7 @@ def show_status(args):
         print(f"    Error:      {minimax_status.get('error')}")
 
     # xAI OAuth — separate try/except so an import failure here cannot
-    # disrupt the already-printed Nous/Codex/Qwen/MiniMax rows above.
+    # disrupt the already-printed Flash/Codex/Qwen/MiniMax rows above.
     try:
         from flash_cli.auth import get_xai_oauth_auth_status
         xai_oauth_status = get_xai_oauth_auth_status() or {}
@@ -326,19 +326,19 @@ def show_status(args):
         print(f"    Error:      {xai_oauth_status.get('error')}")
 
     # =========================================================================
-    # Nous Subscription Features
+    # FlashSubscription Features
     # =========================================================================
     if managed_flash_tools_enabled():
         features = get_flash_subscription_features(config)
         print()
-        print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
+        print(color("◆ FlashTool Gateway", Colors.CYAN, Colors.BOLD))
         if not features.flash_auth_present:
-            print("  Nous Portal   ✗ not logged in")
+            print("  FlashPortal   ✗ not logged in")
         else:
-            print("  Nous Portal   ✓ managed tools available")
+            print("  FlashPortal   ✓ managed tools available")
         for feature in features.items():
             if feature.managed_by_flash:
-                state = "active via Nous subscription"
+                state = "active via Flashsubscription"
             elif feature.active:
                 current = feature.current_provider or "configured provider"
                 state = f"active via {current}"
@@ -350,10 +350,10 @@ def show_status(args):
                 state = "not configured"
             print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_flash)} {state}")
     elif flash_logged_in or flash_inference_present:
-        # Nous OAuth without entitlement, or an opaque inference key without
+        # FlashOAuth without entitlement, or an opaque inference key without
         # Portal account information, cannot enable the Tool Gateway.
         print()
-        print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
+        print(color("◆ FlashTool Gateway", Colors.CYAN, Colors.BOLD))
         message = format_flash_portal_entitlement_message(
             flash_account_info,
             capability="managed web, image, TTS, STT, browser, and Modal tools",

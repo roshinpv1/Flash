@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from flash_cli.flash_account import NousPortalAccountInfo
+from flash_cli.flash_account import FlashPortalAccountInfo
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -75,7 +75,7 @@ def _enable_managed_flash_tools(monkeypatch):
     """
     monkeypatch.setattr(
         "flash_cli.flash_account.get_flash_portal_account_info",
-        lambda: NousPortalAccountInfo(
+        lambda: FlashPortalAccountInfo(
             logged_in=True,
             source="jwt",
             fresh=False,

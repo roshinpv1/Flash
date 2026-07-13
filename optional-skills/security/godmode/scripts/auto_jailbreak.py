@@ -178,7 +178,7 @@ MODEL_STRATEGIES = {
             ),
         },
     },
-    # Nous/Flash models — already uncensored, just needs clean prompt
+    # Flash/Flash models — already uncensored, just needs clean prompt
     "flash": {
         "order": ["prefill_only"],
         "system_templates": {},
