@@ -449,11 +449,11 @@ class TestErrorResponseShapes:
         if result:  # if anything came back, it should be an error entry
             assert "error" in result[0]
 
-    def test_firecrawl_config_error_points_paid_users_to_nous_subscription(self, monkeypatch):
+    def test_firecrawl_config_error_points_paid_users_to_flash_subscription(self, monkeypatch):
         from plugins.web.firecrawl import provider as firecrawl_provider
 
         monkeypatch.setattr(
-            "tools.web_tools.managed_nous_tools_enabled",
+            "tools.web_tools.managed_flash_tools_enabled",
             lambda: True,
             raising=False,
         )
@@ -470,12 +470,12 @@ class TestErrorResponseShapes:
         from plugins.web.firecrawl import provider as firecrawl_provider
 
         monkeypatch.setattr(
-            "tools.web_tools.managed_nous_tools_enabled",
+            "tools.web_tools.managed_flash_tools_enabled",
             lambda: False,
             raising=False,
         )
         monkeypatch.setattr(
-            "tools.web_tools.nous_tool_gateway_unavailable_message",
+            "tools.web_tools.flash_tool_gateway_unavailable_message",
             lambda capability: f"{capability} denied by test entitlement.",
             raising=False,
         )

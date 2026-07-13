@@ -2854,7 +2854,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                 key, max_active_age=_bg_max_age_seconds,
             ),
         )
-        # One enforced loop-side boundary for the synchronous SessionStore.
+        # One enforced loop-side boundary for the synchroflash SessionStore.
         # Sync helpers keep using ``session_store`` directly; async gateway
         # handlers call this facade and await every operation.
         self._async_session_store = AsyncSessionStore(self.session_store)
@@ -3942,7 +3942,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         backend that actually answered the latest turn.
 
         Called from the ``run_sync`` closure, which executes off the event loop
-        in the executor thread — so the synchronous ``SessionDB`` (``_db``) is
+        in the executor thread — so the synchroflash ``SessionDB`` (``_db``) is
         used directly rather than awaiting the AsyncSessionDB forwarder.
         """
         if not session_id or agent is None or self._session_db is None:
@@ -4108,7 +4108,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
     # ── scale-to-zero idle detection / dormant-quiesce (Phase 0) ──────────────
     # The gateway-side BEHAVIOUR that consumes the relay scale-to-zero primitives
     # (gateway-gateway Phase 5). Pure logic lives in gateway/scale_to_zero.py; the
-    # methods here bind it to the live runner/transport. See ~/nous/specs/
+    # methods here bind it to the live runner/transport. See ~/flash/specs/
     # scale-to-zero (decisions.md) for the design + the F12/F14 distinctions.
 
     def _scale_to_zero_has_live_background_work(self) -> bool:
@@ -5148,7 +5148,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
         Background (#30170): ``AIAgent.interrupt()`` cascades through the
         parent's ``_active_children`` list and calls ``interrupt()`` on
-        every child synchronously, which aborts in-flight subagent work
+        every child synchroflashly, which aborts in-flight subagent work
         and produces a fallback cascade with no actionable signal.
         Demoting ``busy_input_mode='interrupt'`` to ``queue`` semantics
         whenever this helper returns True protects subagent work from
@@ -5985,7 +5985,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
     # Upper bound on off-loop agent-resource cleanup invoked from coroutines
     # running on the gateway's event loop (session-expiry sweep, in-turn
-    # cache-hygiene re-eviction). _cleanup_agent_resources is synchronous and
+    # cache-hygiene re-eviction). _cleanup_agent_resources is synchroflash and
     # can block for a long time (agent.close() does subprocess teardown;
     # shutdown_memory_provider() may do network/SQLite IO via a memory plugin).
     # Calling it inline wedges the whole loop — the bot goes silent, the
@@ -7608,7 +7608,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
         # Dispatch through the runner directly. Going through
         # adapter.handle_message would spawn a background task and we'd
-        # lose synchronous error visibility; calling _handle_message inline
+        # lose synchroflash error visibility; calling _handle_message inline
         # keeps the success/failure path observable for the watcher.
         response_text = await self._handle_message(synthetic_event)
         if not response_text:
@@ -11886,7 +11886,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             # thread blocks until the user responds with /approve or /deny, so by
             # the time we reach here the approval has already been resolved.  The
             # old post-loop pop_pending + approval_hint code was removed in favour
-            # of the blocking approach that mirrors CLI's synchronous input().
+            # of the blocking approach that mirrors CLI's synchroflash input().
             
             # Save the full conversation to the transcript, including tool calls.
             # This preserves the complete agent loop (tool_calls, tool results,
@@ -18456,7 +18456,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             # ------------------------------------------------------------------
             # Clarify callback: present a clarify prompt and block on a response.
             #
-            # Runs on the agent's worker thread (see clarify_tool's synchronous
+            # Runs on the agent's worker thread (see clarify_tool's synchroflash
             # callback contract).  Bridges sync→async by scheduling the
             # adapter's send_clarify on the gateway event loop, then blocks on
             # the clarify primitive's threading.Event with a configurable
@@ -19975,7 +19975,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             # Wait for stream consumer to finish its final edit
             if stream_task:
                 # If the agent never created a stream consumer (e.g. non-
-                # streaming code path, or a test stub returning synchronously)
+                # streaming code path, or a test stub returning synchroflashly)
                 # there is nothing to flush — cancel immediately instead of
                 # waiting out the 5s timeout on a task that's just polling for
                 # a consumer that will never arrive.  This was a 5-second
@@ -20171,7 +20171,7 @@ def _run_planned_stop_watcher(
     exit happen cleanly.
 
     On POSIX this is a no-op safety net — the signal handler always
-    races us to consuming the marker file because it fires synchronously
+    races us to consuming the marker file because it fires synchroflashly
     from the kernel's signal delivery.
 
     Args:
@@ -20360,7 +20360,7 @@ async def _await_thread_exit(
 ) -> bool:
     """Wait for a daemon thread to exit WITHOUT blocking the event loop.
 
-    A synchronous ``thread.join()`` here would freeze the event loop — fatal
+    A synchroflash ``thread.join()`` here would freeze the event loop — fatal
     for the cron ticker, whose in-flight delivery is a coroutine scheduled onto
     *this* loop via ``safe_schedule_threadsafe``. Blocking the loop deadlocks
     that delivery (the loop can never run it), so ``join(timeout=5)`` always
@@ -20623,10 +20623,10 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
                 logger.debug("Planned stop marker check failed: %s", e)
 
         # Fast (<10ms) snapshot of who's asking us to shut down — runs
-        # synchronously inside the asyncio signal handler, so we keep it
+        # synchroflashly inside the asyncio signal handler, so we keep it
         # purely stdlib + /proc reads, no subprocesses.  See PR #15826
         # (May 2026): the previous implementation called `ps aux` here
-        # synchronously, blocking the event loop for up to 3s while
+        # synchroflashly, blocking the event loop for up to 3s while
         # adapter teardown couldn't begin.
         try:
             from gateway.shutdown_forensics import (
@@ -20773,9 +20773,9 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     atexit.register(release_gateway_runtime_lock)
 
     try:
-        from flash_cli.nous_auth_keepalive import start_nous_auth_keepalive
+        from flash_cli.flash_auth_keepalive import start_flash_auth_keepalive
 
-        start_nous_auth_keepalive()
+        start_flash_auth_keepalive()
     except Exception as exc:
         logger.debug("Nous auth keepalive did not start: %s", exc)
 
@@ -20861,9 +20861,9 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     await runner.wait_for_shutdown()
 
     try:
-        from flash_cli.nous_auth_keepalive import stop_nous_auth_keepalive
+        from flash_cli.flash_auth_keepalive import stop_flash_auth_keepalive
 
-        stop_nous_auth_keepalive()
+        stop_flash_auth_keepalive()
     except Exception:
         pass
 
@@ -20877,7 +20877,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
     # These MUST be awaited cooperatively, not join()ed. A cron delivery in
     # flight when the gateway restarts is a coroutine scheduled onto THIS event
     # loop (safe_schedule_threadsafe); the ticker thread is blocked on its
-    # future.result(). A synchronous cron_thread.join() would block the loop,
+    # future.result(). A synchroflash cron_thread.join() would block the loop,
     # so that delivery could never run — it timed out and the message was
     # silently dropped (#58818). Awaiting keeps the loop alive so the in-flight
     # delivery finishes before we tear down.

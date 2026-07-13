@@ -569,7 +569,7 @@ class TestCodexOAuthContextLength:
 
 
 # =========================================================================
-# Nous Portal context-window resolution (provider="nous")
+# Nous Portal context-window resolution (provider="flash")
 # =========================================================================
 
 class TestNousPortalContextResolution:
@@ -615,7 +615,7 @@ class TestNousPortalContextResolution:
             model="qwen3.6-plus",
             base_url="https://inference-api.flashorg.com/v1",
             api_key="fake-token",
-            provider="nous",
+            provider="flash",
         )
         assert ctx == 262_144, (
             f"Portal must override OR catalog; got {ctx} (OR leak?)"
@@ -642,7 +642,7 @@ class TestNousPortalContextResolution:
             model="qwen3.6-plus",
             base_url=base_url,
             api_key="fake",
-            provider="nous",
+            provider="flash",
         )
         assert ctx == 262_144
         persisted = yaml.safe_load(cache_file.read_text()).get("context_lengths", {})
@@ -674,7 +674,7 @@ class TestNousPortalContextResolution:
             model="qwen3.6-plus",
             base_url=base_url,
             api_key="fake",
-            provider="nous",
+            provider="flash",
         )
         assert ctx == 1_000_000, "OR fallback should still serve the request"
         assert not cache_file.exists() or not yaml.safe_load(
@@ -689,7 +689,7 @@ class TestNousPortalContextResolution:
     def test_stale_cache_is_bypassed_and_overwritten_by_portal(
         self, mock_or, mock_portal, tmp_path, monkeypatch
     ):
-        """Users upgrading from pre-fix builds have ``qwen3.6-plus@…nous… =
+        """Users upgrading from pre-fix builds have ``qwen3.6-plus@…flash… =
         1000000`` (OR-derived) sitting in their cache file.  Step 1 must
         NOT short-circuit on that entry — step 5b reconciles against the
         portal and overwrites the persistent value with 262144."""
@@ -714,7 +714,7 @@ class TestNousPortalContextResolution:
             model="qwen3.6-plus",
             base_url=base_url,
             api_key="fake",
-            provider="nous",
+            provider="flash",
         )
         assert ctx == 262_144, (
             f"Stale OR-derived cache entry should not have leaked through; got {ctx}"
@@ -756,7 +756,7 @@ class TestNousPortalContextResolution:
             model="qwen3.6-plus",
             base_url=base_url,
             api_key="fake",
-            provider="nous",
+            provider="flash",
         )
 
         remaining = yaml.safe_load(cache_file.read_text()).get("context_lengths", {})

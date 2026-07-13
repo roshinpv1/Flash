@@ -267,7 +267,7 @@ class TestMem0V3Internal:
 
 
 class TestMem0Prefetch:
-    """prefetch() must recall on the CURRENT question, synchronously.
+    """prefetch() must recall on the CURRENT question, synchroflashly.
 
     The old implementation ignored its ``query`` and returned whatever a
     background ``queue_prefetch`` had warmed from the PREVIOUS turn — so the
@@ -342,7 +342,7 @@ class TestMem0Prefetch:
         assert backend.captured == []
 
     def test_queue_prefetch_fires_no_search(self):
-        # prefetch is synchronous now, so the post-turn warm is redundant and
+        # prefetch is synchroflash now, so the post-turn warm is redundant and
         # must not fire a wasted backend search.
         backend = FakeBackend(search_results=[{"id": "m1", "memory": "x"}])
         provider = self._make_provider(backend)

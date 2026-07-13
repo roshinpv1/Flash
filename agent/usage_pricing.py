@@ -655,8 +655,8 @@ def resolve_billing_route(
         return BillingRoute(provider="openai-codex", model=model, base_url=base_url or "", billing_mode="subscription_included")
     if provider_name == "openrouter" or base_url_host_matches(base_url or "", "openrouter.ai"):
         return BillingRoute(provider="openrouter", model=model, base_url=base_url or "", billing_mode="official_models_api")
-    if provider_name == "nous" or base_url_host_matches(base_url or "", "inference-api.flashorg.com"):
-        return BillingRoute(provider="nous", model=model, base_url=base_url or _NOUS_DEFAULT_BASE_URL, billing_mode="official_models_api")
+    if provider_name == "flash" or base_url_host_matches(base_url or "", "inference-api.flashorg.com"):
+        return BillingRoute(provider="flash", model=model, base_url=base_url or _NOUS_DEFAULT_BASE_URL, billing_mode="official_models_api")
     if provider_name == "anthropic":
         return BillingRoute(provider="anthropic", model=model.split("/")[-1], base_url=base_url or "", billing_mode="official_docs_snapshot")
     # "openai-api" is the picker/registry slug for direct api.openai.com; it

@@ -79,7 +79,7 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
             "  - provider: openrouter\n"
             "    model: anthropic/claude-sonnet-4.6\n"
             "fallback_model:\n"
-            "  provider: nous\n"
+            "  provider: flash\n"
             "  model: Flash-4\n"
         )
 
@@ -93,9 +93,9 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
             if requested == "openrouter":
                 raise RuntimeError("openrouter unavailable")
             return {
-                "api_key": "nous-key",
+                "api_key": "flash-key",
                 "base_url": "https://portal.flashorg.com/v1",
-                "provider": "nous",
+                "provider": "flash",
                 "api_mode": "chat_completions",
                 "command": None,
                 "args": None,
@@ -110,6 +110,6 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
 
             result = _try_resolve_fallback_provider()
 
-        assert calls == ["openrouter", "nous"]
-        assert result["provider"] == "nous"
+        assert calls == ["openrouter", "flash"]
+        assert result["provider"] == "flash"
         assert result["model"] == "Flash-4"

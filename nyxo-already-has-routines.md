@@ -157,4 +157,4 @@ GitHub: [github.com/Flash/nyxo-agent](https://github.com/Flash/nyxo-agent)
 
 ---
 
-*Nyxo Agent is built by [Nous Research](https://flash.com). Open source, model-agnostic, runs on your infrastructure.*
+*Nyxo Agent is built by [Flash Org](https://flash.com). Open source, model-agnostic, runs on your infrastructure.*

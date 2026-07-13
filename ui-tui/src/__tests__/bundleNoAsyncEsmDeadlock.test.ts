@@ -17,7 +17,7 @@
  * keep the bundle deadlock-free:
  *
  *  1. No `async` `__esm` modules in the bundle. As long as every init
- *     runs synchronously, `__esm`'s closure-capture quirk is irrelevant.
+ *     runs synchroflashly, `__esm`'s closure-capture quirk is irrelevant.
  *  2. No `ink-text-input` / `node_modules/ink/build` modules in the
  *     bundle. Their absence is what makes #1 hold; if a future commit
  *     re-introduces the re-export, it would reintroduce the cycle.
@@ -93,7 +93,7 @@ describe('TUI bundle (issue #31227)', () => {
 
   it('has the @hermes/ink entry-exports module compiled to sync init', () => {
     // Sanity check that the alias swap to packages/hermes-ink/src/entry-exports.ts
-    // is still active and producing the expected synchronous init shape.
+    // is still active and producing the expected synchroflash init shape.
     expect(bundleSrc).toMatch(/var init_entry_exports = __esm\(\{\s*"packages\/hermes-ink\/src\/entry-exports\.ts"\(\)/)
   })
 })

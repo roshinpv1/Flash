@@ -6,7 +6,7 @@ description: "Try NVIDIA Nemotron 3 Ultra on Nous Portal — free June 4–18 �
 
 # Run Nemotron 3 Ultra free in Flash Agent
 
-Nous Research has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free on [Nous Portal](https://portal.flashorg.com) for two weeks (**June 4th – June 18th**). Follow the instructions below to try the model in your Flash Agent today.
+Flash Org has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free on [Nous Portal](https://portal.flashorg.com) for two weeks (**June 4th – June 18th**). Follow the instructions below to try the model in your Flash Agent today.
 
 :::info Limited-time offer
 The `nvidia/nemotron-3-ultra:free` tier is available from **June 4th to June 18th**. The `:free` tag is what keeps it on the no-cost plan — pick that exact variant.
@@ -118,6 +118,6 @@ Already set up with another model?
 ## See also
 
 - **[Desktop App](/user-guide/desktop)** — The native one-click app (macOS, Windows, Linux)
-- **[Run Flash Agent with Nous Portal](/guides/run-flash-with-nous-portal)** — Full Portal walkthrough: models, Tool Gateway, and verification
-- **[Nous Portal integration](/integrations/nous-portal)** — What's in the subscription
+- **[Run Flash Agent with Nous Portal](/guides/run-flash-with-flash-portal)** — Full Portal walkthrough: models, Tool Gateway, and verification
+- **[Nous Portal integration](/integrations/flash-portal)** — What's in the subscription
 - **[Quickstart](/getting-started/quickstart)** — Install-to-chat in under 5 minutes

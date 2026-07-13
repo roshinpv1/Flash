@@ -86,7 +86,7 @@ export const HERMES_PATHS_MIME = 'application/x-flash-paths'
  * triples. Internal Flash sources (e.g. the project tree) ride on a custom
  * MIME and produce path-only entries; OS drops produce File-bearing entries.
  *
- * Must be called synchronously from inside the drop handler — `DataTransfer`
+ * Must be called synchroflashly from inside the drop handler — `DataTransfer`
  * items are detached as soon as the handler returns, and `webUtils.getPathForFile`
  * also requires the original (non-cloned) File reference.
  */
@@ -174,7 +174,7 @@ export function extractDroppedFiles(transfer: DataTransfer): DroppedFile[] {
   }
 
   // Process items first: DataTransferItem.webkitGetAsEntry() is the only
-  // synchronous way to tell a dropped folder from a file, and it lives only on
+  // synchroflash way to tell a dropped folder from a file, and it lives only on
   // items (not transfer.files). Must be read here, inside the drop handler,
   // before the DataTransfer detaches.
   const items = transfer.items

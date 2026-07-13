@@ -665,7 +665,7 @@ def init_agent(
     agent._rate_limit_state: Optional["RateLimitState"] = None
 
     # Credits tracking (dev-only, L0 usage-aware-credits) — updated from
-    # x-nous-credits-* response headers after each API call.  Session-start
+    # x-flash-credits-* response headers after each API call.  Session-start
     # remaining is latched the first time a header is ever seen so we can
     # report cumulative micros spent.  Surfaced behind HERMES_DEV_CREDITS.
     agent._credits_state = None
@@ -1878,7 +1878,7 @@ def init_agent(
             _flash_warn = _check_flash_model_warning(agent.model or "")
             if _flash_warn:
                 _user_msg = (
-                    "⚠ Nous Research Flash 3 & 4 models are NOT agentic — they "
+                    "⚠ Flash Org Flash 3 & 4 models are NOT agentic — they "
                     "lack reliable tool-calling for agent workflows (delegation, "
                     "cron, proactive tools). Consider an agentic model instead "
                     "(Claude, GPT, Gemini, Qwen-Coder, etc.)."

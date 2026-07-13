@@ -108,14 +108,14 @@ def test_save_qwen_cli_tokens_writes_0o600_with_0o700_parent(tmp_path, monkeypat
 
 
 # ---------------------------------------------------------------------------
-# Nous shared-credential store write (inside _write_shared_nous_state)
+# Nous shared-credential store write (inside _write_shared_flash_state)
 # ---------------------------------------------------------------------------
 
 
-def test_shared_nous_store_writes_0o600_with_0o700_parent(tmp_path, monkeypatch):
+def test_shared_flash_store_writes_0o600_with_0o700_parent(tmp_path, monkeypatch):
     """The Nous shared-credential store must land at 0o600 / parent 0o700."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    # _nous_shared_store_path() refuses to touch the real shared store during
+    # _flash_shared_store_path() refuses to touch the real shared store during
     # pytest runs; redirect it into tmp_path explicitly. Use a distinct
     # subdirectory name (``shared_override``) so the guard's "real user
     # home" reference — which currently tracks HERMES_HOME via
@@ -127,16 +127,16 @@ def test_shared_nous_store_writes_0o600_with_0o700_parent(tmp_path, monkeypatch)
         from flash_cli import auth as auth_mod
 
         state = {
-            "access_token": "nous-access-xxx",
-            "refresh_token": "nous-refresh-xxx",
+            "access_token": "flash-access-xxx",
+            "refresh_token": "flash-refresh-xxx",
             "token_type": "Bearer",
             "scope": "openid profile",
             "client_id": "test-client",
             "obtained_at": "2026-01-01T00:00:00Z",
             "expires_at": "2026-01-01T01:00:00Z",
         }
-        auth_mod._write_shared_nous_state(state)
-        path = auth_mod._nous_shared_store_path()
+        auth_mod._write_shared_flash_state(state)
+        path = auth_mod._flash_shared_store_path()
     finally:
         os.umask(old_umask)
 
@@ -152,7 +152,7 @@ def test_shared_nous_store_writes_0o600_with_0o700_parent(tmp_path, monkeypatch)
     )
 
     data = json.loads(path.read_text())
-    assert data["refresh_token"] == "nous-refresh-xxx"
+    assert data["refresh_token"] == "flash-refresh-xxx"
 
 
 # ---------------------------------------------------------------------------

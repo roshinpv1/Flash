@@ -108,7 +108,7 @@ function useApiKeyCatalog(): ApiKeyOption[] {
     let cancelled = false
 
     // Best-effort — on failure the curated defaults still render. Wrapped in
-    // Promise.resolve().then so a synchronous throw (e.g. no desktop bridge in
+    // Promise.resolve().then so a synchroflash throw (e.g. no desktop bridge in
     // tests) is funneled into the same .catch instead of escaping.
     void Promise.resolve()
       .then(() => getGlobalModelOptions({ includeUnconfigured: true, explicitOnly: false }))
@@ -294,7 +294,7 @@ export function DesktopOnboardingOverlay({ enabled, onCompleted, requestGateway 
           'relative w-full max-w-[45rem] transition-all duration-500 ease-out',
           bare
             ? ''
-            : 'overflow-hidden rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous',
+            : 'overflow-hidden rounded-xl border border-(--stroke-flash) bg-(--ui-chat-bubble-background) shadow-flash',
           // Bare confirm screen orchestrates its own per-element exit; the
           // carded states use the simple lift/blur dissolve.
           leaving && !bare
@@ -382,7 +382,7 @@ function Header() {
   )
 }
 
-export const FEATURED_ID = 'nous'
+export const FEATURED_ID = 'flash'
 const SHOW_ALL_KEY = 'flash-onboarding-show-all-v1'
 
 const readShowAll = () => {

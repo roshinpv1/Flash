@@ -11,9 +11,9 @@ import flash_cli.models as models_mod
 
 def _patch_pricing(monkeypatch, *, free_tier, pricing, unavailable=None):
     monkeypatch.setattr(models_mod, "get_pricing_for_provider", lambda slug, **kw: pricing.get(slug, {}))
-    monkeypatch.setattr(models_mod, "check_nous_free_tier", lambda *, force_fresh=False: free_tier)
+    monkeypatch.setattr(models_mod, "check_flash_free_tier", lambda *, force_fresh=False: free_tier)
     monkeypatch.setattr(
-        models_mod, "partition_nous_models_by_tier",
+        models_mod, "partition_flash_models_by_tier",
         lambda ids, pr, free_tier: (
             [m for m in ids if m not in (unavailable or [])],
             list(unavailable or []),
@@ -42,20 +42,20 @@ def test_apply_pricing_formats_per_model_prices(monkeypatch):
     assert pricing["b/free"]["input"] == "free"
 
 
-def test_apply_pricing_nous_free_tier_gates_paid_models(monkeypatch):
+def test_apply_pricing_flash_free_tier_gates_paid_models(monkeypatch):
     """A free-tier Nous account marks paid models unavailable and sets the flag."""
     _patch_pricing(
         monkeypatch,
         free_tier=True,
         pricing={
-            "nous": {
+            "flash": {
                 "free/model": {"prompt": "0", "completion": "0"},
                 "paid/model": {"prompt": "0.000005", "completion": "0.00001"},
             }
         },
         unavailable=["paid/model"],
     )
-    rows = [{"slug": "nous", "models": ["free/model", "paid/model"]}]
+    rows = [{"slug": "flash", "models": ["free/model", "paid/model"]}]
     inv._apply_pricing(rows)
 
     assert rows[0]["free_tier"] is True
@@ -63,14 +63,14 @@ def test_apply_pricing_nous_free_tier_gates_paid_models(monkeypatch):
     assert rows[0]["pricing"]["free/model"]["free"] is True
 
 
-def test_apply_pricing_nous_paid_tier_no_gating(monkeypatch):
+def test_apply_pricing_flash_paid_tier_no_gating(monkeypatch):
     """A paid Nous account gates nothing."""
     _patch_pricing(
         monkeypatch,
         free_tier=False,
-        pricing={"nous": {"x/model": {"prompt": "0.000001", "completion": "0.000002"}}},
+        pricing={"flash": {"x/model": {"prompt": "0.000001", "completion": "0.000002"}}},
     )
-    rows = [{"slug": "nous", "models": ["x/model"]}]
+    rows = [{"slug": "flash", "models": ["x/model"]}]
     inv._apply_pricing(rows)
 
     assert rows[0]["free_tier"] is False

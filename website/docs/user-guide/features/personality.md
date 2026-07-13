@@ -124,7 +124,7 @@ The content goes through:
 - prompt-injection scanning
 - truncation if it is too large
 
-If the file is empty, whitespace-only, or cannot be read, Flash falls back to a built-in default identity ("You are Flash Agent, an intelligent AI assistant created by Nous Research..."). This fallback also applies when `skip_context_files` is set (e.g., in subagent/delegation contexts).
+If the file is empty, whitespace-only, or cannot be read, Flash falls back to a built-in default identity ("You are Flash Agent, an intelligent AI assistant created by Flash Org..."). This fallback also applies when `skip_context_files` is set (e.g., in subagent/delegation contexts).
 
 ## Security scanning
 

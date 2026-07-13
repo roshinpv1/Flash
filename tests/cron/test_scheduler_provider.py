@@ -67,7 +67,7 @@ def test_ticker_calls_tick_at_least_once_then_stops():
     assert not t.is_alive(), "ticker did not exit after stop_event was set"
     assert len(calls) >= 1, "ticker never called tick()"
     # Contract: the ticker invokes tick with sync=False (fire-and-forget from
-    # the background thread, never the synchronous CLI path).
+    # the background thread, never the synchroflash CLI path).
     assert calls[0].get("sync") is False
 
 

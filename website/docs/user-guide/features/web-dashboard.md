@@ -9,7 +9,7 @@ description: "Browser-based administration panel for managing configuration, API
 The web dashboard is a browser-based UI for managing your Flash Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
 
 :::tip
-Hosted-mode auth uses Nous Portal OAuth; if you also want the dashboard to talk to a real backend, `flash setup --portal` wires up the model and tool gateway too. See [Nous Portal](/integrations/nous-portal).
+Hosted-mode auth uses Nous Portal OAuth; if you also want the dashboard to talk to a real backend, `flash setup --portal` wires up the model and tool gateway too. See [Nous Portal](/integrations/flash-portal).
 :::
 
 ## Quick Start
@@ -560,7 +560,7 @@ same auth gate as the rest of `/api/`.
 When the dashboard is bound to a public or non-loopback address — anything other than `127.0.0.1` / `localhost` — Flash Agent engages an auth gate. Every request must carry a verified session cookie or it's bounced to the login page. Three providers ship in the box:
 
 - **[Username/password](#usernamepassword-provider-no-oauth-idp)** — the simplest way to put auth on a self-hosted / on-prem / homelab dashboard. No external identity provider. **Use it only on a trusted network or behind a VPN — not for public-internet exposure.**
-- **[OAuth (Nous Portal)](#default-provider-nous-research)** — for hosted deployments and any dashboard reachable over the public internet, and the recommended path for a [remote Flash Desktop connection](#connecting-flash-desktop-to-a-remote-backend). Every login is verified against your Nous account, so this is the provider suitable for internet-facing use.
+- **[OAuth (Nous Portal)](#default-provider-flash-research)** — for hosted deployments and any dashboard reachable over the public internet, and the recommended path for a [remote Flash Desktop connection](#connecting-flash-desktop-to-a-remote-backend). Every login is verified against your Nous account, so this is the provider suitable for internet-facing use.
 - **[Self-hosted OIDC](#self-hosted-oidc-provider)** — for bringing your own identity provider via standard OpenID Connect (Keycloak, Auth0, Okta, Google, GitHub via an OIDC bridge, etc.). No Nous Portal involved; suitable for public-internet exposure when fronted by a conformant OIDC server.
 
 Operator-owned dashboards bound to loopback are unaffected — no auth, no login page.
@@ -587,9 +587,9 @@ If the gate would engage but **no** `DashboardAuthProvider` is registered (no No
 
 When you run `flash dashboard --host 0.0.0.0` **interactively** (a real terminal) and no provider is configured yet, Flash doesn't just fail — it offers to set one up on the spot: pick **username & password** (writes `dashboard.basic_auth` to `config.yaml` and you're running in seconds) or **OAuth** (points you at `flash dashboard register`). Non-interactive callers — Docker/s6, CI, piped runs — skip the prompt and hit the fail-closed error above, so an unattended deploy still never starts without auth.
 
-### Default provider: Nous Research
+### Default provider: Flash Org
 
-The bundled `plugins/dashboard_auth/nous` plugin is **always installed** and auto-loaded. It auto-registers a `DashboardAuthProvider` named `nous` when a client ID is configured.
+The bundled `plugins/dashboard_auth/flash` plugin is **always installed** and auto-loaded. It auto-registers a `DashboardAuthProvider` named `flash` when a client ID is configured.
 
 Because every login is verified against Nous Portal and protected by your Nous account, **the Nous provider is the one suitable for exposing a dashboard to the public internet.**
 
@@ -636,7 +636,7 @@ Refusing to bind dashboard to 0.0.0.0 — the OAuth auth gate engages on
 non-loopback binds, but no auth providers are registered.
 
 Bundled providers reported these issues:
-  • nous: HERMES_DASHBOARD_OAUTH_CLIENT_ID is not set (and
+  • flash: HERMES_DASHBOARD_OAUTH_CLIENT_ID is not set (and
     dashboard.oauth.client_id in config.yaml is empty). The Nous Portal
     provisions this env var (shape 'agent:{instance_id}') when it
     deploys a Flash Agent instance — set it to your provisioned
@@ -647,7 +647,7 @@ Or pass --insecure to skip the auth gate (NOT recommended on untrusted
 networks).
 ```
 
-#### Worked example: Nous Research
+#### Worked example: Flash Org
 
 From a logged-in Flash install to a Nous-gated dashboard in three steps.
 
@@ -660,21 +660,21 @@ flash dashboard register
 # …writes HERMES_DASHBOARD_OAUTH_CLIENT_ID to ~/.flash/.env
 ```
 
-**2. Run the dashboard on a reachable address.** A non-loopback bind without `--insecure` engages the OAuth gate, and the `client_id` just written activates the `nous` provider:
+**2. Run the dashboard on a reachable address.** A non-loopback bind without `--insecure` engages the OAuth gate, and the `client_id` just written activates the `flash` provider:
 
 ```bash
 flash dashboard --host 0.0.0.0 --port 9119 --no-open
 ```
 
-**3. Log in.** Open `http://<host>:9119/`, you'll be bounced to `/login`. Click **Sign in with Nous Research** → authenticate at the Portal → land back on the authenticated dashboard. Verify the gate from any machine:
+**3. Log in.** Open `http://<host>:9119/`, you'll be bounced to `/login`. Click **Sign in with Flash Org** → authenticate at the Portal → land back on the authenticated dashboard. Verify the gate from any machine:
 
 ```bash
 curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'
 # true
-# ["nous"]
+# ["flash"]
 ```
 
-`GET /api/auth/me` then returns the verified session (`provider: nous`). For an internet-facing host, register with `--redirect-uri https://flash.example.com/auth/callback` and set `HERMES_DASHBOARD_PUBLIC_URL` so the OAuth callback resolves to your public URL (see [Public URL override](#public-url-override)).
+`GET /api/auth/me` then returns the verified session (`provider: flash`). For an internet-facing host, register with `--redirect-uri https://flash.example.com/auth/callback` and set `HERMES_DASHBOARD_PUBLIC_URL` so the OAuth callback resolves to your public URL (see [Public URL override](#public-url-override)).
 
 ### Username/password provider (no OAuth IDP)
 
@@ -683,7 +683,7 @@ If you don't want to wire up an OAuth identity provider — a self-hosted "just 
 It plugs into the same gate as the OAuth provider: the gate engages on a non-loopback bind without `--insecure`, the login page renders a credential form for this provider (instead of a "Log in with X" button), and everything downstream of login — session cookies, transparent refresh, WS tickets, logout, the audit log — is identical to the OAuth path. Sessions are stateless HMAC-signed tokens the provider mints itself, so there's **no database and no external IDP**. Password hashing uses stdlib `scrypt` (no third-party dependency).
 
 :::warning Use this on trusted networks only — not the public internet
-The username/password provider is intended for self-hosted / on-prem / homelab dashboards on a **trusted network**, or reachable only over a **VPN**. It protects a single shared credential with no external identity provider, MFA, or per-user accounts behind it, so it is **not suitable for exposing a dashboard directly to the public internet**. For an internet-facing dashboard, use the [Nous Research provider](#default-provider-nous-research) (or your own [self-hosted OIDC](#self-hosted-oidc-provider) / [custom OAuth](#custom-providers) provider) instead.
+The username/password provider is intended for self-hosted / on-prem / homelab dashboards on a **trusted network**, or reachable only over a **VPN**. It protects a single shared credential with no external identity provider, MFA, or per-user accounts behind it, so it is **not suitable for exposing a dashboard directly to the public internet**. For an internet-facing dashboard, use the [Flash Org provider](#default-provider-flash-research) (or your own [self-hosted OIDC](#self-hosted-oidc-provider) / [custom OAuth](#custom-providers) provider) instead.
 :::
 
 #### Configuration
@@ -753,7 +753,7 @@ curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'
 # ["basic"]
 ```
 
-`GET /api/auth/me` then returns the verified session (`provider: basic`). Keep this behind a VPN — see the warning above; for a public host use the [Nous Research](#default-provider-nous-research) or [self-hosted OIDC](#self-hosted-oidc-provider) provider instead.
+`GET /api/auth/me` then returns the verified session (`provider: basic`). Keep this behind a VPN — see the warning above; for a public host use the [Flash Org](#default-provider-flash-research) or [self-hosted OIDC](#self-hosted-oidc-provider) provider instead.
 
 #### Writing your own password provider
 
@@ -912,10 +912,10 @@ Validation rejects values without `http://` / `https://` scheme, without a host,
 
 ### OAuth flow
 
-The provider implements the [Nous Portal OAuth contract v1](https://github.com/FlashOrg/nous-account-service/blob/main/docs/agent-dashboard-oauth-contract.md) — authorization-code grant with PKCE (S256):
+The provider implements the [Nous Portal OAuth contract v1](https://github.com/FlashOrg/flash-account-service/blob/main/docs/agent-dashboard-oauth-contract.md) — authorization-code grant with PKCE (S256):
 
 1. User hits `/` without a session cookie → gate redirects to `/login`.
-2. Login page shows a "Continue with Nous Research" button → `/auth/login?provider=nous`.
+2. Login page shows a "Continue with Flash Org" button → `/auth/login?provider=flash`.
 3. Server stashes PKCE state in a short-lived cookie, redirects user to `https://portal.flashorg.com/oauth/authorize?…`.
 4. User authenticates with Portal, lands at `/auth/callback?code=…&state=…`.
 5. Server exchanges the code for an access token at `POST /api/oauth/token`, verifies the JWT signature against the Portal's JWKS (`/.well-known/jwks.json`), and sets the `flash_session_at` cookie.
@@ -935,7 +935,7 @@ All three are `Path=/` and `SameSite=Lax`. The `Secure` flag is set when the das
 
 ### Logout
 
-The sidebar widget shows `Logged in as <user_id…> via nous` with a logout icon. Clicking it POSTs `/auth/logout`, which clears all dashboard-auth cookies and redirects back to `/login`.
+The sidebar widget shows `Logged in as <user_id…> via flash` with a logout icon. Clicking it POSTs `/auth/logout`, which clears all dashboard-auth cookies and redirects back to `/login`.
 
 ### Audit log
 
@@ -969,7 +969,7 @@ The login page lists all registered providers; multiple providers can be stacked
 
 Alongside interactive human login (session cookies + refresh), the `DashboardAuthProvider` ABC supports a **non-interactive, service-to-service** capability via `supports_token = True` + `verify_token(token=...)`. When a provider opts in, an inbound `Authorization: Bearer <token>` is verified and, on success, a `TokenPrincipal` is attached to the request (`request.state.token_principal`) for the endpoints that provider marks token-authable — no cookie, no redirect, no refresh.
 
-The bundled first consumer is the **drain** provider (`plugins/dashboard_auth/drain`): `nous-account-service` provisions a per-agent secret via `HERMES_DASHBOARD_DRAIN_SECRET`, and the provider verifies inbound bearer tokens against it with a constant-time compare, registering `/api/gateway/drain` as token-authable. It **fails closed** — a weak/short secret (< 256 bits) is rejected at registration and the endpoint stays disabled; it's a no-op when the env var is unset. Behavioural knobs (`scope`, `min_secret_chars`) live under `dashboard.drain_auth` in `config.yaml`.
+The bundled first consumer is the **drain** provider (`plugins/dashboard_auth/drain`): `flash-account-service` provisions a per-agent secret via `HERMES_DASHBOARD_DRAIN_SECRET`, and the provider verifies inbound bearer tokens against it with a constant-time compare, registering `/api/gateway/drain` as token-authable. It **fails closed** — a weak/short secret (< 256 bits) is rejected at registration and the endpoint stays disabled; it's a no-op when the env var is unset. Behavioural knobs (`scope`, `min_secret_chars`) live under `dashboard.drain_auth` in `config.yaml`.
 
 Custom providers can implement `supports_token`/`verify_token` the same way to expose their own machine-authable endpoints.
 
@@ -992,7 +992,7 @@ flash dashboard --host 0.0.0.0
 # Hit /api/status to see the gate state:
 curl -s http://127.0.0.1:9119/api/status | jq '.auth_required, .auth_providers'
 # true
-# ["nous"]
+# ["flash"]
 ```
 
 The dashboard's React StatusPage shows the same fields under "Web server". A sidebar AuthWidget surfaces the current identity once you've signed in.
@@ -1001,9 +1001,9 @@ The dashboard's React StatusPage shows the same fields under "Web server". A sid
 
 Flash Desktop can drive a Flash backend running on another machine (a VPS, a home server, a Mini behind Tailscale). In the app this lives under **Settings → Gateway → Remote gateway**, which asks for a **Remote URL** and a way to **Sign in**. (For the desktop app itself — install, settings, chat — see the [Flash Desktop](/user-guide/desktop) page.)
 
-You protect the remote dashboard with one of the bundled auth providers, and the desktop app signs in against whichever one the backend advertises. For a backend reachable beyond your own machine — a VPS, a public host, anything internet-facing — the recommended provider is **OAuth (Nous Portal)** (register it with [`flash dashboard register`](#registering-a-dashboard) and sign in with *Sign in with Nous Research*). The bundled [username/password provider](#usernamepassword-provider-no-oauth-idp) is the quickest option when the backend is on a trusted LAN or reachable only over a VPN, but is **not suitable for direct public-internet exposure**. Binding the dashboard to a non-loopback address engages its auth gate; once signed in, Desktop reuses the session for the chat WebSocket automatically — there is no token to copy or paste.
+You protect the remote dashboard with one of the bundled auth providers, and the desktop app signs in against whichever one the backend advertises. For a backend reachable beyond your own machine — a VPS, a public host, anything internet-facing — the recommended provider is **OAuth (Nous Portal)** (register it with [`flash dashboard register`](#registering-a-dashboard) and sign in with *Sign in with Flash Org*). The bundled [username/password provider](#usernamepassword-provider-no-oauth-idp) is the quickest option when the backend is on a trusted LAN or reachable only over a VPN, but is **not suitable for direct public-internet exposure**. Binding the dashboard to a non-loopback address engages its auth gate; once signed in, Desktop reuses the session for the chat WebSocket automatically — there is no token to copy or paste.
 
-The recipe below uses the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Default provider: Nous Research](#default-provider-nous-research).
+The recipe below uses the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Default provider: Flash Org](#default-provider-flash-research).
 
 ### On the backend (the remote machine)
 

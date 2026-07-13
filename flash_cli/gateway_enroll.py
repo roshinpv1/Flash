@@ -7,7 +7,7 @@ zero-touch enrollment in the connector repo's
 
   1. Resolve a fresh Nous Portal access token from the existing login
      (``~/.flash/auth.json``) — the same path ``flash dashboard register``
-     uses (``resolve_nous_access_token``). This proves *which Nous org (tenant)*
+     uses (``resolve_flash_access_token``). This proves *which Nous org (tenant)*
      the caller owns; the connector derives the authoritative tenant from it via
      ``GET /api/oauth/account`` (never from anything the gateway asserts).
   2. POST ``{enrollmentToken, gatewayId}`` to the connector's ``/relay/enroll``
@@ -138,7 +138,7 @@ def _post_enroll(
         if exc.code == 401:
             raise RuntimeError(
                 "Connector rejected the caller identity (401). Your Nous Portal "
-                "token could not be verified — try `flash auth add nous` and retry."
+                "token could not be verified — try `flash auth add flash` and retry."
             ) from exc
         if exc.code == 403:
             raise RuntimeError(
@@ -160,7 +160,7 @@ def _post_enroll(
 
 def cmd_gateway_enroll(args) -> None:
     """Enroll this gateway with a relay connector; persist the auth creds to .env."""
-    from flash_cli.auth import AuthError, resolve_nous_access_token
+    from flash_cli.auth import AuthError, resolve_flash_access_token
     from flash_cli.config import is_managed, save_env_value
 
     # Managed installs get GATEWAY_RELAY_* stamped in by the orchestrator (NAS
@@ -202,7 +202,7 @@ def cmd_gateway_enroll(args) -> None:
     except AuthError as exc:
         if getattr(exc, "relogin_required", False):
             print("✗ You're not logged into Nous Portal.")
-            print("  Run `flash setup` (or `flash auth add nous`) first, then retry.")
+            print("  Run `flash setup` (or `flash auth add flash`) first, then retry.")
         else:
             print(f"✗ Could not resolve a Nous Portal access token: {exc}")
         sys.exit(1)

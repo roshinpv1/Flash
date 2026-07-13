@@ -34,9 +34,9 @@ NOUS_HEADERS = {
 
 class TestParseHeaders:
     def test_basic_parsing(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="nous")
+        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
         assert state is not None
-        assert state.provider == "nous"
+        assert state.provider == "flash"
         assert state.has_data
 
         assert state.requests_min.limit == 800
@@ -151,7 +151,7 @@ class TestFormatting:
         assert "No rate limit data" in result
 
     def test_format_display_with_data(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="nous")
+        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
         result = format_rate_limit_display(state)
         assert "Nous" in result
         assert "Requests/min" in result
@@ -170,7 +170,7 @@ class TestFormatting:
         assert "⚠" in result
 
     def test_format_compact(self):
-        state = parse_rate_limit_headers(NOUS_HEADERS, provider="nous")
+        state = parse_rate_limit_headers(NOUS_HEADERS, provider="flash")
         result = format_rate_limit_compact(state)
         assert "RPM:" in result
         assert "RPH:" in result
@@ -196,7 +196,7 @@ class TestAgentIntegration:
         # Import AIAgent minimally
 
         # Test the parsing directly
-        state = parse_rate_limit_headers(MockResponse.headers, provider="nous")
+        state = parse_rate_limit_headers(MockResponse.headers, provider="flash")
         assert state is not None
         assert state.requests_min.limit == 800
         assert state.tokens_hour.limit == 336000000

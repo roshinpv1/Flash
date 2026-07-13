@@ -55,10 +55,10 @@ def flash_client_tag() -> str:
     return f"client=flash-client-v{_flash_version()}"
 
 
-def nous_portal_tags() -> List[str]:
+def flash_portal_tags() -> List[str]:
     """Return the canonical list of Nous Portal product tags.
 
     Always returns a fresh list so callers can mutate it freely
-    (e.g. ``merged_extra.setdefault("tags", []).extend(nous_portal_tags())``).
+    (e.g. ``merged_extra.setdefault("tags", []).extend(flash_portal_tags())``).
     """
     return ["product=flash-agent", flash_client_tag()]

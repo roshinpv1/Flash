@@ -48,7 +48,7 @@ const FONT_STORAGE_KEY = "flash-dashboard-font";
  *  reasonably assume nobody still has the old value persisted. */
 const THEME_NAME_ALIASES: Record<string, string> = {
   // Renamed during the LENS_5I port + Nous-blue rebrand.
-  "lens-5i": "nous-blue",
+  "lens-5i": "flash-blue",
 };
 
 function migrateThemeName(name: string): string {
@@ -505,11 +505,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           // migrated value back so it converges too — otherwise every
           // future page load would re-trigger this branch.
           if (migratedActive !== resp.active) {
-            api.setTheme(migratedActive).catch(() => {});
+            api.setTheme(migratedActive).catch(() => { });
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -533,7 +533,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => {
       cancelled = true;
     };
@@ -553,7 +553,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(STORAGE_KEY, next);
       }
-      api.setTheme(next).catch(() => {});
+      api.setTheme(next).catch(() => { });
     },
     [availableThemes, userThemeDefs],
   );
@@ -564,7 +564,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(FONT_STORAGE_KEY, next);
     }
-    api.setFontPref(next).catch(() => {});
+    api.setFontPref(next).catch(() => { });
   }, []);
 
   const value = useMemo<ThemeContextValue>(
@@ -595,10 +595,10 @@ const ThemeContext = createContext<ThemeContextValue>({
     label: t.label,
     description: t.description,
   })),
-  setTheme: () => {},
+  setTheme: () => { },
   fontId: THEME_DEFAULT_FONT_ID,
   fontChoices: FONT_CHOICES,
-  setFont: () => {},
+  setFont: () => { },
 });
 
 interface ThemeContextValue {

@@ -81,7 +81,7 @@ agent/message_sanitization.py
 agent/model_metadata.py
 agent/models_dev.py
 agent/moonshot_schema.py
-agent/nous_rate_guard.py
+agent/flash_rate_guard.py
 agent/onboarding.py
 agent/oneshot.py
 agent/plugin_llm.py
@@ -315,10 +315,10 @@ flash_cli/model_normalize.py
 flash_cli/model_setup_flows.py
 flash_cli/model_switch.py
 flash_cli/models.py
-flash_cli/nous_account.py
-flash_cli/nous_auth_keepalive.py
-flash_cli/nous_billing.py
-flash_cli/nous_subscription.py
+flash_cli/flash_account.py
+flash_cli/flash_auth_keepalive.py
+flash_cli/flash_billing.py
+flash_cli/flash_subscription.py
 flash_cli/oneshot.py
 flash_cli/pairing.py
 flash_cli/partial_compress.py
@@ -383,7 +383,7 @@ flash_cli/proxy/cli.py
 flash_cli/proxy/server.py
 flash_cli/proxy/adapters/__init__.py
 flash_cli/proxy/adapters/base.py
-flash_cli/proxy/adapters/nous_portal.py
+flash_cli/proxy/adapters/flash_portal.py
 flash_cli/proxy/adapters/xai.py
 flash_cli/subcommands/__init__.py
 flash_cli/subcommands/_shared.py
@@ -906,8 +906,8 @@ plugins/cron_providers/chronos/plugin.yaml
 plugins/cron_providers/chronos/verify.py
 plugins/dashboard_auth/basic/__init__.py
 plugins/dashboard_auth/basic/plugin.yaml
-plugins/dashboard_auth/nous/__init__.py
-plugins/dashboard_auth/nous/plugin.yaml
+plugins/dashboard_auth/flash/__init__.py
+plugins/dashboard_auth/flash/plugin.yaml
 plugins/dashboard_auth/self_hosted/__init__.py
 plugins/dashboard_auth/self_hosted/plugin.yaml
 plugins/disk-cleanup/README.md
@@ -1021,8 +1021,8 @@ plugins/model-providers/kimi-coding/__init__.py
 plugins/model-providers/kimi-coding/plugin.yaml
 plugins/model-providers/minimax/__init__.py
 plugins/model-providers/minimax/plugin.yaml
-plugins/model-providers/nous/__init__.py
-plugins/model-providers/nous/plugin.yaml
+plugins/model-providers/flash/__init__.py
+plugins/model-providers/flash/plugin.yaml
 plugins/model-providers/novita/__init__.py
 plugins/model-providers/novita/plugin.yaml
 plugins/model-providers/nvidia/__init__.py

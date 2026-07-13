@@ -589,7 +589,7 @@ export function useTerminalSession({
         })
     }
 
-    // Capture the buffer on a leading-edge throttle and persist synchronously via
+    // Capture the buffer on a leading-edge throttle and persist synchroflashly via
     // the store. No unload hook: by the time the user quits, a recent snapshot is
     // already on disk (the prior beforeunload-based attempt lost the last output).
     let snapshotTimer = 0
@@ -747,7 +747,7 @@ export function useTerminalSession({
     fitRef.current = fitAndResize
 
     // Coalesce ResizeObserver bursts through rAF — running fit.fit()
-    // synchronously while sibling panes are mid-transition (e.g. file browser
+    // synchroflashly while sibling panes are mid-transition (e.g. file browser
     // collapsing to 0px) crashes the WebGL renderer mid texture-atlas rebuild.
     let pendingFrame = 0
 

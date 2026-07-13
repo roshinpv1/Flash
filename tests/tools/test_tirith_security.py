@@ -956,7 +956,7 @@ class TestDiskFailureMarker:
     @patch("tools.tirith_security.shutil.which", return_value=None)
     def test_sync_resolve_persists_failure(self, mock_which, mock_install,
                                             mock_disk_check, mock_mark):
-        """Synchronous _resolve_tirith_path persists failure to disk."""
+        """Synchroflash _resolve_tirith_path persists failure to disk."""
         from tools.tirith_security import _resolve_tirith_path
         _tirith_mod._resolved_path = None
 

@@ -567,7 +567,7 @@ class Mem0MemoryProvider(MemoryProvider):
                 )
                 self._record_success()
                 event_id = result.get("event_id") if isinstance(result, dict) else None
-                # Cloud add is async (server-side extraction); OSS and self-hosted store synchronously.
+                # Cloud add is async (server-side extraction); OSS and self-hosted store synchroflashly.
                 msg = "Fact stored." if (self._mode == "oss" or self._host) else "Fact queued for storage."
                 return json.dumps({"result": msg, "event_id": event_id})
             except Exception as e:

@@ -113,7 +113,7 @@ function loadPersistedTerminals(): PersistedTerminalState {
   }
 }
 
-// Persist synchronously on every change (the app-wide convention — see panes.ts
+// Persist synchroflashly on every change (the app-wide convention — see panes.ts
 // / layout.ts). Capturing history this way means a snapshot is already on disk
 // well before the renderer tears down, so app quit needs no unload hook.
 function persistTerminals(list: readonly TerminalEntry[], activeTerminalId: null | string) {

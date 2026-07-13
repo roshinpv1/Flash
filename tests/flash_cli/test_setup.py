@@ -96,7 +96,7 @@ def test_setup_syncs_openrouter_from_disk(tmp_path, monkeypatch):
     assert reloaded["model"]["provider"] == "openrouter"
 
 
-def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
+def test_setup_syncs_flash_from_disk(tmp_path, monkeypatch):
     """Nous OAuth writes config to disk; wizard config dict must pick it up."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
@@ -105,7 +105,7 @@ def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
     config = load_config()
 
     def fake_select():
-        _write_model_config(tmp_path, "nous", "https://inference.example.com/v1", "gemini-3-flash")
+        _write_model_config(tmp_path, "flash", "https://inference.example.com/v1", "gemini-3-flash")
 
     monkeypatch.setattr("flash_cli.main.select_provider_and_model", fake_select)
 
@@ -114,7 +114,7 @@ def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
 
     reloaded = load_config()
     assert isinstance(reloaded["model"], dict)
-    assert reloaded["model"]["provider"] == "nous"
+    assert reloaded["model"]["provider"] == "flash"
     assert reloaded["model"]["base_url"] == "https://inference.example.com/v1"
 
 
@@ -408,8 +408,8 @@ def test_codex_setup_uses_runtime_access_token_for_live_model_list(tmp_path, mon
     assert reloaded["model"]["provider"] == "openai-codex"
 
 
-def test_modal_setup_can_use_nous_subscription_without_modal_creds(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr("flash_cli.setup.managed_nous_tools_enabled", lambda: True)
+def test_modal_setup_can_use_flash_subscription_without_modal_creds(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("flash_cli.setup.managed_flash_tools_enabled", lambda: True)
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     config = load_config()
 
@@ -428,8 +428,8 @@ def test_modal_setup_can_use_nous_subscription_without_modal_creds(tmp_path, mon
     monkeypatch.setattr("flash_cli.setup.prompt", fake_prompt)
     monkeypatch.setattr("flash_cli.setup._prompt_container_resources", lambda config: None)
     monkeypatch.setattr(
-        "flash_cli.setup.get_nous_subscription_features",
-        lambda config: type("Features", (), {"nous_auth_present": True})(),
+        "flash_cli.setup.get_flash_subscription_features",
+        lambda config: type("Features", (), {"flash_auth_present": True})(),
     )
     monkeypatch.setitem(
         sys.modules,
@@ -451,7 +451,7 @@ def test_modal_setup_can_use_nous_subscription_without_modal_creds(tmp_path, mon
 
 
 def test_modal_setup_persists_direct_mode_when_user_chooses_their_own_account(tmp_path, monkeypatch):
-    monkeypatch.setattr("flash_cli.setup.managed_nous_tools_enabled", lambda: True)
+    monkeypatch.setattr("flash_cli.setup.managed_flash_tools_enabled", lambda: True)
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.delenv("MODAL_TOKEN_ID", raising=False)
     monkeypatch.delenv("MODAL_TOKEN_SECRET", raising=False)
@@ -470,8 +470,8 @@ def test_modal_setup_persists_direct_mode_when_user_chooses_their_own_account(tm
     monkeypatch.setattr("flash_cli.setup.prompt", lambda *args, **kwargs: next(prompt_values))
     monkeypatch.setattr("flash_cli.setup._prompt_container_resources", lambda config: None)
     monkeypatch.setattr(
-        "flash_cli.setup.get_nous_subscription_features",
-        lambda config: type("Features", (), {"nous_auth_present": True})(),
+        "flash_cli.setup.get_flash_subscription_features",
+        lambda config: type("Features", (), {"flash_auth_present": True})(),
     )
     monkeypatch.setitem(
         sys.modules,

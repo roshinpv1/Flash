@@ -161,15 +161,15 @@ def _ra():
     return run_agent
 
 
-def _nous_entitlement_message(capability: str) -> str:
+def _flash_entitlement_message(capability: str) -> str:
     try:
-        from flash_cli.nous_account import (
-            format_nous_portal_entitlement_message,
-            get_nous_portal_account_info,
+        from flash_cli.flash_account import (
+            format_flash_portal_entitlement_message,
+            get_flash_portal_account_info,
         )
 
-        account_info = get_nous_portal_account_info(force_fresh=True)
-        message = format_nous_portal_entitlement_message(
+        account_info = get_flash_portal_account_info(force_fresh=True)
+        message = format_flash_portal_entitlement_message(
             account_info,
             capability=capability,
         )
@@ -178,8 +178,8 @@ def _nous_entitlement_message(capability: str) -> str:
         return ""
 
 
-def _print_nous_entitlement_guidance(agent, capability: str) -> bool:
-    message = _nous_entitlement_message(capability)
+def _print_flash_entitlement_guidance(agent, capability: str) -> bool:
+    message = _flash_entitlement_message(capability)
     if not message:
         return False
     for line in message.splitlines():
@@ -187,9 +187,9 @@ def _print_nous_entitlement_guidance(agent, capability: str) -> bool:
     return True
 
 
-def _is_nous_inference_route(provider: str, base_url: str) -> bool:
+def _is_flash_inference_route(provider: str, base_url: str) -> bool:
     provider = (provider or "").strip().lower()
-    if provider == "nous":
+    if provider == "flash":
         return True
     base = str(base_url or "")
     return (
@@ -205,8 +205,8 @@ def _billing_or_entitlement_message(
     base_url: str,
     model: str,
 ) -> str:
-    if _is_nous_inference_route(provider, base_url):
-        return _nous_entitlement_message(capability)
+    if _is_flash_inference_route(provider, base_url):
+        return _flash_entitlement_message(capability)
 
     provider_label = (provider or "").strip() or "the selected provider"
     model_label = (model or "").strip() or "the selected model"
@@ -264,15 +264,15 @@ def _print_billing_or_entitlement_guidance(
     return True
 
 
-def _try_refresh_nous_paid_entitlement_credentials(agent) -> bool:
+def _try_refresh_flash_paid_entitlement_credentials(agent) -> bool:
     """Refresh Nous runtime credentials after a fresh paid-entitlement check."""
     try:
-        from flash_cli.nous_account import get_nous_portal_account_info
+        from flash_cli.flash_account import get_flash_portal_account_info
 
-        account_info = get_nous_portal_account_info(force_fresh=True)
+        account_info = get_flash_portal_account_info(force_fresh=True)
         if account_info.paid_service_access is not True:
             return False
-        return agent._try_refresh_nous_client_credentials(
+        return agent._try_refresh_flash_client_credentials(
             force=True,
         )
     except Exception:
@@ -1108,22 +1108,22 @@ def run_conversation(
             # limited, skip the API call entirely.  Each attempt
             # (including SDK-level retries) counts against RPH and
             # deepens the rate limit hole.
-            if agent.provider == "nous":
+            if agent.provider == "flash":
                 try:
-                    from agent.nous_rate_guard import (
-                        nous_rate_limit_remaining,
-                        format_remaining as _fmt_nous_remaining,
+                    from agent.flash_rate_guard import (
+                        flash_rate_limit_remaining,
+                        format_remaining as _fmt_flash_remaining,
                     )
-                    _nous_remaining = nous_rate_limit_remaining()
-                    if _nous_remaining is not None and _nous_remaining > 0:
-                        _nous_msg = (
+                    _flash_remaining = flash_rate_limit_remaining()
+                    if _flash_remaining is not None and _flash_remaining > 0:
+                        _flash_msg = (
                             f"Nous Portal rate limit active — "
-                            f"resets in {_fmt_nous_remaining(_nous_remaining)}."
+                            f"resets in {_fmt_flash_remaining(_flash_remaining)}."
                         )
                         agent._buffer_vprint(
-                            f"⏳ {_nous_msg} Trying fallback..."
+                            f"⏳ {_flash_msg} Trying fallback..."
                         )
-                        agent._buffer_status(f"⏳ {_nous_msg}")
+                        agent._buffer_status(f"⏳ {_flash_msg}")
                         if agent._try_activate_fallback():
                             active_system_prompt = _sync_failover_system_message(
                                 agent, api_messages, active_system_prompt)
@@ -1137,7 +1137,7 @@ def run_conversation(
                         agent._persist_session(messages, conversation_history)
                         return {
                             "final_response": (
-                                f"⏳ {_nous_msg}\n\n"
+                                f"⏳ {_flash_msg}\n\n"
                                 "No fallback provider available. "
                                 "Try again after the reset, or add a "
                                 "fallback provider in config.yaml."
@@ -1146,7 +1146,7 @@ def run_conversation(
                             "api_calls": api_call_count,
                             "completed": False,
                             "failed": True,
-                            "error": _nous_msg,
+                            "error": _flash_msg,
                         }
                 except ImportError:
                     pass
@@ -2288,10 +2288,10 @@ def run_conversation(
                 # Clear Nous rate limit state on successful request —
                 # proves the limit has reset and other sessions can
                 # resume hitting Nous.
-                if agent.provider == "nous":
+                if agent.provider == "flash":
                     try:
-                        from agent.nous_rate_guard import clear_nous_rate_limit
-                        clear_nous_rate_limit()
+                        from agent.flash_rate_guard import clear_flash_rate_limit
+                        clear_flash_rate_limit()
                     except Exception:
                         pass
                 agent._touch_activity(f"API call #{api_call_count} completed")
@@ -2626,14 +2626,14 @@ def run_conversation(
 
                 if (
                     classified.reason == FailoverReason.billing
-                    and _is_nous_inference_route(
+                    and _is_flash_inference_route(
                         getattr(agent, "provider", "") or "",
                         getattr(agent, "base_url", "") or "",
                     )
-                    and not _retry.nous_paid_entitlement_refresh_attempted
+                    and not _retry.flash_paid_entitlement_refresh_attempted
                 ):
-                    _retry.nous_paid_entitlement_refresh_attempted = True
-                    if _try_refresh_nous_paid_entitlement_credentials(agent):
+                    _retry.flash_paid_entitlement_refresh_attempted = True
+                    if _try_refresh_flash_paid_entitlement_credentials(agent):
                         agent._vprint(
                             f"{agent.log_prefix}🔐 Nous paid access verified — "
                             "refreshed runtime credentials and retrying request...",
@@ -2756,12 +2756,12 @@ def run_conversation(
                         continue
                 if (
                     agent.api_mode == "chat_completions"
-                    and agent.provider == "nous"
+                    and agent.provider == "flash"
                     and status_code == 401
-                    and not _retry.nous_auth_retry_attempted
+                    and not _retry.flash_auth_retry_attempted
                 ):
-                    _retry.nous_auth_retry_attempted = True
-                    if agent._try_refresh_nous_client_credentials(force=True):
+                    _retry.flash_auth_retry_attempted = True
+                    if agent._try_refresh_flash_client_credentials(force=True):
                         print(f"{agent.log_prefix}🔐 Nous agent key refreshed after 401. Retrying request...")
                         continue
                     # Credential refresh didn't help — show diagnostic info.
@@ -2779,10 +2779,10 @@ def run_conversation(
                     print(f"{agent.log_prefix}🔐 Nous 401 — Portal authentication failed.")
                     if _body_text:
                         print(f"{agent.log_prefix}   Response: {_body_text}")
-                    if not _print_nous_entitlement_guidance(agent, "Nous model access"):
+                    if not _print_flash_entitlement_guidance(agent, "Nous model access"):
                         print(f"{agent.log_prefix}   Most likely: Portal OAuth expired, account out of credits, or agent key revoked.")
                     print(f"{agent.log_prefix}   Troubleshooting:")
-                    print(f"{agent.log_prefix}     • Re-authenticate: flash auth add nous")
+                    print(f"{agent.log_prefix}     • Re-authenticate: flash auth add flash")
                     print(f"{agent.log_prefix}     • Check credits / billing: https://portal.flashorg.com")
                     print(f"{agent.log_prefix}     • Verify stored credentials: {_dhh}/auth.json")
                     print(f"{agent.log_prefix}     • Switch providers temporarily: /model <model> --provider openrouter")
@@ -3282,33 +3282,33 @@ def run_conversation(
                 # seconds, nothing to do with the caller's quota.
                 # Tripping the cross-session breaker on that would
                 # block every Nous model for minutes.  We use
-                # ``is_genuine_nous_rate_limit`` to tell the two
+                # ``is_genuine_flash_rate_limit`` to tell the two
                 # apart via the 429's own x-ratelimit-* headers and
                 # the last-known-good state captured on the previous
                 # successful response.
                 if (
                     is_rate_limited
-                    and agent.provider == "nous"
+                    and agent.provider == "flash"
                     and classified.reason == FailoverReason.rate_limit
                     and not recovered_with_pool
                 ):
-                    _genuine_nous_rate_limit = False
+                    _genuine_flash_rate_limit = False
                     try:
-                        from agent.nous_rate_guard import (
-                            is_genuine_nous_rate_limit,
-                            record_nous_rate_limit,
+                        from agent.flash_rate_guard import (
+                            is_genuine_flash_rate_limit,
+                            record_flash_rate_limit,
                         )
                         _err_resp = getattr(api_error, "response", None)
                         _err_hdrs = (
                             getattr(_err_resp, "headers", None)
                             if _err_resp else None
                         )
-                        _genuine_nous_rate_limit = is_genuine_nous_rate_limit(
+                        _genuine_flash_rate_limit = is_genuine_flash_rate_limit(
                             headers=_err_hdrs,
                             last_known_state=agent._rate_limit_state,
                         )
-                        if _genuine_nous_rate_limit:
-                            record_nous_rate_limit(
+                        if _genuine_flash_rate_limit:
+                            record_flash_rate_limit(
                                 headers=_err_hdrs,
                                 error_context=error_context,
                             )
@@ -3321,7 +3321,7 @@ def run_conversation(
                             )
                     except Exception:
                         pass
-                    if _genuine_nous_rate_limit:
+                    if _genuine_flash_rate_limit:
                         # Re-enter the loop exactly once so the
                         # top-of-loop Nous guard handles fallback or
                         # bails cleanly. (Setting retry_count to
@@ -3794,12 +3794,12 @@ def run_conversation(
                             model=_model,
                         ):
                             pass
-                        elif _provider == "nous" and _print_nous_entitlement_guidance(
+                        elif _provider == "flash" and _print_flash_entitlement_guidance(
                             agent,
                             "Nous model access",
                         ):
                             pass
-                        elif _provider in {"openai-codex", "xai-oauth", "nous"} and status_code == 401:
+                        elif _provider in {"openai-codex", "xai-oauth", "flash"} and status_code == 401:
                             if _provider == "openai-codex":
                                 agent._vprint(f"{agent.log_prefix}   💡 Codex OAuth token was rejected (HTTP 401). Your token may have been", force=True)
                                 agent._vprint(f"{agent.log_prefix}      refreshed by another client (Codex CLI, VS Code). To fix:", force=True)
@@ -3808,7 +3808,7 @@ def run_conversation(
                             elif _provider == "xai-oauth":
                                 agent._vprint(f"{agent.log_prefix}   💡 xAI OAuth token was rejected (HTTP 401). To fix:", force=True)
                                 agent._vprint(f"{agent.log_prefix}      re-authenticate with xAI Grok OAuth (SuperGrok / Premium+) from `flash model`.", force=True)
-                            else:  # nous
+                            else:  # flash
                                 agent._vprint(f"{agent.log_prefix}   💡 Nous Portal OAuth token was rejected (HTTP 401). Your token may be", force=True)
                                 agent._vprint(f"{agent.log_prefix}      expired, revoked, or your account may be out of credits. To fix:", force=True)
                                 agent._vprint(f"{agent.log_prefix}      1. Re-authenticate: flash portal", force=True)

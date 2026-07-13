@@ -2,8 +2,8 @@
 
 from types import SimpleNamespace
 
-from flash_cli.nous_account import NousPaidServiceAccessInfo, NousPortalAccountInfo
-from flash_cli.nous_subscription import NousFeatureState, NousSubscriptionFeatures
+from flash_cli.flash_account import NousPaidServiceAccessInfo, NousPortalAccountInfo
+from flash_cli.flash_subscription import NousFeatureState, NousSubscriptionFeatures
 
 
 def _patch_common_status_deps(monkeypatch, status_mod, tmp_path, *, openai_base_url=""):
@@ -18,7 +18,7 @@ def _patch_common_status_deps(monkeypatch, status_mod, tmp_path, *, openai_base_
         return ""
 
     monkeypatch.setattr(status_mod, "get_env_value", _get_env_value, raising=False)
-    monkeypatch.setattr(auth_mod, "get_nous_auth_status", lambda: {}, raising=False)
+    monkeypatch.setattr(auth_mod, "get_flash_auth_status", lambda: {}, raising=False)
     monkeypatch.setattr(auth_mod, "get_codex_auth_status", lambda: {}, raising=False)
     monkeypatch.setattr(
         status_mod.subprocess,
@@ -64,27 +64,27 @@ def test_show_status_displays_legacy_string_model_and_custom_endpoint(monkeypatc
     assert "Provider:     Custom endpoint" in out
 
 
-def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path):
-    monkeypatch.setattr("flash_cli.status.managed_nous_tools_enabled", lambda: True)
+def test_show_status_reports_managed_flash_features(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("flash_cli.status.managed_flash_tools_enabled", lambda: True)
     from flash_cli import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(
         status_mod,
         "load_config",
-        lambda: {"model": {"default": "claude-opus-4-6", "provider": "nous"}},
+        lambda: {"model": {"default": "claude-opus-4-6", "provider": "flash"}},
         raising=False,
     )
-    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
     monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
     monkeypatch.setattr(
         status_mod,
-        "get_nous_subscription_features",
+        "get_flash_subscription_features",
         lambda config: NousSubscriptionFeatures(
             subscribed=True,
-            nous_auth_present=True,
-            provider_is_nous=True,
+            flash_auth_present=True,
+            provider_is_flash=True,
             features={
                 "web": NousFeatureState("web", "Web tools", True, True, True, True, False, True, "firecrawl"),
                 "image_gen": NousFeatureState("image_gen", "Image generation", True, True, True, True, False, True, "Nous Subscription"),
@@ -106,19 +106,19 @@ def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path
     assert "active via Nous subscription" in out
 
 
-def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
-    monkeypatch.setattr("flash_cli.status.managed_nous_tools_enabled", lambda: False)
+def test_show_status_hides_flash_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("flash_cli.status.managed_flash_tools_enabled", lambda: False)
     from flash_cli import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(
         status_mod,
         "load_config",
-        lambda: {"model": {"default": "claude-opus-4-6", "provider": "nous"}},
+        lambda: {"model": {"default": "claude-opus-4-6", "provider": "flash"}},
         raising=False,
     )
-    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
     monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
@@ -127,15 +127,15 @@ def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(mo
     assert "Nous Tool Gateway" not in out
 
 
-def test_show_status_reports_exhausted_nous_credits(monkeypatch, capsys, tmp_path):
-    monkeypatch.setattr("flash_cli.status.managed_nous_tools_enabled", lambda: False)
+def test_show_status_reports_exhausted_flash_credits(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr("flash_cli.status.managed_flash_tools_enabled", lambda: False)
     from flash_cli import status as status_mod
     import flash_cli.auth as auth_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
     monkeypatch.setattr(
         auth_mod,
-        "get_nous_auth_status",
+        "get_flash_auth_status",
         lambda: {
             "logged_in": False,
             "access_token": "jwt",
@@ -147,7 +147,7 @@ def test_show_status_reports_exhausted_nous_credits(monkeypatch, capsys, tmp_pat
     )
     monkeypatch.setattr(
         status_mod,
-        "get_nous_portal_account_info",
+        "get_flash_portal_account_info",
         lambda: NousPortalAccountInfo(
             logged_in=True,
             source="account_api",
@@ -166,9 +166,9 @@ def test_show_status_reports_exhausted_nous_credits(monkeypatch, capsys, tmp_pat
         ),
         raising=False,
     )
-    monkeypatch.setattr(status_mod, "load_config", lambda: {"model": {"provider": "nous"}}, raising=False)
-    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
+    monkeypatch.setattr(status_mod, "load_config", lambda: {"model": {"provider": "flash"}}, raising=False)
+    monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "flash", raising=False)
+    monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "flash", raising=False)
     monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))

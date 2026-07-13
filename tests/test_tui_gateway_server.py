@@ -1093,7 +1093,7 @@ def test_session_resume_follows_compression_tip(monkeypatch, tmp_path):
     captured = {}
 
     def fake_make_agent(sid, key, session_id=None, session_db=None, **kwargs):
-        # Record only the FIRST (synchronous, eager) build. A stray background
+        # Record only the FIRST (synchroflash, eager) build. A stray background
         # build leaked from an earlier test's deferred resume could otherwise
         # overwrite this with its own session_id and corrupt the assertion.
         captured.setdefault("agent_session_id", session_id)
@@ -1112,7 +1112,7 @@ def test_session_resume_follows_compression_tip(monkeypatch, tmp_path):
     )
 
     try:
-        # eager_build: this asserts the synchronously-built agent binds to the
+        # eager_build: this asserts the synchroflashly-built agent binds to the
         # resolved tip (captured["agent_session_id"]); the compression-tip
         # resolution itself runs before the build and is mode-agnostic.
         resp = server.handle_request(
@@ -1163,7 +1163,7 @@ def test_session_resume_passes_stored_runtime_to_agent(monkeypatch):
 
     monkeypatch.setattr(server, "_init_session", fake_init_session)
 
-    # eager_build: this asserts the synchronous build contract (stored runtime
+    # eager_build: this asserts the synchroflash build contract (stored runtime
     # overrides reach _make_agent, info comes from _session_info). The deferred
     # default restores the same overrides via _start_agent_build off-thread.
     resp = server.handle_request(
@@ -1254,7 +1254,7 @@ def test_session_resume_profile_uses_profile_db_cwd(monkeypatch, tmp_path):
     monkeypatch.setattr(approval, "load_permanent_allowlist", lambda: None)
 
     try:
-        # eager_build: asserts the synchronous build receives the profile's db
+        # eager_build: asserts the synchroflash build receives the profile's db
         # (the deferred default builds with the same db via _start_agent_build).
         resp = server.handle_request(
             {
@@ -1414,10 +1414,10 @@ def test_resolve_model_strips_config_model(monkeypatch):
     monkeypatch.delenv("HERMES_MODEL", raising=False)
     monkeypatch.delenv("HERMES_INFERENCE_MODEL", raising=False)
     monkeypatch.setattr(
-        server, "_load_cfg", lambda: {"model": {"default": " nous/flash-test "}}
+        server, "_load_cfg", lambda: {"model": {"default": " flash/flash-test "}}
     )
 
-    assert server._resolve_model() == "nous/flash-test"
+    assert server._resolve_model() == "flash/flash-test"
 
 
 def _sync_test_session(**extra):
@@ -1439,8 +1439,8 @@ def _patch_config_model(monkeypatch, model, provider=""):
 
 
 def test_config_sync_switches_unpinned_session(monkeypatch):
-    _patch_config_model(monkeypatch, "new/model", provider="nous")
-    session = _sync_test_session(config_model_seen=("old/model", "nous"))
+    _patch_config_model(monkeypatch, "new/model", provider="flash")
+    session = _sync_test_session(config_model_seen=("old/model", "flash"))
     calls = []
     monkeypatch.setattr(
         server,
@@ -1453,7 +1453,7 @@ def test_config_sync_switches_unpinned_session(monkeypatch):
     assert calls == [
         (
             "sid",
-            "new/model --provider nous",
+            "new/model --provider flash",
             {
                 "confirm_expensive_model": True,
                 "pin_session_override": False,
@@ -1461,7 +1461,7 @@ def test_config_sync_switches_unpinned_session(monkeypatch):
             },
         )
     ]
-    assert session["config_model_seen"] == ("new/model", "nous")
+    assert session["config_model_seen"] == ("new/model", "flash")
 
 
 def test_config_sync_treats_auto_provider_as_unset(monkeypatch):
@@ -1523,7 +1523,7 @@ def test_config_sync_adopts_baseline_when_agent_already_on_target(monkeypatch):
 
 
 def test_config_sync_switches_when_only_provider_differs(monkeypatch):
-    _patch_config_model(monkeypatch, "old/model", provider="nous")
+    _patch_config_model(monkeypatch, "old/model", provider="flash")
     session = _sync_test_session(config_model_seen=("old/model", ""))
     calls = []
     monkeypatch.setattr(
@@ -1534,7 +1534,7 @@ def test_config_sync_switches_when_only_provider_differs(monkeypatch):
 
     server._sync_agent_model_with_config("sid", session)
 
-    assert calls == ["old/model --provider nous"]
+    assert calls == ["old/model --provider flash"]
 
 
 def test_config_sync_failure_emits_error_once_per_edit(monkeypatch):
@@ -1603,9 +1603,9 @@ def test_config_sync_ignores_env_seed_without_config_model(monkeypatch):
 def test_config_model_target_never_reads_env(monkeypatch):
     monkeypatch.setenv("HERMES_MODEL", "seed/model")
     monkeypatch.setenv("HERMES_INFERENCE_MODEL", "seed/model")
-    monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "nous"}})
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "flash"}})
 
-    assert server._config_model_target() == ("", "nous")
+    assert server._config_model_target() == ("", "flash")
 
 
 def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
@@ -1617,7 +1617,7 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
     result = _types.SimpleNamespace(
         success=True,
         new_model="new/model",
-        target_provider="nous",
+        target_provider="flash",
         base_url="",
         api_key="key",
         api_mode="chat_completions",
@@ -1643,7 +1643,7 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
     session = {"agent": None}
 
     out = server._apply_model_switch(
-        "sid", session, "new/model --provider nous", persist_override=False
+        "sid", session, "new/model --provider flash", persist_override=False
     )
 
     assert out["value"] == "new/model"
@@ -1651,23 +1651,23 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
 
 
 def test_startup_runtime_uses_tui_provider_env(monkeypatch):
-    monkeypatch.setenv("HERMES_MODEL", "nous/flash-test")
-    monkeypatch.setenv("HERMES_TUI_PROVIDER", "nous")
+    monkeypatch.setenv("HERMES_MODEL", "flash/flash-test")
+    monkeypatch.setenv("HERMES_TUI_PROVIDER", "flash")
     monkeypatch.delenv("HERMES_INFERENCE_PROVIDER", raising=False)
 
-    assert server._resolve_startup_runtime() == ("nous/flash-test", "nous")
+    assert server._resolve_startup_runtime() == ("flash/flash-test", "flash")
 
 
 def test_startup_runtime_does_not_treat_inference_provider_as_explicit(monkeypatch):
-    monkeypatch.setenv("HERMES_MODEL", "nous/flash-test")
+    monkeypatch.setenv("HERMES_MODEL", "flash/flash-test")
     monkeypatch.delenv("HERMES_TUI_PROVIDER", raising=False)
-    monkeypatch.setenv("HERMES_INFERENCE_PROVIDER", "nous")
+    monkeypatch.setenv("HERMES_INFERENCE_PROVIDER", "flash")
     monkeypatch.setattr(
         "flash_cli.models.detect_static_provider_for_model",
         lambda model, provider: None,
     )
 
-    assert server._resolve_startup_runtime() == ("nous/flash-test", None)
+    assert server._resolve_startup_runtime() == ("flash/flash-test", None)
 
 
 def test_startup_runtime_detects_provider_for_model_env(monkeypatch):
@@ -1897,7 +1897,7 @@ def test_ws_orphan_reap_closes_worker_when_session_stays_detached(monkeypatch):
         slash_worker=_FakeWorker(),
         running=False,
     )
-    # Run the reap body synchronously (no real timer/grace) to assert behaviour.
+    # Run the reap body synchroflashly (no real timer/grace) to assert behaviour.
     monkeypatch.setattr(server, "_WS_ORPHAN_REAP_GRACE_S", 0.01)
     try:
         # Directly invoke the orphaned-check + teardown the timer would run.
@@ -3282,9 +3282,9 @@ def test_setup_runtime_check_honors_requested_provider(monkeypatch):
     monkeypatch.setattr("flash_cli.main._has_any_provider_configured", lambda: True)
 
     def fake_resolve(requested=None, **kwargs):
-        if requested == "nous":
+        if requested == "flash":
             return {
-                "provider": "nous",
+                "provider": "flash",
                 "api_key": "invoke-jwt",
                 "source": "portal",
             }
@@ -3300,10 +3300,10 @@ def test_setup_runtime_check_honors_requested_provider(monkeypatch):
     )
 
     scoped = server.handle_request(
-        {"id": "1", "method": "setup.runtime_check", "params": {"provider": "nous"}}
+        {"id": "1", "method": "setup.runtime_check", "params": {"provider": "flash"}}
     )
     assert scoped["result"]["ok"] is True
-    assert scoped["result"]["provider"] == "nous"
+    assert scoped["result"]["provider"] == "flash"
 
     default = server.handle_request({"id": "1", "method": "setup.runtime_check", "params": {}})
     assert default["result"]["ok"] is False
@@ -5637,7 +5637,7 @@ def test_session_create_close_race_does_not_orphan_worker(monkeypatch):
     )
     monkeypatch.setattr(_approval, "load_permanent_allowlist", lambda: None)
 
-    # Start: session.create spawns _build thread, returns synchronously
+    # Start: session.create spawns _build thread, returns synchroflashly
     resp = server.handle_request(
         {
             "id": "1",
@@ -6051,7 +6051,7 @@ def test_model_options_does_not_overwrite_curated_models(monkeypatch):
     """
     curated_providers = [
         {
-            "slug": "nous",
+            "slug": "flash",
             "name": "Nous",
             "models": ["moonshotai/kimi-k2.5", "anthropic/claude-opus-4.7"],
             "total_models": 30,
@@ -6079,13 +6079,13 @@ def test_model_options_does_not_overwrite_curated_models(monkeypatch):
 
     assert "result" in resp, resp
     providers = resp["result"]["providers"]
-    nous = next((p for p in providers if p.get("slug") == "nous"), None)
-    assert nous is not None
-    assert nous["models"] == [
+    flash = next((p for p in providers if p.get("slug") == "flash"), None)
+    assert flash is not None
+    assert flash["models"] == [
         "moonshotai/kimi-k2.5",
         "anthropic/claude-opus-4.7",
     ]
-    assert nous["total_models"] == 30
+    assert flash["total_models"] == 30
     # Handler must not consult the live catalog — curated is the truth.
     live_fetch.assert_not_called()
     # list_authenticated_providers is the single source.
@@ -6181,7 +6181,7 @@ def test_model_options_refresh_allows_custom_provider_probes(monkeypatch):
 
 
 class _ImmediateThread:
-    """Runs the target callable synchronously so assertions can follow."""
+    """Runs the target callable synchroflashly so assertions can follow."""
 
     def __init__(self, target=None, daemon=None):
         self._target = target

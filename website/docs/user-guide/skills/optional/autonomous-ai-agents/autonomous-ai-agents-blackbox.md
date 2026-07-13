@@ -17,7 +17,7 @@ Delegate coding tasks to Blackbox AI CLI agent. Multi-model agent with built-in 
 | Source | Optional — install with `flash skills install official/autonomous-ai-agents/blackbox` |
 | Path | `optional-skills/autonomous-ai-agents/blackbox` |
 | Version | `1.0.0` |
-| Author | Flash Agent (Nous Research) |
+| Author | Flash Agent (Flash Org) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `Blackbox`, `Multi-Agent`, `Judge`, `Multi-Model` |

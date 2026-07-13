@@ -280,7 +280,7 @@ describe('OAuth onboarding', () => {
     installApiMock(async ({ body, path }: { body?: unknown; path: string }) => {
       calls.push({ body, path })
 
-      if (path === '/api/providers/oauth/nous/submit') {
+      if (path === '/api/providers/oauth/flash/submit') {
         return { ok: true, status: 'approved' }
       }
 
@@ -289,7 +289,7 @@ describe('OAuth onboarding', () => {
           providers: [
             {
               name: 'Nous Portal',
-              slug: 'nous',
+              slug: 'flash',
               models: [model]
             }
           ]
@@ -297,11 +297,11 @@ describe('OAuth onboarding', () => {
       }
 
       if (path.startsWith('/api/model/recommended-default?')) {
-        return { provider: 'nous', model, free_tier: false }
+        return { provider: 'flash', model, free_tier: false }
       }
 
       if (path === '/api/model/set') {
-        return { ok: true, provider: 'nous', model, gateway_tools: [] }
+        return { ok: true, provider: 'flash', model, gateway_tools: [] }
       }
 
       throw new Error(`unexpected api path: ${path}`)
@@ -317,7 +317,7 @@ describe('OAuth onboarding', () => {
       }
 
       if (method === 'setup.runtime_check') {
-        expect(params).toEqual({ provider: 'nous' })
+        expect(params).toEqual({ provider: 'flash' })
 
         return { ok: true } as never
       }
@@ -329,7 +329,7 @@ describe('OAuth onboarding', () => {
       baseState({
         flow: {
           status: 'awaiting_user',
-          provider: provider('nous', 'Nous Portal'),
+          provider: provider('flash', 'Nous Portal'),
           start: {
             auth_url: 'https://portal.example/auth',
             expires_in: 600,

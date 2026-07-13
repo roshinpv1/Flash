@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from flash_cli.nous_account import NousPortalAccountInfo
+from flash_cli.flash_account import NousPortalAccountInfo
 from flash_cli.tools_config import (
     _DEFAULT_OFF_TOOLSETS,
     _apply_toolset_change,
@@ -723,11 +723,11 @@ def test_save_platform_tools_still_preserves_mcp_with_platform_default_present()
     assert "terminal" not in saved
 
 
-def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch):
-    config = {"model": {"provider": "nous"}}
+def test_visible_providers_include_flash_subscription_when_logged_in(monkeypatch):
+    config = {"model": {"provider": "flash"}}
 
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.get_nous_portal_account_info",
+        "flash_cli.flash_subscription.get_flash_portal_account_info",
         lambda: NousPortalAccountInfo(
             logged_in=True,
             source="jwt",
@@ -746,7 +746,7 @@ def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch)
     assert providers[0]["name"] == "Local Browser"
 
 
-def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
+def test_visible_providers_show_flash_subscription_when_logged_out(monkeypatch):
     """Nous-managed Tool Gateway rows are always listed, even logged out.
 
     Selecting one triggers an inline Portal login (entitlement is checked at
@@ -755,7 +755,7 @@ def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
     config = {"model": {"provider": "openrouter"}}
 
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.get_nous_portal_account_info",
+        "flash_cli.flash_subscription.get_flash_portal_account_info",
         lambda: NousPortalAccountInfo(
             logged_in=False,
             source="none",
@@ -769,16 +769,16 @@ def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
     assert any(p["name"].startswith("Nous Subscription") for p in providers)
 
 
-def test_visible_providers_show_nous_subscription_when_paid_access_is_false(monkeypatch):
+def test_visible_providers_show_flash_subscription_when_paid_access_is_false(monkeypatch):
     """Logged-in-but-unpaid users still see the managed rows.
 
     The paid-access gate moved from visibility to selection time — the row is
-    shown; ``ensure_nous_portal_access`` blocks activation if still unpaid.
+    shown; ``ensure_flash_portal_access`` blocks activation if still unpaid.
     """
-    config = {"model": {"provider": "nous"}}
+    config = {"model": {"provider": "flash"}}
 
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.get_nous_portal_account_info",
+        "flash_cli.flash_subscription.get_flash_portal_account_info",
         lambda: NousPortalAccountInfo(
                 logged_in=True,
                 source="jwt",
@@ -792,13 +792,13 @@ def test_visible_providers_show_nous_subscription_when_paid_access_is_false(monk
     assert any(p["name"].startswith("Nous Subscription") for p in providers)
 
 
-def test_visible_providers_force_fresh_shows_nous_subscription_after_upgrade(monkeypatch):
+def test_visible_providers_force_fresh_shows_flash_subscription_after_upgrade(monkeypatch):
     calls = []
 
     def fake_subscription_features(config, *, force_fresh=False):
         calls.append(("features", force_fresh))
         return SimpleNamespace(
-            nous_auth_present=True,
+            flash_auth_present=True,
             account_info=NousPortalAccountInfo(
                 logged_in=True,
                 source="account_api" if force_fresh else "jwt",
@@ -809,13 +809,13 @@ def test_visible_providers_force_fresh_shows_nous_subscription_after_upgrade(mon
         )
 
     monkeypatch.setattr(
-        "flash_cli.tools_config.get_nous_subscription_features",
+        "flash_cli.tools_config.get_flash_subscription_features",
         fake_subscription_features,
     )
 
     providers = _visible_providers(
         TOOL_CATEGORIES["browser"],
-        {"model": {"provider": "nous"}},
+        {"model": {"provider": "flash"}},
         force_fresh=True,
     )
 
@@ -838,7 +838,7 @@ def test_local_browser_provider_is_saved_explicitly(monkeypatch):
     assert config["browser"]["cloud_provider"] == "local"
 
 
-def test_fresh_install_browser_default_is_free_local_not_paid_nous():
+def test_fresh_install_browser_default_is_free_local_not_paid_flash():
     """On a fresh install the browser picker must default to the free local
     backend, never the paid Nous Subscription gateway.
 
@@ -855,7 +855,7 @@ def test_fresh_install_browser_default_is_free_local_not_paid_nous():
     assert _detect_active_provider_index(providers, {}) == 0
 
 
-def test_fresh_install_tts_default_is_free_edge_not_paid_nous():
+def test_fresh_install_tts_default_is_free_edge_not_paid_flash():
     """TTS picker defaults to the free Edge backend on a fresh install."""
     from flash_cli.tools_config import _detect_active_provider_index
 
@@ -892,10 +892,10 @@ def test_reconfigure_lists_enabled_web_without_existing_provider_config(monkeypa
     assert configured == ["web"]
 
 
-def test_first_install_nous_auto_configures_managed_defaults(monkeypatch):
-    monkeypatch.setattr("flash_cli.nous_subscription.managed_nous_tools_enabled", lambda: True)
+def test_first_install_flash_auto_configures_managed_defaults(monkeypatch):
+    monkeypatch.setattr("flash_cli.flash_subscription.managed_flash_tools_enabled", lambda: True)
     config = {
-        "model": {"provider": "nous"},
+        "model": {"provider": "flash"},
         "platform_toolsets": {"cli": []},
     }
     for env_var in (
@@ -920,14 +920,14 @@ def test_first_install_nous_auto_configures_managed_defaults(monkeypatch):
     monkeypatch.setattr("flash_cli.tools_config.save_config", lambda config: None)
     # Prevent leaked platform tokens (e.g. DISCORD_BOT_TOKEN from gateway.run
     # import) from adding extra platforms. The loop in tools_command runs
-    # apply_nous_managed_defaults per platform; a second iteration sees values
+    # apply_flash_managed_defaults per platform; a second iteration sees values
     # set by the first as "explicit" and skips them.
     monkeypatch.setattr(
         "flash_cli.tools_config._get_enabled_platforms",
         lambda: ["cli"],
     )
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.get_nous_portal_account_info",
+        "flash_cli.flash_subscription.get_flash_portal_account_info",
         lambda *args, **kwargs: NousPortalAccountInfo(
             logged_in=True,
             source="jwt",
@@ -951,15 +951,15 @@ def test_first_install_nous_auto_configures_managed_defaults(monkeypatch):
     assert configured == []
 
 
-def test_first_install_nous_auto_configures_video_gen(monkeypatch):
+def test_first_install_flash_auto_configures_video_gen(monkeypatch):
     """When a Nous subscriber checks video_gen in the toolset checklist,
-    apply_nous_managed_defaults must write video_gen.provider and
+    apply_flash_managed_defaults must write video_gen.provider and
     video_gen.use_gateway so the FAL plugin can route through the gateway
     at runtime.  Regression test for the bug where video_gen was marked as
     auto-configured but no config was actually written."""
-    monkeypatch.setattr("flash_cli.nous_subscription.managed_nous_tools_enabled", lambda: True)
+    monkeypatch.setattr("flash_cli.flash_subscription.managed_flash_tools_enabled", lambda: True)
     config = {
-        "model": {"provider": "nous"},
+        "model": {"provider": "flash"},
         "platform_toolsets": {"cli": []},
     }
     for env_var in (
@@ -987,7 +987,7 @@ def test_first_install_nous_auto_configures_video_gen(monkeypatch):
         lambda: ["cli"],
     )
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.get_nous_portal_account_info",
+        "flash_cli.flash_subscription.get_flash_portal_account_info",
         lambda *args, **kwargs: NousPortalAccountInfo(
             logged_in=True,
             source="jwt",
@@ -1447,9 +1447,9 @@ def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
 
 @pytest.mark.parametrize("provider,config_key,expected", [
     # managed provider → use_gateway True
-    ({"name": "T", "tts_provider": "elevenlabs", "managed_nous_feature": "tts", "env_vars": []}, "tts", True),
-    ({"name": "B", "browser_provider": "browserbase", "managed_nous_feature": "browser", "env_vars": []}, "browser", True),
-    ({"name": "W", "web_backend": "tavily", "managed_nous_feature": "web", "env_vars": []}, "web", True),
+    ({"name": "T", "tts_provider": "elevenlabs", "managed_flash_feature": "tts", "env_vars": []}, "tts", True),
+    ({"name": "B", "browser_provider": "browserbase", "managed_flash_feature": "browser", "env_vars": []}, "browser", True),
+    ({"name": "W", "web_backend": "tavily", "managed_flash_feature": "web", "env_vars": []}, "web", True),
     # self-hosted provider → use_gateway False
     ({"name": "T", "tts_provider": "elevenlabs", "env_vars": []}, "tts", False),
     ({"name": "B", "browser_provider": "browserbase", "env_vars": []}, "browser", False),
@@ -1459,7 +1459,7 @@ def test_reconfigure_provider_syncs_use_gateway(monkeypatch, provider, config_ke
     # Managed providers run the inline Portal entitlement gate; treat the user
     # as already entitled so the test exercises the use_gateway sync.
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.ensure_nous_portal_access",
+        "flash_cli.flash_subscription.ensure_flash_portal_access",
         lambda **kwargs: True,
     )
     config = {}
@@ -1507,13 +1507,13 @@ def test_reconfigure_provider_runs_post_setup_for_env_var_providers(
 def test_configure_managed_provider_blocks_when_not_entitled(monkeypatch):
     """Selecting a Nous-managed backend without paid access writes no config."""
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.ensure_nous_portal_access",
+        "flash_cli.flash_subscription.ensure_flash_portal_access",
         lambda **kwargs: False,
     )
     provider = {
         "name": "Nous Subscription (Firecrawl)",
         "web_backend": "firecrawl",
-        "managed_nous_feature": "web",
+        "managed_flash_feature": "web",
         "env_vars": [],
     }
     config = {}
@@ -1527,13 +1527,13 @@ def test_configure_managed_provider_blocks_when_not_entitled(monkeypatch):
 def test_configure_managed_provider_enables_when_entitled(monkeypatch):
     """Once entitled, selecting the managed backend sets use_gateway=True."""
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.ensure_nous_portal_access",
+        "flash_cli.flash_subscription.ensure_flash_portal_access",
         lambda **kwargs: True,
     )
     provider = {
         "name": "Nous Subscription (Firecrawl)",
         "web_backend": "firecrawl",
-        "managed_nous_feature": "web",
+        "managed_flash_feature": "web",
         "env_vars": [],
     }
     config = {}
@@ -1553,7 +1553,7 @@ def test_configure_non_managed_provider_skips_portal_gate(monkeypatch):
         return False
 
     monkeypatch.setattr(
-        "flash_cli.nous_subscription.ensure_nous_portal_access", _boom
+        "flash_cli.flash_subscription.ensure_flash_portal_access", _boom
     )
     provider = {"name": "Tavily", "web_backend": "tavily", "env_vars": []}
     config = {}

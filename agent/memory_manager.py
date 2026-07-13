@@ -809,7 +809,7 @@ class MemoryManager:
         every other provider write (per-turn ``sync_all``, prefetches), which
         already share the same worker. If the executor is unavailable,
         ``_submit_background`` degrades to inline execution — the pre-#16454
-        synchronous behavior, slow but correct.
+        synchroflash behavior, slow but correct.
         """
         if not self._providers:
             return

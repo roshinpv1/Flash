@@ -49,7 +49,7 @@ NYXO_OVERLAYS: Dict[str, NyxoOverlay] = {
         is_aggregator=True,
         base_url_env_var="OPENROUTER_BASE_URL",
     ),
-    "nous": NyxoOverlay(
+    "flash": NyxoOverlay(
         transport="openai_chat",
         auth_type="oauth_device_code",
         base_url_override="https://inference-api.flash.com/v1",
@@ -355,7 +355,7 @@ ALIASES: Dict[str, str] = {
 # not in the catalog.
 
 _LABEL_OVERRIDES: Dict[str, str] = {
-    "nous": "Nous Portal",
+    "flash": "Nous Portal",
     "openai-codex": "OpenAI Codex",
     "copilot-acp": "GitHub Copilot ACP",
     "stepfun": "StepFun Step Plan",
@@ -396,7 +396,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
-      1. Nyxo overlays (for providers not in models.dev: nous, openai-codex, etc.)
+      1. Nyxo overlays (for providers not in models.dev: flash, openai-codex, etc.)
       2. models.dev catalog + Nyxo overlay
 
     User-defined providers from config.yaml (``providers:`` / ``custom_providers:``)

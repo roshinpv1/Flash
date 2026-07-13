@@ -1,9 +1,9 @@
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Checkbox } from "@flash-research/ui/ui/components/checkbox";
+import { ListItem } from "@flash-research/ui/ui/components/list-item";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Label } from "@flash-research/ui/ui/components/label";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import type { GatewayClient } from "@/lib/gatewayClient";
 import { Check, RefreshCw, Search, X } from "lucide-react";
@@ -131,19 +131,19 @@ export function ModelPickerDialog(props: Props) {
   const requestOptions = (refresh = false) =>
     standalone
       ? (loader as (options?: { refresh?: boolean }) => Promise<ModelOptionsResponse>)({
-          refresh,
-        })
+        refresh,
+      })
       : (gw as GatewayClient).request<ModelOptionsResponse>(
-          "model.options",
-          {
-            ...(sessionId ? { session_id: sessionId } : {}),
-            ...(refresh ? { refresh: true } : {}),
-            // Dashboard picker mirrors the TUI: full provider universe with
-            // setup warnings. The backend now defaults to the configured
-            // subset (#56974), so opt into unconfigured rows explicitly.
-            include_unconfigured: true,
-          },
-        );
+        "model.options",
+        {
+          ...(sessionId ? { session_id: sessionId } : {}),
+          ...(refresh ? { refresh: true } : {}),
+          // Dashboard picker mirrors the TUI: full provider universe with
+          // setup warnings. The backend now defaults to the configured
+          // subset (#56974), so opt into unconfigured rows explicitly.
+          include_unconfigured: true,
+        },
+      );
 
   const refreshOptions = () => {
     setError(null);
@@ -513,9 +513,8 @@ function ProviderColumn({
             key={p.slug}
             active={active}
             onClick={() => onSelect(p.slug)}
-            className={`items-start text-xs border-l-2 ${
-              active ? "border-l-primary" : "border-l-transparent"
-            }`}
+            className={`items-start text-xs border-l-2 ${active ? "border-l-primary" : "border-l-transparent"
+              }`}
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">

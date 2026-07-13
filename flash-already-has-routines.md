@@ -157,4 +157,4 @@ GitHub: [github.com/FlashOrg/flash-agent](https://github.com/FlashOrg/flash-agen
 
 ---
 
-*Flash Agent is built by [Nous Research](https://flashorg.com). Open source, model-agnostic, runs on your infrastructure.*
+*Flash Agent is built by [Flash Org](https://flashorg.com). Open source, model-agnostic, runs on your infrastructure.*

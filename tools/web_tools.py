@@ -88,13 +88,13 @@ from tools.debug_helpers import DebugSession
 # tools.web_tools (the firecrawl plugin reads them via its own import chain).
 from tools.managed_tool_gateway import (  # noqa: F401 — backward-compat names for tests
     build_vendor_gateway_url,
-    peek_nous_access_token as _peek_nous_access_token,
-    read_nous_access_token as _read_nous_access_token,
+    peek_flash_access_token as _peek_flash_access_token,
+    read_flash_access_token as _read_flash_access_token,
     resolve_managed_tool_gateway,
 )
 from tools.tool_backend_helpers import (  # noqa: F401
-    managed_nous_tools_enabled,
-    nous_tool_gateway_unavailable_message,
+    managed_flash_tools_enabled,
+    flash_tool_gateway_unavailable_message,
     prefers_gateway,
 )
 from tools.url_safety import async_is_safe_url, normalize_url_for_request, sensitive_query_param_name
@@ -381,8 +381,8 @@ def _web_requires_env() -> list[str]:
 
     The gateway env vars are always reported — they're metadata strings
     used by the tool registry to light up the tool when the variable is
-    set.  Gating them on ``managed_nous_tools_enabled()`` only saved
-    string noise in the metadata list, but cost a synchronous HTTP
+    set.  Gating them on ``managed_flash_tools_enabled()`` only saved
+    string noise in the metadata list, but cost a synchroflash HTTP
     refresh against the Nous portal on every CLI startup (invoked at
     tool-registration time).  The behavioral contract is: if the env var
     is set, the tool sees it; if not, it doesn't.  Not-logged-in users
@@ -1147,10 +1147,10 @@ if __name__ == "__main__":
     print("  from web_tools import web_search_tool, web_extract_tool")
     print("  import asyncio")
     print("")
-    print("  # Search (synchronous)")
+    print("  # Search (synchroflash)")
     print("  results = web_search_tool('Python tutorials')")
     print("")
-    print("  # Extract (asynchronous, no LLM — truncate-and-store)")
+    print("  # Extract (asynchroflash, no LLM — truncate-and-store)")
     print("  async def main():")
     print("      content = await web_extract_tool(['https://example.com'])")
     print("      # bigger budget for one call:")

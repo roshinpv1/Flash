@@ -31,7 +31,7 @@ The following is the complete skill definition that Flash loads when this skill 
 
 # Flash Agent
 
-Flash Agent is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Flash works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
+Flash Agent is an open-source AI agent framework by Flash Org that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Flash works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
 
 What makes Flash different:
 
@@ -98,7 +98,7 @@ flash chat [flags]
   -q, --query TEXT          Single query, non-interactive
   -m, --model MODEL         Model (e.g. anthropic/claude-sonnet-4)
   -t, --toolsets LIST       Comma-separated toolsets
-  --provider PROVIDER       Force provider (openrouter, anthropic, nous, etc.)
+  --provider PROVIDER       Force provider (openrouter, anthropic, flash, etc.)
   -v, --verbose             Verbose output
   -Q, --quiet               Suppress banner, spinner, tool previews
   --checkpoints             Enable filesystem checkpoints (/rollback)
@@ -118,7 +118,7 @@ flash config env-path      Print .env path
 flash config check         Check for missing/outdated config
 flash config migrate       Update config with new options
 flash auth                 Interactive credential manager
-flash auth add PROVIDER    Add OAuth or API-key credential (e.g. nous, openai-codex, qwen-oauth)
+flash auth add PROVIDER    Add OAuth or API-key credential (e.g. flash, openai-codex, qwen-oauth)
 flash auth list            List stored credentials
 flash auth remove PROVIDER Remove a stored credential
 flash doctor [--fix]       Check dependencies and config
@@ -644,7 +644,7 @@ here; full developer notes live in `AGENTS.md`, user-facing docs under
 
 ### Delegation (`delegate_task`)
 
-Synchronous subagent spawn — the parent waits for the child's summary
+Synchroflash subagent spawn — the parent waits for the child's summary
 before continuing its own loop. Isolated context + terminal session.
 
 - **Single:** `delegate_task(goal, context)`.

@@ -14,7 +14,7 @@ from flash_cli.auth import (
     _agent_key_is_usable,
     _is_expiring,
     get_provider_auth_state,
-    resolve_nous_runtime_credentials,
+    resolve_flash_runtime_credentials,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def _refresh_selected_pool_entry(
     try:
         from agent.credential_pool import load_pool
 
-        pool = load_pool("nous")
+        pool = load_pool("flash")
     except Exception as exc:
         logger.debug("Nous auth keepalive: credential pool unavailable: %s", exc)
         return None
@@ -88,7 +88,7 @@ def _refresh_selected_pool_entry(
     return True
 
 
-def refresh_nous_auth_keepalive_once(
+def refresh_flash_auth_keepalive_once(
     *,
     min_key_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
     timeout_seconds: Optional[float] = None,
@@ -102,12 +102,12 @@ def refresh_nous_auth_keepalive_once(
     if pool_result is not None:
         return pool_result
 
-    state = get_provider_auth_state("nous")
+    state = get_provider_auth_state("flash")
     if not state:
         return False
 
     try:
-        resolve_nous_runtime_credentials(
+        resolve_flash_runtime_credentials(
             timeout_seconds=_timeout_seconds(timeout_seconds),
         )
         logger.debug("Nous auth keepalive: refreshed singleton auth state")
@@ -135,14 +135,14 @@ def _keepalive_loop(
         return
 
     while not stop_event.is_set():
-        refresh_nous_auth_keepalive_once(
+        refresh_flash_auth_keepalive_once(
             min_key_ttl_seconds=min_key_ttl_seconds,
             timeout_seconds=timeout_seconds,
         )
         stop_event.wait(interval_seconds)
 
 
-def start_nous_auth_keepalive(
+def start_flash_auth_keepalive(
     *,
     interval_seconds: int = NOUS_AUTH_KEEPALIVE_INTERVAL_SECONDS,
     initial_delay_seconds: int = NOUS_AUTH_KEEPALIVE_INITIAL_DELAY_SECONDS,
@@ -169,14 +169,14 @@ def start_nous_auth_keepalive(
                 "timeout_seconds": timeout_seconds,
             },
             daemon=True,
-            name="nous-auth-keepalive",
+            name="flash-auth-keepalive",
         )
         _keepalive_thread.start()
         logger.debug("Nous auth keepalive started")
         return _keepalive_thread
 
 
-def stop_nous_auth_keepalive(timeout: float = 5.0) -> None:
+def stop_flash_auth_keepalive(timeout: float = 5.0) -> None:
     """Stop the keepalive thread. Intended for graceful shutdown/tests."""
     global _keepalive_thread
     with _keepalive_lock:

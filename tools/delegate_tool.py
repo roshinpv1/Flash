@@ -400,10 +400,10 @@ def _get_max_async_children() -> int:
 
     DEPRECATED KNOB: ``delegation.max_async_children`` has been unified into
     ``delegation.max_concurrent_children`` — one cap governs both a single
-    synchronous batch's parallelism and how many background delegation units
+    synchroflash batch's parallelism and how many background delegation units
     may run at once. When at capacity, a new async dispatch is REJECTED (not
     queued) so a runaway model can't pile up unbounded background work; the
-    caller falls back to running the work synchronously.
+    caller falls back to running the work synchroflashly.
 
     A leftover ``max_async_children`` in config.yaml is ignored (the config
     migration removes it, folding a raised value into
@@ -2543,7 +2543,7 @@ def delegate_task(
     def _execute_and_aggregate() -> dict:
         """Run all built children (1 or N), join on them, aggregate results,
         fire subagent_stop hooks + cost rollup, and return the combined result
-        dict. Used by BOTH the synchronous path and the background runner. In
+        dict. Used by BOTH the synchroflash path and the background runner. In
         the background case this whole function runs on the daemon executor, so
         the parent turn isn't blocked — but the batch still JOINS on itself
         here (all children must finish) before producing ONE consolidated
@@ -2812,7 +2812,7 @@ def delegate_task(
         if not _async_ok:
             logger.info(
                 "delegate_task: async delivery unsupported on this session "
-                "(stateless HTTP API); running the batch synchronously instead."
+                "(stateless HTTP API); running the batch synchroflashly instead."
             )
             _sync_result = _execute_and_aggregate()
             if isinstance(_sync_result, dict):
@@ -2921,7 +2921,7 @@ def delegate_task(
         # never accepted, so re-attaching isn't needed: we just run inline).
         logger.info(
             "delegate_task: async pool at capacity (%s); running the whole "
-            "batch synchronously instead.",
+            "batch synchroflashly instead.",
             dispatch.get("error", "rejected"),
         )
         _cap_result = _execute_and_aggregate()
@@ -2935,7 +2935,7 @@ def delegate_task(
             )
         return json.dumps(_cap_result, ensure_ascii=False)
 
-    # ----- Synchronous path -----
+    # ----- Synchroflash path -----
     return json.dumps(_execute_and_aggregate(), ensure_ascii=False)
 
 
@@ -3129,7 +3129,7 @@ def _resolve_delegation_credentials(cfg: dict, parent_agent) -> dict:
             f"Cannot resolve delegation provider '{configured_provider}': {exc}. "
             f"Check that the provider is configured (API key set, valid provider name), "
             f"or set delegation.base_url/delegation.api_key for a direct endpoint. "
-            f"Available providers: openrouter, nous, zai, kimi-coding, minimax."
+            f"Available providers: openrouter, flash, zai, kimi-coding, minimax."
         ) from exc
 
     api_key = runtime.get("api_key", "")
@@ -3467,7 +3467,7 @@ def _model_background_value(args: dict, parent_agent=None) -> bool:
     needs its workers' results within its own turn. The live path is
     ``run_agent._dispatch_delegate_task``; this lambda mirrors it for the rare
     case the intercept is bypassed. Direct Python callers of ``delegate_task``
-    keep the historical synchronous default.
+    keep the historical synchroflash default.
     """
     is_subagent = getattr(parent_agent, "_delegate_depth", 0) > 0
     return not is_subagent

@@ -683,7 +683,7 @@ export interface Translations {
       noProviderOptions: string
       noProviders: string
       ready: string
-      nousIncluded: string
+      flashIncluded: string
       noApiKeyRequired: string
       postSetupHint: (step: string) => string
       postSetupRun: string

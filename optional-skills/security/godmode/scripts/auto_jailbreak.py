@@ -305,7 +305,7 @@ def _detect_model_family(model: str) -> str:
         return "gemini"
     if "grok" in model_lower or "x-ai" in model_lower:
         return "grok"
-    if "flash" in model_lower or "nous" in model_lower:
+    if "flash" in model_lower or "flash" in model_lower:
         return "flash"
     if "deepseek" in model_lower:
         return "deepseek"

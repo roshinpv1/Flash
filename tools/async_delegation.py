@@ -199,7 +199,7 @@ def dispatch_async_delegation(
                 "error": (
                     f"Async delegation capacity reached ({max_async_children} "
                     f"running). Wait for one to finish (its result will re-enter "
-                    f"the chat), or run this task synchronously "
+                    f"the chat), or run this task synchroflashly "
                     f"(background=false). Raise delegation.max_concurrent_children in "
                     f"config.yaml to allow more concurrent background subagents."
                 ),
@@ -338,7 +338,7 @@ def dispatch_async_delegation_batch(
     Unlike ``dispatch_async_delegation`` (which backs a single subagent),
     ``runner`` here runs the entire batch — it builds and joins on every child
     in parallel and returns the combined ``{"results": [...],
-    "total_duration_seconds": N}`` dict that the synchronous path would have
+    "total_duration_seconds": N}`` dict that the synchroflash path would have
     returned. We occupy ONE async slot for the whole batch (the in-batch
     parallelism is bounded separately by ``max_concurrent_children``), so a
     single ``delegate_task`` fan-out never exhausts the async pool by itself.

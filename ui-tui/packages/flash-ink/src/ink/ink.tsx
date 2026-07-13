@@ -217,12 +217,12 @@ export default class Ink {
     cacheHits: number
     live: number
   } = {
-    ms: 0,
-    visited: 0,
-    measured: 0,
-    cacheHits: 0,
-    live: 0
-  }
+      ms: 0,
+      visited: 0,
+      measured: 0,
+      cacheHits: 0,
+      live: 0
+    }
   private altScreenParkPatch: Readonly<{
     type: 'stdout'
     content: string
@@ -286,7 +286,7 @@ export default class Ink {
   private prevFrameContaminated = false
   // Set by handleResize: prepend ERASE_SCREEN to the next onRender's patches
   // INSIDE the BSU/ESU block so clear+paint is atomic. Writing ERASE_SCREEN
-  // synchronously in handleResize would leave the screen blank for the ~80ms
+  // synchroflashly in handleResize would leave the screen blank for the ~80ms
   // render() takes; deferring into the atomic block means old content stays
   // visible until the new frame is fully ready.
   private needsEraseBeforePaint = false
@@ -310,7 +310,7 @@ export default class Ink {
   private pendingResizeRender = false
   private resizeSettleTimer: ReturnType<typeof setTimeout> | null = null
 
-  // Fold synchronous re-entry (selection fanout, onFrame callback)
+  // Fold synchroflash re-entry (selection fanout, onFrame callback)
   // into one follow-up microtask instead of stacking renders.
   private isRendering = false
   private immediateRerenderRequested = false
@@ -366,11 +366,11 @@ export default class Ink {
     // runs BEFORE React's layout phase (ref attach + useLayoutEffect). Any
     // state set in layout effects — notably the cursorDeclaration from
     // useDeclaredCursor — would lag one commit behind if we rendered
-    // synchronously. Deferring to a microtask runs onRender after layout
+    // synchroflashly. Deferring to a microtask runs onRender after layout
     // effects have committed, so the native cursor tracks the caret without
     // a one-keystroke lag. Same event-loop tick, so throughput is unchanged.
     // Test env uses onImmediateRender (direct onRender, no throttle) so
-    // existing synchronous lastFrame() tests are unaffected.
+    // existing synchroflash lastFrame() tests are unaffected.
     const deferredRender = (): void => queueMicrotask(this.onRender)
     this.scheduleRender = throttle(deferredRender, FRAME_INTERVAL_MS, {
       leading: true,
@@ -600,9 +600,9 @@ export default class Ink {
     }, 160)
   }
 
-  resolveExitPromise: () => void = () => {}
-  rejectExitPromise: (reason?: Error) => void = () => {}
-  unsubscribeExit: () => void = () => {}
+  resolveExitPromise: () => void = () => { }
+  rejectExitPromise: (reason?: Error) => void = () => { }
+  unsubscribeExit: () => void = () => { }
 
   /**
    * Pause Ink and hand the terminal over to an external TUI (e.g. git
@@ -618,20 +618,20 @@ export default class Ink {
       // CSI-u (e.g. nano) show "Unknown sequence" for every Ctrl-<key> if
       // kitty/modifyOtherKeys stays active. exitAlternateScreen re-enables.
       DISABLE_KITTY_KEYBOARD +
-        DISABLE_MODIFY_OTHER_KEYS +
-        (this.altScreenMouseTracking !== 'off' ? DISABLE_MOUSE_TRACKING : '') +
-        // disable mouse (no-op if off)
-        (this.altScreenActive ? '' : '\x1b[?1049h') +
-        // enter alt (already in alt if fullscreen)
-        '\x1b[?1004l' +
-        // disable focus reporting
-        '\x1b[0m' +
-        // reset attributes
-        '\x1b[?25h' +
-        // show cursor
-        '\x1b[2J' +
-        // clear screen
-        '\x1b[H' // cursor home
+      DISABLE_MODIFY_OTHER_KEYS +
+      (this.altScreenMouseTracking !== 'off' ? DISABLE_MOUSE_TRACKING : '') +
+      // disable mouse (no-op if off)
+      (this.altScreenActive ? '' : '\x1b[?1049h') +
+      // enter alt (already in alt if fullscreen)
+      '\x1b[?1004l' +
+      // disable focus reporting
+      '\x1b[0m' +
+      // reset attributes
+      '\x1b[?25h' +
+      // show cursor
+      '\x1b[2J' +
+      // clear screen
+      '\x1b[H' // cursor home
     )
   }
 
@@ -650,19 +650,19 @@ export default class Ink {
   exitAlternateScreen(): void {
     this.options.stdout.write(
       (this.altScreenActive ? ENTER_ALT_SCREEN : '') +
-        // re-enter alt — vim's rmcup dropped us to main
-        '\x1b[2J' +
-        // clear screen (now alt if fullscreen)
-        '\x1b[H' +
-        // cursor home
-        // DISABLE first so external editors/tmux that left DEC 1003 hover
-        // on can't survive the handoff back — same pattern as
-        // setAltScreenMouseTracking / reenterAltScreen.
-        DISABLE_MOUSE_TRACKING +
-        enableMouseTrackingFor(this.altScreenMouseTracking) +
-        (this.altScreenActive ? '' : '\x1b[?1049l') +
-        // exit alt (non-fullscreen only)
-        '\x1b[?25l' // hide cursor (Ink manages)
+      // re-enter alt — vim's rmcup dropped us to main
+      '\x1b[2J' +
+      // clear screen (now alt if fullscreen)
+      '\x1b[H' +
+      // cursor home
+      // DISABLE first so external editors/tmux that left DEC 1003 hover
+      // on can't survive the handoff back — same pattern as
+      // setAltScreenMouseTracking / reenterAltScreen.
+      DISABLE_MOUSE_TRACKING +
+      enableMouseTrackingFor(this.altScreenMouseTracking) +
+      (this.altScreenActive ? '' : '\x1b[?1049l') +
+      // exit alt (non-fullscreen only)
+      '\x1b[?25l' // hide cursor (Ink manages)
     )
     this.resumeStdin()
 
@@ -681,7 +681,7 @@ export default class Ink {
     // without the pop we'd accumulate depth on each editor round-trip).
     this.options.stdout.write(
       '\x1b[?1004h' +
-        (supportsExtendedKeys() ? DISABLE_KITTY_KEYBOARD + ENABLE_KITTY_KEYBOARD + ENABLE_MODIFY_OTHER_KEYS : '')
+      (supportsExtendedKeys() ? DISABLE_KITTY_KEYBOARD + ENABLE_KITTY_KEYBOARD + ENABLE_MODIFY_OTHER_KEYS : '')
     )
   }
   onRender() {
@@ -689,7 +689,7 @@ export default class Ink {
       return
     }
 
-    // Fold synchronous re-entry (selection fanout, onFrame callback)
+    // Fold synchroflash re-entry (selection fanout, onFrame callback)
     // into one follow-up microtask — back-to-back renders within one
     // macrotask were the freeze multiplier.
     if (this.isRendering) {
@@ -1025,9 +1025,9 @@ export default class Ink {
     const target =
       decl !== null && rect !== undefined
         ? {
-            x: rect.x + decl.relativeX,
-            y: rect.y + decl.relativeY
-          }
+          x: rect.x + decl.relativeX,
+          y: rect.y + decl.relativeY
+        }
         : null
 
     const parked = this.displayCursor
@@ -1071,9 +1071,9 @@ export default class Ink {
             !hasDiff && parked !== null
               ? parked
               : {
-                  x: frame.cursor.x,
-                  y: frame.cursor.y
-                }
+                x: frame.cursor.x,
+                y: frame.cursor.y
+              }
 
           const dx = target.x - from.x
           const dy = target.y - from.y
@@ -1137,14 +1137,14 @@ export default class Ink {
       this.altScreenActive && !SYNC_OUTPUT_SUPPORTED,
       trackDrain
         ? () => {
-            // Callback fires once Node has flushed the chunk to the OS.
-            // Capture the drain time and clear pending so the NEXT frame's
-            // staleDrain = the real end-to-end flush time.
-            if (this.pendingWriteStart === drainStart) {
-              this.lastDrainMs = performance.now() - drainStart
-              this.pendingWriteStart = null
-            }
+          // Callback fires once Node has flushed the chunk to the OS.
+          // Capture the drain time and clear pending so the NEXT frame's
+          // staleDrain = the real end-to-end flush time.
+          if (this.pendingWriteStart === drainStart) {
+            this.lastDrainMs = performance.now() - drainStart
+            this.pendingWriteStart = null
           }
+        }
         : undefined
     )
 
@@ -1454,10 +1454,10 @@ export default class Ink {
     // first to drop any lingering DEC 1003 hover from before re-entry.
     this.options.stdout.write(
       ENTER_ALT_SCREEN +
-        ERASE_SCREEN +
-        CURSOR_HOME +
-        DISABLE_MOUSE_TRACKING +
-        enableMouseTrackingFor(this.altScreenMouseTracking)
+      ERASE_SCREEN +
+      CURSOR_HOME +
+      DISABLE_MOUSE_TRACKING +
+      enableMouseTrackingFor(this.altScreenMouseTracking)
     )
     this.resetFramesForAltScreen()
     // ERASE_SCREEN above leaves the physical alt screen blank, and
@@ -1645,12 +1645,12 @@ export default class Ink {
     const positions = scanPositions(rendered, this.searchHighlightQuery)
     logForDebugging(
       `scanElementSubtree: q='${this.searchHighlightQuery}' ` +
-        `el=${width}x${height}@(${elLeft},${elTop}) n=${positions.length} ` +
-        `[${positions
-          .slice(0, 10)
-          .map(p => `${p.row}:${p.col}`)
-          .join(',')}` +
-        `${positions.length > 10 ? ',…' : ''}]`
+      `el=${width}x${height}@(${elLeft},${elTop}) n=${positions.length} ` +
+      `[${positions
+        .slice(0, 10)
+        .map(p => `${p.row}:${p.col}`)
+        .join(',')}` +
+      `${positions.length > 10 ? ',…' : ''}]`
     )
 
     return positions
@@ -1968,7 +1968,7 @@ export default class Ink {
    * an OSC 8 hyperlink first, then falls back to scanning the row for a
    * plain-text URL (mouse tracking intercepts the terminal's native
    * Cmd+Click URL detection, so we replicate it). This is a pure lookup
-   * with no side effects — call it synchronously at click time so the
+   * with no side effects — call it synchroflashly at click time so the
    * result reflects the screen the user actually clicked on, then defer
    * the browser-open action via a timer.
    */
@@ -2207,12 +2207,11 @@ export default class Ink {
     // This prevents Ink from consuming stdin while the editor is active
     const readableListeners = stdin.listeners('readable')
     logForDebugging(
-      `[stdin] suspendStdin: removing ${readableListeners.length} readable listener(s), wasRawMode=${
-        (
-          stdin as NodeJS.ReadStream & {
-            isRaw?: boolean
-          }
-        ).isRaw ?? false
+      `[stdin] suspendStdin: removing ${readableListeners.length} readable listener(s), wasRawMode=${(
+        stdin as NodeJS.ReadStream & {
+          isRaw?: boolean
+        }
+      ).isRaw ?? false
       }`
     )
     readableListeners.forEach(listener => {
@@ -2420,7 +2419,7 @@ export default class Ink {
     const diff = this.log.renderPreviousOutput_DEPRECATED(this.frontFrame)
     writeDiffToTerminal(this.terminal, optimize(diff))
 
-    // Clean up terminal modes synchronously before process exit.
+    // Clean up terminal modes synchroflashly before process exit.
     // React's componentWillUnmount won't run in time when process.exit() is called,
     // so we must reset terminal modes here to prevent escape sequence leakage.
     // Use writeSync to stdout (fd 1) to ensure writes complete before exit.

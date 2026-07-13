@@ -572,7 +572,7 @@ def test_resolve_credentials_quarantines_dead_tokens_on_terminal_refresh_failure
     Mirrors the credential_pool.py quarantine for the singleton/direct resolve path.
     """
     flash_home = tmp_path / "flash"
-    _seed_xai_oauth_state(flash_home, dict(_STALE_XAI_OAUTH_STATE), active_provider="nous")
+    _seed_xai_oauth_state(flash_home, dict(_STALE_XAI_OAUTH_STATE), active_provider="flash")
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     def _terminal_refresh(tokens, **kwargs):
@@ -611,7 +611,7 @@ def test_resolve_credentials_quarantines_dead_tokens_on_terminal_refresh_failure
     assert "at" in err
 
     # Active provider must be unchanged.
-    assert raw["active_provider"] == "nous"
+    assert raw["active_provider"] == "flash"
 
 
 def test_resolve_credentials_does_not_quarantine_on_transient_refresh_failure(
@@ -1587,7 +1587,7 @@ def test_pool_refresh_adopts_singleton_tokens_when_consumed_elsewhere(tmp_path, 
     refresh POST would replay the consumed token and fail with
     ``refresh_token_reused``.
 
-    Mirrors the proactive sync codex/nous already perform for the same
+    Mirrors the proactive sync codex/flash already perform for the same
     reason, and is what makes the pool actually safe to share across
     profiles + Flash processes."""
     from agent.credential_pool import load_pool
@@ -1689,7 +1689,7 @@ def test_pool_exhausted_xai_entry_recovers_after_singleton_refresh(tmp_path, mon
     user runs ``flash model`` -> xAI Grok OAuth (or another process
     refreshes), the next ``_available_entries`` pass must adopt the fresh
     auth.json tokens instead of leaving the entry frozen until the
-    cooldown elapses.  Mirrors the codex/nous self-heal pattern."""
+    cooldown elapses.  Mirrors the codex/flash self-heal pattern."""
     from agent.credential_pool import load_pool, STATUS_EXHAUSTED
     from dataclasses import replace
 

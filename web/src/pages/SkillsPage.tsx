@@ -42,23 +42,23 @@ import type {
 import { useProfileScope } from "@/contexts/useProfileScope";
 import { ToolsetConfigDrawer } from "@/components/ToolsetConfigDrawer";
 import { SkillEditorDialog } from "@/components/SkillEditorDialog";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Switch } from "@nous-research/ui/ui/components/switch";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
+import { Toast } from "@flash-research/ui/ui/components/toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@flash-research/ui/ui/components/card";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { ListItem } from "@flash-research/ui/ui/components/list-item";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Switch } from "@flash-research/ui/ui/components/switch";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@nous-research/ui/ui/components/dialog";
+} from "@flash-research/ui/ui/components/dialog";
 import { cn } from "@/lib/utils";
-import { Input } from "@nous-research/ui/ui/components/input";
+import { Input } from "@flash-research/ui/ui/components/input";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
@@ -447,8 +447,8 @@ export default function SkillsPage() {
                             <span className="flex-1 truncate">{name}</span>
                             <span
                               className={`text-xs tabular-nums ${isActive
-                                  ? "text-text-secondary"
-                                  : "text-text-tertiary"
+                                ? "text-text-secondary"
+                                : "text-text-tertiary"
                                 }`}
                             >
                               {count}

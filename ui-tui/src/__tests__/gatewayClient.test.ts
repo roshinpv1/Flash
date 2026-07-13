@@ -108,7 +108,7 @@ describe('GatewayClient websocket attach mode', () => {
     originalGatewayUrl = process.env.HERMES_TUI_GATEWAY_URL
     originalSidecarUrl = process.env.HERMES_TUI_SIDECAR_URL
     FakeWebSocket.reset()
-    ;(globalThis as { WebSocket?: unknown }).WebSocket = FakeWebSocket as unknown as typeof WebSocket
+      ; (globalThis as { WebSocket?: unknown }).WebSocket = FakeWebSocket as unknown as typeof WebSocket
   })
 
   afterEach(() => {
@@ -154,11 +154,11 @@ describe('GatewayClient websocket attach mode', () => {
     gw.kill()
   })
 
-  it('drains buffered events on a later microtask, not synchronously inside drain()', async () => {
+  it('drains buffered events on a later microtask, not synchroflashly inside drain()', async () => {
     // Regression for #36658: in attach mode the already-running gateway
     // replays `gateway.ready` the instant the socket connects, so it lands in
     // bufferedEvents BEFORE the consumer's mount-time subscribe effect runs.
-    // If drain() emitted those synchronously, the gateway.ready handler's
+    // If drain() emitted those synchroflashly, the gateway.ready handler's
     // setState cascade would run inside React's first commit -> "Too many
     // re-renders" (#301). drain() must defer the buffered flush so the first
     // commit settles first.
@@ -180,7 +180,7 @@ describe('GatewayClient websocket attach mode', () => {
     gw.drain()
     order.push('after-drain')
 
-    // Buffered event must NOT have fired synchronously inside drain():
+    // Buffered event must NOT have fired synchroflashly inside drain():
     expect(order).toEqual(['after-drain'])
 
     // ...and must arrive on the next microtask.
@@ -191,7 +191,7 @@ describe('GatewayClient websocket attach mode', () => {
   })
 
   it('preserves FIFO order when a live event arrives before the deferred flush', async () => {
-    // #36658 hardening: `subscribed` must NOT flip synchronously in drain().
+    // #36658 hardening: `subscribed` must NOT flip synchroflashly in drain().
     // A live event delivered in the window between drain() returning and the
     // deferred microtask running must still queue BEHIND the chronologically
     // earlier buffered events, not jump ahead of them.
@@ -212,7 +212,7 @@ describe('GatewayClient websocket attach mode', () => {
     gw.on('event', ev => order.push(ev.type))
     gw.drain()
 
-    // A LIVE event arrives synchronously in the post-drain / pre-microtask gap:
+    // A LIVE event arrives synchroflashly in the post-drain / pre-microtask gap:
     gatewaySocket.message(
       JSON.stringify({ jsonrpc: '2.0', method: 'event', params: { type: 'session.info', payload: {} } })
     )
@@ -246,7 +246,7 @@ describe('GatewayClient websocket attach mode', () => {
     sidecarSocket.open()
     gw.drain()
     // drain() flips `subscribed` on a microtask now (#36658); let it settle so
-    // the subsequent live event takes the synchronous publish path.
+    // the subsequent live event takes the synchroflash publish path.
     await Promise.resolve()
 
     const eventFrame = JSON.stringify({
@@ -318,7 +318,7 @@ describe('GatewayClient websocket attach mode', () => {
     gatewaySocket.open()
     gw.drain()
     // drain() flips `subscribed` on a microtask now (#36658); let it settle so
-    // the close below takes the synchronous exit path.
+    // the close below takes the synchroflash exit path.
     await Promise.resolve()
     gatewaySocket.close(1011)
 
@@ -413,11 +413,11 @@ describe('GatewayClient websocket attach mode', () => {
     const secretUrl = 'ws://gateway.test/api/ws?token=hunter2&channel=secret'
 
     process.env.HERMES_TUI_GATEWAY_URL = secretUrl
-    ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
-      constructor(url: string) {
-        throw new TypeError(`Invalid URL: ${url}`)
-      }
-    } as unknown as typeof WebSocket
+      ; (globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
+        constructor(url: string) {
+          throw new TypeError(`Invalid URL: ${url}`)
+        }
+      } as unknown as typeof WebSocket
 
     const gw = new GatewayClient()
 
@@ -438,15 +438,15 @@ describe('GatewayClient websocket attach mode', () => {
 
     process.env.HERMES_TUI_GATEWAY_URL = 'ws://gateway.test/api/ws?token=abc'
     process.env.HERMES_TUI_SIDECAR_URL = sidecarUrl
-    ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingSidecarWebSocket extends FakeWebSocket {
-      constructor(url: string) {
-        if (url.includes('/api/pub')) {
-          throw new TypeError(`Invalid URL: ${url}`)
-        }
+      ; (globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingSidecarWebSocket extends FakeWebSocket {
+        constructor(url: string) {
+          if (url.includes('/api/pub')) {
+            throw new TypeError(`Invalid URL: ${url}`)
+          }
 
-        super(url)
-      }
-    } as unknown as typeof WebSocket
+          super(url)
+        }
+      } as unknown as typeof WebSocket
 
     const gw = new GatewayClient()
 
@@ -475,11 +475,11 @@ describe('GatewayClient websocket attach mode', () => {
     expect(() => new URL(fixture)).toThrow()
 
     process.env.HERMES_TUI_GATEWAY_URL = fixture
-    ;(globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
-      constructor(url: string) {
-        throw new TypeError(`Invalid URL: ${url}`)
-      }
-    } as unknown as typeof WebSocket
+      ; (globalThis as { WebSocket?: unknown }).WebSocket = class ThrowingWebSocket extends FakeWebSocket {
+        constructor(url: string) {
+          throw new TypeError(`Invalid URL: ${url}`)
+        }
+      } as unknown as typeof WebSocket
 
     const gw = new GatewayClient()
 

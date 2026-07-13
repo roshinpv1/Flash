@@ -2,13 +2,13 @@
 allowlist, mirroring the existing NOUS_INFERENCE_BASE_URL /
 _ALLOWED_NOUS_INFERENCE_HOSTS treatment.
 
-Real incident (2026-07): a hosted agent provisioned by nous-account-service
+Real incident (2026-07): a hosted agent provisioned by flash-account-service
 on the `staging` Vercel environment is stamped with
 ``HERMES_PORTAL_BASE_URL=https://portal.staging-flashorg.com`` in its
 container env (the documented dev/staging override), while its bootstrap
 ``auth.json`` ALSO persists ``portal_base_url`` to the same staging host.
 
-Before this fix, ``resolve_nous_access_token`` / ``resolve_nous_runtime_
+Before this fix, ``resolve_flash_access_token`` / ``resolve_flash_runtime_
 credentials`` read ``state.get("portal_base_url")`` FIRST via a plain ``or``
 chain, so whenever the stored state had ANY value the env vars were never
 even consulted — and whichever value won (state or env) was then run through
@@ -16,9 +16,9 @@ even consulted — and whichever value won (state or env) was then run through
 The staging host was silently rewritten back to prod on every refresh, so a
 staging-issued refresh token got replayed against the PROD token endpoint.
 Prod correctly rejected that with ``invalid_grant``, which triggered
-``_quarantine_nous_oauth_state`` and wiped the entire credential pool.
+``_quarantine_flash_oauth_state`` and wiped the entire credential pool.
 
-The correct fix (mirroring ``_nous_inference_env_override()``): the env
+The correct fix (mirroring ``_flash_inference_env_override()``): the env
 override is a TRUSTED value the operator/deployment set themselves — it must
 win outright (even over a stored value) and bypass the allowlist entirely.
 The allowlist exists only to reject an untrusted NETWORK-provided value
@@ -34,7 +34,7 @@ import logging
 from flash_cli.auth import (
     DEFAULT_NOUS_PORTAL_URL,
     _NOUS_PORTAL_ALLOWED_HOSTS,
-    _nous_portal_env_override,
+    _flash_portal_env_override,
 )
 
 
@@ -42,7 +42,7 @@ class TestPortalEnvOverrideHelper:
     def test_none_when_unset(self, monkeypatch):
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
         monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
-        assert _nous_portal_env_override() is None
+        assert _flash_portal_env_override() is None
 
     def test_flash_portal_base_url_wins(self, monkeypatch):
         monkeypatch.setenv(
@@ -50,16 +50,16 @@ class TestPortalEnvOverrideHelper:
         )
         monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
         assert (
-            _nous_portal_env_override() == "https://portal.staging-flashorg.com"
+            _flash_portal_env_override() == "https://portal.staging-flashorg.com"
         )
 
-    def test_nous_portal_base_url_used_as_fallback(self, monkeypatch):
+    def test_flash_portal_base_url_used_as_fallback(self, monkeypatch):
         monkeypatch.delenv("HERMES_PORTAL_BASE_URL", raising=False)
         monkeypatch.setenv(
             "NOUS_PORTAL_BASE_URL", "https://portal.staging-flashorg.com"
         )
         assert (
-            _nous_portal_env_override() == "https://portal.staging-flashorg.com"
+            _flash_portal_env_override() == "https://portal.staging-flashorg.com"
         )
 
     def test_env_override_not_gated_by_allowlist(self, monkeypatch):
@@ -71,12 +71,12 @@ class TestPortalEnvOverrideHelper:
         )
         assert "portal.staging-flashorg.com" not in _NOUS_PORTAL_ALLOWED_HOSTS
         assert (
-            _nous_portal_env_override() == "https://portal.staging-flashorg.com"
+            _flash_portal_env_override() == "https://portal.staging-flashorg.com"
         )
 
 
 class TestResolveAccessTokenEnvOverrideWins:
-    """End-to-end: resolve_nous_access_token must use the env override for
+    """End-to-end: resolve_flash_access_token must use the env override for
     the refresh call, bypassing the allowlist, even when state also has a
     portal_base_url set (the exact incident shape)."""
 
@@ -86,9 +86,9 @@ class TestResolveAccessTokenEnvOverrideWins:
             json.dumps(
                 {
                     "version": 1,
-                    "active_provider": "nous",
+                    "active_provider": "flash",
                     "providers": {
-                        "nous": {
+                        "flash": {
                             "portal_base_url": stored_portal_url,
                             "access_token": "expired-access",
                             "refresh_token": "staging-refresh",
@@ -120,7 +120,7 @@ class TestResolveAccessTokenEnvOverrideWins:
         handler.emit = lambda record: caplog_records.append(record.getMessage())
         logger.addHandler(handler)
         try:
-            auth.resolve_nous_access_token()
+            auth.resolve_flash_access_token()
         finally:
             logger.removeHandler(handler)
         return seen_portal_urls, caplog_records

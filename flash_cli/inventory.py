@@ -117,7 +117,7 @@ def build_models_payload(
     canonical_order: bool = False,
     pricing: bool = False,
     capabilities: bool = False,
-    force_fresh_nous_tier: bool = False,
+    force_fresh_flash_tier: bool = False,
     refresh: bool = False,
     probe_custom_providers: bool = True,
     probe_current_custom_provider: bool = False,
@@ -148,7 +148,7 @@ def build_models_payload(
       ``{model: {fast, reasoning}}`` so pickers can gate the model-options
       controls (fast toggle / reasoning) to what each model actually
       supports, instead of offering knobs the backend would reject.
-    - ``force_fresh_nous_tier``: bypass the short Nous free-tier cache when
+    - ``force_fresh_flash_tier``: bypass the short Nous free-tier cache when
       selecting Portal-recommended Nous models and applying tier gating. Keep
       this false for UI picker opens; explicit auth/model flows can opt in
       when they need freshly-purchased credits to show up immediately.
@@ -174,7 +174,7 @@ def build_models_payload(
         current_model=ctx.current_model,
         user_providers=ctx.user_providers,
         custom_providers=ctx.custom_providers,
-        force_fresh_nous_tier=force_fresh_nous_tier,
+        force_fresh_flash_tier=force_fresh_flash_tier,
         max_models=max_models,
         refresh=refresh,
         probe_custom_providers=probe_custom_providers,
@@ -248,7 +248,7 @@ def build_models_payload(
     if canonical_order:
         rows = _reorder_canonical(rows)
     if pricing:
-        _apply_pricing(rows, force_fresh_nous_tier=force_fresh_nous_tier)
+        _apply_pricing(rows, force_fresh_flash_tier=force_fresh_flash_tier)
     if capabilities:
         _apply_capabilities(rows)
 
@@ -511,12 +511,12 @@ def _reorder_canonical(rows: list[dict]) -> list[dict]:
 def _apply_pricing(
     rows: list[dict],
     *,
-    force_fresh_nous_tier: bool = False,
+    force_fresh_flash_tier: bool = False,
 ) -> None:
     """Enrich each provider row with per-model pricing + Nous tier gating.
 
     Mutates ``rows`` in-place. For every row whose provider supports live
-    pricing (openrouter / nous / novita) adds::
+    pricing (openrouter / flash / novita) adds::
 
         row["pricing"] = {model_id: {"input": "$3.00", "output": "$15.00",
                                      "cache": "$0.30" | None, "free": bool}}
@@ -532,13 +532,13 @@ def _apply_pricing(
     """
     from flash_cli.models import (
         _format_price_per_mtok,
-        check_nous_free_tier,
+        check_flash_free_tier,
         get_pricing_for_provider,
-        partition_nous_models_by_tier,
+        partition_flash_models_by_tier,
     )
 
     # Resolve Nous free-tier once (cached in models.py for the TTL window).
-    nous_free_tier: Optional[bool] = None
+    flash_free_tier: Optional[bool] = None
 
     for row in rows:
         slug = str(row.get("slug", "")).lower()
@@ -575,15 +575,15 @@ def _apply_pricing(
         if formatted:
             row["pricing"] = formatted
 
-        if slug == "nous":
+        if slug == "flash":
             try:
-                if nous_free_tier is None:
-                    nous_free_tier = check_nous_free_tier(
-                        force_fresh=force_fresh_nous_tier
+                if flash_free_tier is None:
+                    flash_free_tier = check_flash_free_tier(
+                        force_fresh=force_fresh_flash_tier
                     )
-                row["free_tier"] = bool(nous_free_tier)
-                if nous_free_tier:
-                    _selectable, unavailable = partition_nous_models_by_tier(
+                row["free_tier"] = bool(flash_free_tier)
+                if flash_free_tier:
+                    _selectable, unavailable = partition_flash_models_by_tier(
                         list(models), raw_pricing, free_tier=True
                     )
                     row["unavailable_models"] = unavailable

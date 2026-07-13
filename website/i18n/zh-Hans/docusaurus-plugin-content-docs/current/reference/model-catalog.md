@@ -33,7 +33,7 @@ https://flash-agent.flashorg.com/docs/api/model-catalog.json
         {"id": "openai/gpt-5.4",       "description": ""}
       ]
     },
-    "nous": {
+    "flash": {
       "metadata": {},
       "models": [
         {"id": "anthropic/claude-opus-4.7"},
@@ -94,7 +94,7 @@ model_catalog:
 
 ```bash
 # 从仓库内硬编码列表重新生成（在编辑 flash_cli/models.py 中的
-# OPENROUTER_MODELS 或 _PROVIDER_MODELS["nous"] 后保持清单同步）。
+# OPENROUTER_MODELS 或 _PROVIDER_MODELS["flash"] 后保持清单同步）。
 python scripts/build_model_catalog.py
 ```
 

@@ -48,7 +48,7 @@ fallback_model:
 | 提供商 | 值 | 要求 |
 |----------|-------|-------------|
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
-| Nous Portal | `nous` | `flash setup --portal`（全新安装）或 `flash auth add nous`（OAuth） |
+| Nous Portal | `flash` | `flash setup --portal`（全新安装）或 `flash auth add flash`（OAuth） |
 | OpenAI Codex | `openai-codex` | `flash model`（ChatGPT OAuth） |
 | GitHub Copilot | `copilot` | `COPILOT_GITHUB_TOKEN`、`GH_TOKEN` 或 `GITHUB_TOKEN` |
 | GitHub Copilot ACP | `copilot-acp` | 外部进程（编辑器集成） |
@@ -139,8 +139,8 @@ model:
   default: anthropic/claude-opus-4
 
 fallback_model:
-  provider: nous
-  model: nous-flash-3
+  provider: flash
+  model: flash-flash-3
 ```
 
 **以本地模型作为云端的备用：**
@@ -219,7 +219,7 @@ Codex OAuth → Anthropic → 自定义端点 → 放弃
 ```yaml
 auxiliary:
   vision:
-    provider: "auto"              # auto | openrouter | nous | codex | main | anthropic
+    provider: "auto"              # auto | openrouter | flash | codex | main | anthropic
     model: ""                     # 例如 "openai/gpt-4o"
     base_url: ""                  # 直接端点（优先于 provider）
     api_key: ""                   # base_url 的 API 密钥
@@ -270,7 +270,7 @@ fallback_model:
 |----------|-------------|-------------|
 | `"auto"` | 按顺序尝试各提供商直到找到可用的（默认） | 至少配置一个提供商 |
 | `"openrouter"` | 强制使用 OpenRouter | `OPENROUTER_API_KEY` |
-| `"nous"` | 强制使用 Nous Portal | `flash auth` |
+| `"flash"` | 强制使用 Nous Portal | `flash auth` |
 | `"codex"` | 强制使用 Codex OAuth | `flash model` → Codex |
 | `"main"` | 使用主 Agent 当前的提供商（仅限辅助任务） | 已配置活跃的主提供商 |
 | `"anthropic"` | 强制使用 Anthropic 原生 | `ANTHROPIC_API_KEY` 或 Claude Code 凭据 |
@@ -316,7 +316,7 @@ auxiliary:
     fallback_chain:
       - provider: openrouter
         model: google/gemini-3-flash-preview
-      - provider: nous
+      - provider: flash
         model: anthropic/claude-sonnet-4
 
   compression:
@@ -347,7 +347,7 @@ Flash 将以下情况识别为等同于 402 额度耗尽的容量错误（而非
 ```yaml
 auxiliary:
   compression:
-    provider: "auto"                              # auto | openrouter | nous | main
+    provider: "auto"                              # auto | openrouter | flash | main
     model: "google/gemini-3-flash-preview"
 ```
 

@@ -64,8 +64,8 @@ async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, 
     'version-string': {
       ProductName: 'Flash',
       FileDescription: 'Flash',
-      CompanyName: 'Nous Research',
-      LegalCopyright: 'Copyright (c) 2026 Nous Research'
+      CompanyName: 'Flash Org',
+      LegalCopyright: 'Copyright (c) 2026 Flash Org'
     }
   })
 

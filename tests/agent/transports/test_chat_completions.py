@@ -21,7 +21,7 @@ class TestChatCompletionsBasic:
     def test_registered(self, transport):
         assert transport is not None
 
-    @pytest.mark.parametrize("provider", ["nous", "openrouter"])
+    @pytest.mark.parametrize("provider", ["flash", "openrouter"])
     def test_gpt56_ultra_uses_max_wire_effort(self, transport, provider):
         from providers import get_provider_profile
 
@@ -381,13 +381,13 @@ class TestChatCompletionsBuildKwargs:
             {"id": "pareto-router", "min_coding_score": 0.8}
         ]
 
-    def test_nous_tags(self, transport):
-        from agent.portal_tags import nous_portal_tags
+    def test_flash_tags(self, transport):
+        from agent.portal_tags import flash_portal_tags
         from providers import get_provider_profile
-        profile = get_provider_profile("nous")
+        profile = get_provider_profile("flash")
         msgs = [{"role": "user", "content": "Hi"}]
         kw = transport.build_kwargs(model="gpt-4o", messages=msgs, provider_profile=profile)
-        assert kw["extra_body"]["tags"] == nous_portal_tags()
+        assert kw["extra_body"]["tags"] == flash_portal_tags()
 
     def test_reasoning_default(self, transport):
         msgs = [{"role": "user", "content": "Hi"}]
@@ -397,9 +397,9 @@ class TestChatCompletionsBuildKwargs:
         )
         assert kw["extra_body"]["reasoning"] == {"enabled": True, "effort": "medium"}
 
-    def test_nous_omits_disabled_reasoning(self, transport):
+    def test_flash_omits_disabled_reasoning(self, transport):
         from providers import get_provider_profile
-        profile = get_provider_profile("nous")
+        profile = get_provider_profile("flash")
         msgs = [{"role": "user", "content": "Hi"}]
         kw = transport.build_kwargs(
             model="gpt-4o", messages=msgs,
@@ -1121,16 +1121,16 @@ class TestChatCompletionsGeminiNativeExtraBodyStrip:
     Gemini endpoint — Google's REST API rejects unknown fields with HTTP 400.
     """
 
-    def _nous_profile(self):
+    def _flash_profile(self):
         from providers import get_provider_profile
-        return get_provider_profile("nous")
+        return get_provider_profile("flash")
 
     def test_tags_stripped_when_endpoint_is_native_gemini(self, transport):
         kw = transport.build_kwargs(
             "anthropic/claude-sonnet-4.6",
             [{"role": "user", "content": "hi"}],
             None,
-            provider_profile=self._nous_profile(),
+            provider_profile=self._flash_profile(),
             base_url="https://generativelanguage.googleapis.com/v1beta",
             session_id="s1",
             max_tokens=None,
@@ -1138,12 +1138,12 @@ class TestChatCompletionsGeminiNativeExtraBodyStrip:
         eb = kw.get("extra_body")
         assert not eb or "tags" not in eb
 
-    def test_tags_preserved_on_nous_endpoint(self, transport):
+    def test_tags_preserved_on_flash_endpoint(self, transport):
         kw = transport.build_kwargs(
             "flash-3-405b",
             [{"role": "user", "content": "hi"}],
             None,
-            provider_profile=self._nous_profile(),
+            provider_profile=self._flash_profile(),
             base_url="https://inference.flashorg.com/v1",
             session_id="s1",
             max_tokens=None,
@@ -1157,7 +1157,7 @@ class TestChatCompletionsGeminiNativeExtraBodyStrip:
             "anthropic/claude-sonnet-4.6",
             [{"role": "user", "content": "hi"}],
             None,
-            provider_profile=self._nous_profile(),
+            provider_profile=self._flash_profile(),
             base_url="https://generativelanguage.googleapis.com/v1beta/openai",
             session_id="s1",
             max_tokens=None,

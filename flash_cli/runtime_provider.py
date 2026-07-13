@@ -26,10 +26,10 @@ from flash_cli.auth import (
     DEFAULT_XAI_OAUTH_BASE_URL,
     PROVIDER_REGISTRY,
     _agent_key_is_usable,
-    _nous_inference_env_override,
+    _flash_inference_env_override,
     format_auth_error,
     resolve_provider,
-    resolve_nous_runtime_credentials,
+    resolve_flash_runtime_credentials,
     resolve_codex_runtime_credentials,
     resolve_xai_oauth_runtime_credentials,
     resolve_qwen_runtime_credentials,
@@ -358,15 +358,15 @@ def _parse_api_mode(raw: Any) -> Optional[str]:
     return None
 
 
-def _nous_inference_base_url_override() -> str:
+def _flash_inference_base_url_override() -> str:
     """Return the trusted Nous runtime base URL override, if configured.
 
-    Delegates to ``auth._nous_inference_env_override`` so every
+    Delegates to ``auth._flash_inference_env_override`` so every
     ``NOUS_INFERENCE_BASE_URL`` read shares one normalization path
     (trailing-slash stripping, blank → empty). The env source is trusted
     and intentionally bypasses the network host allowlist there.
     """
-    return _nous_inference_env_override() or ""
+    return _flash_inference_env_override() or ""
 
 
 def _maybe_apply_codex_app_server_runtime(
@@ -445,9 +445,9 @@ def _resolve_runtime_from_pool_entry(
         base_url = base_url or OPENROUTER_BASE_URL
     elif provider == "xai":
         api_mode = "codex_responses"
-    elif provider == "nous":
+    elif provider == "flash":
         api_mode = "chat_completions"
-        base_url = _nous_inference_base_url_override() or base_url
+        base_url = _flash_inference_base_url_override() or base_url
     elif provider == "copilot":
         api_mode = _copilot_runtime_api_mode(model_cfg, getattr(entry, "runtime_api_key", ""))
         base_url = base_url or PROVIDER_REGISTRY["copilot"].inference_base_url
@@ -647,7 +647,7 @@ def _get_named_custom_provider(requested_provider: str) -> Optional[Dict[str, An
             # only an *alias* (``kimi`` → built-in ``kimi-coding``) is the
             # user's intended target — alias rewriting would otherwise hijack
             # the request.  We only defer to the built-in when the raw name is
-            # the canonical provider itself (``nous``, ``openrouter``, …) so
+            # the canonical provider itself (``flash``, ``openrouter``, …) so
             # accidentally shadowing a canonical provider still resolves to
             # the built-in. See tests/flash_cli/test_runtime_provider_resolution.py
             # ``test_named_custom_provider_does_not_shadow_builtin_provider``.
@@ -1417,16 +1417,16 @@ def _resolve_explicit_runtime(
             "requested_provider": requested_provider,
         }
 
-    if provider == "nous":
-        state = auth_mod.get_provider_auth_state("nous") or {}
+    if provider == "flash":
+        state = auth_mod.get_provider_auth_state("flash") or {}
         base_url = (
             explicit_base_url
-            or _nous_inference_base_url_override()
+            or _flash_inference_base_url_override()
             or str(state.get("inference_base_url") or auth_mod.DEFAULT_NOUS_INFERENCE_URL).strip().rstrip("/")
         )
         # Only use the agent_key compatibility field for inference when it
         # contains a NAS invoke JWT; raw OAuth access_token fallback is handled
-        # by resolve_nous_runtime_credentials().
+        # by resolve_flash_runtime_credentials().
         api_key = explicit_api_key or (
             str(state.get("agent_key") or "").strip()
             if _agent_key_is_usable(
@@ -1437,7 +1437,7 @@ def _resolve_explicit_runtime(
         )
         expires_at = state.get("agent_key_expires_at") or state.get("expires_at")
         if not api_key:
-            creds = resolve_nous_runtime_credentials(
+            creds = resolve_flash_runtime_credentials(
                 timeout_seconds=float(_getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
             )
             api_key = creds.get("api_key", "")
@@ -1445,7 +1445,7 @@ def _resolve_explicit_runtime(
             if not explicit_base_url:
                 base_url = creds.get("base_url", "").rstrip("/") or base_url
         return {
-            "provider": "nous",
+            "provider": "flash",
             "api_mode": "chat_completions",
             "base_url": base_url,
             "api_key": api_key,
@@ -1709,14 +1709,14 @@ def resolve_runtime_provider(
         # non-runtime contexts like `flash auth list`). If the key is
         # expired/missing, refresh the selected pool entry before falling back
         # to singleton auth resolution.
-        if provider == "nous" and entry is not None:
+        if provider == "flash" and entry is not None:
             min_ttl = max(60, env_int("HERMES_NOUS_MIN_KEY_TTL_SECONDS", 1800))
-            nous_state = {
+            flash_state = {
                 "agent_key": getattr(entry, "agent_key", None),
                 "agent_key_expires_at": getattr(entry, "agent_key_expires_at", None),
                 "scope": getattr(entry, "scope", None),
             }
-            if not _agent_key_is_usable(nous_state, min_ttl):
+            if not _agent_key_is_usable(flash_state, min_ttl):
                 logger.debug("Nous pool entry agent_key expired/missing, refreshing selected pool entry")
                 try:
                     refreshed = pool.try_refresh_current()
@@ -1729,12 +1729,12 @@ def resolve_runtime_provider(
                         getattr(entry, "runtime_api_key", None)
                         or getattr(entry, "access_token", "")
                     )
-                    nous_state = {
+                    flash_state = {
                         "agent_key": getattr(entry, "agent_key", None),
                         "agent_key_expires_at": getattr(entry, "agent_key_expires_at", None),
                         "scope": getattr(entry, "scope", None),
                     }
-                if not pool_api_key or not _agent_key_is_usable(nous_state, min_ttl):
+                if not pool_api_key or not _agent_key_is_usable(flash_state, min_ttl):
                     logger.debug("Nous pool entry agent_key still unavailable, falling through to runtime resolution")
                     pool_api_key = ""
         if (
@@ -1759,13 +1759,13 @@ def resolve_runtime_provider(
                 target_model=target_model,
             )
 
-    if provider == "nous":
+    if provider == "flash":
         try:
-            creds = resolve_nous_runtime_credentials(
+            creds = resolve_flash_runtime_credentials(
                 timeout_seconds=float(_getenv("HERMES_NOUS_TIMEOUT_SECONDS", "15")),
             )
             return {
-                "provider": "nous",
+                "provider": "flash",
                 "api_mode": "chat_completions",
                 "base_url": creds.get("base_url", "").rstrip("/"),
                 "api_key": creds.get("api_key", ""),

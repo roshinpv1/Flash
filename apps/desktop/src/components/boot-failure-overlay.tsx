@@ -263,7 +263,7 @@ export function BootFailureOverlay() {
   if (view === 'connect') {
     return (
       <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-(--ui-chat-surface-background) p-6">
-        <div className="flex max-h-[86vh] w-full max-w-[46rem] flex-col overflow-hidden rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous">
+        <div className="flex max-h-[86vh] w-full max-w-[46rem] flex-col overflow-hidden rounded-xl border border-(--stroke-flash) bg-(--ui-chat-bubble-background) shadow-flash">
           {/* Subtle back affordance (projects/overlay idiom): muted → foreground
               on hover, no divider. */}
           <button
@@ -286,7 +286,7 @@ export function BootFailureOverlay() {
 
   return (
     <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-(--ui-chat-surface-background) p-6">
-      <div className="w-full max-w-[40rem] overflow-hidden rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous">
+      <div className="w-full max-w-[40rem] overflow-hidden rounded-xl border border-(--stroke-flash) bg-(--ui-chat-bubble-background) shadow-flash">
         <div className="flex items-start gap-3 px-5 py-4">
           <ErrorIcon className="mt-0.5" size="1.25rem" />
           <div>

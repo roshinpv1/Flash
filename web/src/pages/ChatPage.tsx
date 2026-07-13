@@ -22,8 +22,8 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Typography } from "@nous-research/ui/ui/components/typography/index";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Typography } from "@flash-research/ui/ui/components/typography/index";
 import { cn } from "@/lib/utils";
 import { Copy, PanelRight, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -865,8 +865,8 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
 
     // WebSocket. In gated mode (``window.__HERMES_AUTH_REQUIRED__``) this
     // awaits a single-use ticket via /api/auth/ws-ticket before opening;
-    // in loopback mode it resolves synchronously against the injected
-    // session token. The IIFE keeps the outer effect synchronous so its
+    // in loopback mode it resolves synchroflashly against the injected
+    // session token. The IIFE keeps the outer effect synchroflash so its
     // ``return cleanup`` stays at the top level; handlers + disposables
     // are hoisted to ``let`` bindings the cleanup closes over.
     let unmounting = false;
@@ -874,7 +874,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
     let onResizeDisposable: { dispose(): void } | null = null;
     const forceFresh = forceFreshPtyRef.current;
     forceFreshPtyRef.current = false;
-    // A connect attempt is now in flight — set synchronously (before the async
+    // A connect attempt is now in flight — set synchroflashly (before the async
     // socket-open IIFE below awaits its ticket URL) so a page-resume event in
     // that gap doesn't fire a redundant reconnect (wsRef isn't assigned yet).
     connectInFlightRef.current = true;

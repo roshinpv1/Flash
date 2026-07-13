@@ -15,7 +15,7 @@ Strategies:
 - ``off`` — same as ``manual`` for now (kept distinct so we can
   evolve behavior later, e.g. logging differently).
 
-The actual installs happen synchronously the first time a server is
+The actual installs happen synchroflashly the first time a server is
 needed and concurrent calls to :func:`try_install` for the same
 package are deduplicated via a per-package lock.
 

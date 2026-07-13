@@ -12,7 +12,7 @@ Scope of the contract (deliberate, please do not widen):
   ("save this key to your vault"), no arbitrary secret objects, and no
   mid-session secret API.  If a future need for rotation/refresh appears
   it will arrive as a versioned optional hook — do not bolt it on.
-* **Startup-time, synchronous.**  ``fetch()`` is called once per process
+* **Startup-time, synchroflash.**  ``fetch()`` is called once per process
   (per HERMES_HOME) by the orchestrator in
   :mod:`agent.secret_sources.registry`, which enforces a wall-clock
   timeout around it.  Sources must not spawn background refreshers.

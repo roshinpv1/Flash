@@ -3,7 +3,7 @@ import { Users } from "lucide-react";
 import {
   Select,
   SelectOption,
-} from "@nous-research/ui/ui/components/select";
+} from "@flash-research/ui/ui/components/select";
 import { useProfileScope } from "@/contexts/useProfileScope";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function ProfileSwitcher({ collapsed }: ProfileSwitcherProps) {
           "[&_[role=listbox]>div]:font-sans [&_[role=listbox]>div]:text-xs",
           "[&_[role=listbox]>div]:normal-case [&_[role=listbox]>div]:tracking-normal",
           isOther &&
-            "[&_button]:border-amber-500/50 [&_button]:text-amber-300",
+          "[&_button]:border-amber-500/50 [&_button]:text-amber-300",
         )}
         id="flash-profile-switcher"
         onValueChange={setProfile}

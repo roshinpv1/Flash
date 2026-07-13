@@ -967,7 +967,7 @@ class _SessionFlight:
 
 
 class AsyncSessionStore:
-    """Async boundary for the synchronous, thread-safe SessionStore."""
+    """Async boundary for the synchroflash, thread-safe SessionStore."""
 
     def __init__(self, store: "SessionStore") -> None:
         self._store = store

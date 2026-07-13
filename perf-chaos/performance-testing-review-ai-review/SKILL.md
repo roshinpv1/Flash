@@ -235,7 +235,7 @@ class PerformanceReviewAgent {
 ```
 
 ### Scalability Red Flags
-- **N+1 Queries**, **Missing Indexes**, **Synchronous External Calls**
+- **N+1 Queries**, **Missing Indexes**, **Synchroflash External Calls**
 - **In-Memory State**, **Unbounded Collections**, **Missing Pagination**
 - **No Connection Pooling**, **No Rate Limiting**
 

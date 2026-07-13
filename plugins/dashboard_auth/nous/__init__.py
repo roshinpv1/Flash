@@ -1,6 +1,6 @@
 """NousDashboardAuthProvider — Nous Portal OAuth (authorization-code + PKCE).
 
-Implements ``nous-account-service/docs/agent-dashboard-oauth-contract.md``
+Implements ``flash-account-service/docs/agent-dashboard-oauth-contract.md``
 (PR #180). The plugin auto-loads (bundled, kind=backend) but only registers
 its provider when a client_id is configured — either via ``config.yaml`` or
 via the Portal-injected env var — so loopback / ``--insecure`` operators
@@ -153,8 +153,8 @@ def _b64url_no_pad(raw: bytes) -> str:
 class NousDashboardAuthProvider(DashboardAuthProvider):
     """Nous Portal OAuth via authorization-code + PKCE (S256)."""
 
-    name = "nous"
-    display_name = "Nous Research"
+    name = "flash"
+    display_name = "Flash Org"
 
     def __init__(self, *, client_id: str, portal_url: str) -> None:
         if not client_id.startswith("agent:"):
@@ -269,13 +269,13 @@ class NousDashboardAuthProvider(DashboardAuthProvider):
             response = httpx.post(
                 self._token_url,
                 # The refresh token goes in BOTH the body and the
-                # ``x-nous-refresh-token`` header. Portal's token endpoint
+                # ``x-flash-refresh-token`` header. Portal's token endpoint
                 # requires ``refresh_token`` in the body (its request schema
                 # rejects a header-only request as ``invalid_request``), and
                 # additionally reconciles the header against the body — sending
                 # both lets Portal keep the value out of body-access-logs while
                 # still satisfying the schema. The header name must match
-                # Portal's ``REFRESH_TOKEN_HEADER`` exactly (``x-nous-refresh-
+                # Portal's ``REFRESH_TOKEN_HEADER`` exactly (``x-flash-refresh-
                 # token``); any other name is silently ignored. (Verified
                 # against the NAS #293 preview deploy: header-only → 400
                 # invalid_request; body → accepted.)
@@ -286,7 +286,7 @@ class NousDashboardAuthProvider(DashboardAuthProvider):
                 },
                 headers={
                     "Accept": "application/json",
-                    "x-nous-refresh-token": refresh_token,
+                    "x-flash-refresh-token": refresh_token,
                 },
                 timeout=_TOKEN_ENDPOINT_TIMEOUT_SEC,
             )
@@ -554,7 +554,7 @@ def _load_config_oauth_section() -> dict:
         cfg = load_config()
     except Exception as exc:  # noqa: BLE001 — broad catch is intentional
         logger.debug(
-            "dashboard-auth-nous: load_config() raised %s; "
+            "dashboard-auth-flash: load_config() raised %s; "
             "falling back to env-only configuration",
             exc,
         )
@@ -637,7 +637,7 @@ def register(ctx) -> None:
             "config.yaml), or pass --insecure to skip the OAuth gate "
             "entirely."
         )
-        logger.debug("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+        logger.debug("dashboard-auth-flash: %s", LAST_SKIP_REASON)
         return
 
     if not client_id.startswith("agent:"):
@@ -647,7 +647,7 @@ def register(ctx) -> None:
             f"provisions this value at deploy time; check your Fly app's "
             f"secrets or override with the value from the Portal admin UI."
         )
-        logger.warning("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+        logger.warning("dashboard-auth-flash: %s", LAST_SKIP_REASON)
         return
 
     try:
@@ -656,12 +656,12 @@ def register(ctx) -> None:
         )
     except ValueError as exc:
         LAST_SKIP_REASON = f"NousDashboardAuthProvider construction failed: {exc}"
-        logger.warning("dashboard-auth-nous: %s", LAST_SKIP_REASON)
+        logger.warning("dashboard-auth-flash: %s", LAST_SKIP_REASON)
         return
 
     ctx.register_dashboard_auth_provider(provider)
     logger.info(
-        "dashboard-auth-nous: registered provider (client_id=%s, portal=%s)",
+        "dashboard-auth-flash: registered provider (client_id=%s, portal=%s)",
         client_id,
         portal_url,
     )

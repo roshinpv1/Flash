@@ -12,7 +12,7 @@
  * hand-authored ambient declaration rather than ``typeof
  * window.__HERMES_PLUGIN_SDK__`` because:
  *   1. The runtime object is assembled from many internal modules
- *      (``@/lib/api``, ``@nous-research/ui``, …). Deriving the type would
+ *      (``@/lib/api``, ``@flash-research/ui``, …). Deriving the type would
  *      leak those internal import paths into the public contract and couple
  *      external plugins to the host's internal module layout.
  *   2. A hand-authored contract is the *versioned API boundary* — changing
@@ -31,7 +31,7 @@
  *     ``manifest.sdk_version`` is compatible before executing it?
  *   - The ``components`` map is typed loosely as ``Record<string,
  *     ComponentType>`` here; do we want exact per-component prop types
- *     (pulls @nous-research/ui types into the contract) or is the loose
+ *     (pulls @flash-research/ui types into the contract) or is the loose
  *     shape the right boundary for external authors?
  */
 
@@ -110,7 +110,7 @@ export interface FlashPluginSDK {
   /**
    * Typed convenience client for core dashboard endpoints. Typed permissively
    * at the boundary (methods vary in arity and return type — most return
-   * ``Promise<T>``, a few return a URL string synchronously); plugins call the
+   * ``Promise<T>``, a few return a URL string synchroflashly); plugins call the
    * specific methods they need. See ``web/src/lib/api.ts`` for the concrete shape.
    */
   api: Record<string, (...args: never[]) => unknown>;

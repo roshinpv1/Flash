@@ -710,7 +710,7 @@ class TestSessionOps:
         ``loadSession`` RPC and rely on receiving the full transcript within
         the request's lifetime. Deferring replay via ``loop.call_soon`` (the
         prior behavior in May 2026) broke clients that read notification
-        counts synchronously against the load response — see #12285 follow-up.
+        counts synchroflashly against the load response — see #12285 follow-up.
         """
         new_resp = await agent.new_session(cwd="/tmp")
         state = agent.session_manager.get_session(new_resp.session_id)

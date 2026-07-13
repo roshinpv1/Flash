@@ -9,7 +9,7 @@ from flash_cli.auth import AuthError, resolve_spotify_runtime_credentials
 
 
 def test_store_provider_state_can_skip_active_provider() -> None:
-    auth_store = {"active_provider": "nous", "providers": {}}
+    auth_store = {"active_provider": "flash", "providers": {}}
 
     auth_mod._store_provider_state(
         auth_store,
@@ -18,7 +18,7 @@ def test_store_provider_state_can_skip_active_provider() -> None:
         set_active=False,
     )
 
-    assert auth_store["active_provider"] == "nous"
+    assert auth_store["active_provider"] == "flash"
     assert auth_store["providers"]["spotify"]["access_token"] == "abc"
 
 
@@ -30,7 +30,7 @@ def test_resolve_spotify_runtime_credentials_refreshes_without_changing_active_p
 
     with auth_mod._auth_store_lock():
         store = auth_mod._load_auth_store()
-        store["active_provider"] = "nous"
+        store["active_provider"] = "flash"
         auth_mod._store_provider_state(
             store,
             "spotify",
@@ -65,7 +65,7 @@ def test_resolve_spotify_runtime_credentials_refreshes_without_changing_active_p
     persisted = auth_mod.get_provider_auth_state("spotify")
     assert persisted is not None
     assert persisted["access_token"] == "fresh-token"
-    assert auth_mod.get_active_provider() == "nous"
+    assert auth_mod.get_active_provider() == "flash"
 
 
 def test_auth_spotify_status_command_reports_logged_in(capsys, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -208,7 +208,7 @@ _STALE_SPOTIFY_STATE = {
 def _seed_spotify_state(tmp_path, state: dict) -> None:
     with auth_mod._auth_store_lock():
         store = auth_mod._load_auth_store()
-        store["active_provider"] = "nous"
+        store["active_provider"] = "flash"
         auth_mod._store_provider_state(store, "spotify", state, set_active=False)
         auth_mod._save_auth_store(store)
 
@@ -266,7 +266,7 @@ def test_resolve_credentials_quarantines_dead_tokens_on_terminal_refresh_failure
     assert "at" in err
 
     # Active provider must be unchanged.
-    assert auth_mod.get_active_provider() == "nous"
+    assert auth_mod.get_active_provider() == "flash"
 
 
 def test_resolve_credentials_does_not_quarantine_on_transient_refresh_failure(

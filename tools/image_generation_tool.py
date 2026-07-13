@@ -65,8 +65,8 @@ from tools.fal_common import (
 from tools.managed_tool_gateway import resolve_managed_tool_gateway
 from tools.tool_backend_helpers import (
     fal_key_is_configured,
-    managed_nous_tools_enabled,
-    nous_tool_gateway_unavailable_message,
+    managed_flash_tools_enabled,
+    flash_tool_gateway_unavailable_message,
     prefers_gateway,
 )
 
@@ -463,7 +463,7 @@ def _get_managed_fal_client(managed_gateway):
 
     client_config = (
         managed_gateway.gateway_origin.rstrip("/"),
-        managed_gateway.nous_user_token,
+        managed_gateway.flash_user_token,
     )
     with _managed_fal_client_lock:
         if _managed_fal_client is not None and _managed_fal_client_config == client_config:
@@ -474,7 +474,7 @@ def _get_managed_fal_client(managed_gateway):
         _load_fal_client()
         _managed_fal_client = _ManagedFalSyncClient(
             fal_client,
-            key=managed_gateway.nous_user_token,
+            key=managed_gateway.flash_user_token,
             queue_run_origin=managed_gateway.gateway_origin,
         )
         _managed_fal_client_config = client_config
@@ -508,7 +508,7 @@ def _submit_fal_request(model: str, arguments: Dict[str, Any]):
             if status in {401, 402, 403}:
                 gateway_message = (
                     "\n\n"
-                    + nous_tool_gateway_unavailable_message(
+                    + flash_tool_gateway_unavailable_message(
                         "managed FAL image generation",
                         force_fresh=True,
                     )
@@ -1053,13 +1053,13 @@ def _build_no_backend_setup_message() -> str:
     """
     lines = ["Image generation is unavailable in this environment.", ""]
     lines.append("Missing requirements:")
-    if managed_nous_tools_enabled():
+    if managed_flash_tools_enabled():
         lines.append(
             "  - FAL_KEY is not set and the managed FAL gateway is unreachable"
         )
     else:
         lines.append("  - FAL_KEY environment variable is not set")
-        gateway_message = nous_tool_gateway_unavailable_message(
+        gateway_message = flash_tool_gateway_unavailable_message(
             "managed FAL image generation",
         )
         if gateway_message:
@@ -1070,7 +1070,7 @@ def _build_no_backend_setup_message() -> str:
         "  1. Get a free API key at https://fal.ai and set "
         "FAL_KEY=<your-key> (then restart the session)"
     )
-    if managed_nous_tools_enabled():
+    if managed_flash_tools_enabled():
         lines.append(
             "  2. Sign in to a Nous account that has the managed FAL "
             "gateway enabled (`flash setup`)"

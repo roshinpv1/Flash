@@ -1,4 +1,4 @@
-"""Unit tests for scripts/docker_rebootstrap_nous_session.py.
+"""Unit tests for scripts/docker_rebootstrap_flash_session.py.
 
 The boot-time re-seed is the load-bearing "does not clobber a healthy session"
 guard: it must overwrite the on-disk Nous provider entry ONLY when that entry is
@@ -13,26 +13,26 @@ from pathlib import Path
 
 # Import the stdlib-only boot helper by path (it lives under scripts/, not an
 # installed package) — mirrors the repo's other scripts/-helper tests.
-_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "docker_rebootstrap_nous_session.py"
-_spec = importlib.util.spec_from_file_location("docker_rebootstrap_nous_session", _SCRIPT)
+_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "docker_rebootstrap_flash_session.py"
+_spec = importlib.util.spec_from_file_location("docker_rebootstrap_flash_session", _SCRIPT)
 mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mod)
 
 
-def _terminal_nous_state():
+def _terminal_flash_state():
     """On-disk shape after a terminal quarantine: tokens cleared, marker set."""
     return {
         "portal_base_url": "https://portal.example.com",
         "client_id": "flash-cli-vps",
         "last_auth_error": {
-            "provider": "nous",
+            "provider": "flash",
             "code": "invalid_grant",
             "relogin_required": True,
         },
     }
 
 
-def _healthy_nous_state():
+def _healthy_flash_state():
     return {
         "portal_base_url": "https://portal.example.com",
         "client_id": "flash-cli-vps",
@@ -50,7 +50,7 @@ def _write_auth(tmp_path: Path, providers: dict) -> str:
 _FRESH_SEED = json.dumps({
     "version": 1,
     "providers": {
-        "nous": {
+        "flash": {
             "portal_base_url": "https://portal.example.com",
             "client_id": "flash-cli-vps",
             "access_token": "FRESH-at",
@@ -61,60 +61,60 @@ _FRESH_SEED = json.dumps({
 
 
 def test_reseeds_terminal_entry(tmp_path):
-    """Terminal on-disk entry + valid seed → providers.nous replaced."""
-    auth = _write_auth(tmp_path, {"nous": _terminal_nous_state()})
+    """Terminal on-disk entry + valid seed → providers.flash replaced."""
+    auth = _write_auth(tmp_path, {"flash": _terminal_flash_state()})
     result = mod.reseed_if_terminal(auth, _FRESH_SEED)
     assert result == "reseeded"
     store = json.loads(Path(auth).read_text())
-    assert store["providers"]["nous"]["refresh_token"] == "FRESH-rt"
-    assert "last_auth_error" not in store["providers"]["nous"]
+    assert store["providers"]["flash"]["refresh_token"] == "FRESH-rt"
+    assert "last_auth_error" not in store["providers"]["flash"]
 
 
 def test_does_not_clobber_healthy_entry(tmp_path):
     """LOAD-BEARING: a healthy (live-token) entry must never be overwritten."""
-    auth = _write_auth(tmp_path, {"nous": _healthy_nous_state()})
+    auth = _write_auth(tmp_path, {"flash": _healthy_flash_state()})
     result = mod.reseed_if_terminal(auth, _FRESH_SEED)
     assert result == "not_terminal"
     store = json.loads(Path(auth).read_text())
     # Untouched — still the live tokens, not the seed.
-    assert store["providers"]["nous"]["refresh_token"] == "live-rt"
+    assert store["providers"]["flash"]["refresh_token"] == "live-rt"
 
 
 def test_marker_but_live_token_is_not_terminal(tmp_path):
     """Stale marker + a live token present → NOT terminal (don't clobber)."""
-    state = _terminal_nous_state()
+    state = _terminal_flash_state()
     state["refresh_token"] = "somehow-live"
-    auth = _write_auth(tmp_path, {"nous": state})
+    auth = _write_auth(tmp_path, {"flash": state})
     assert mod.reseed_if_terminal(auth, _FRESH_SEED) == "not_terminal"
 
 
 def test_preserves_other_providers(tmp_path):
-    """Re-seed swaps ONLY providers.nous; other providers survive intact."""
+    """Re-seed swaps ONLY providers.flash; other providers survive intact."""
     auth = _write_auth(tmp_path, {
-        "nous": _terminal_nous_state(),
+        "flash": _terminal_flash_state(),
         "openai-codex": {"tokens": {"access_token": "codex-at"}},
     })
     assert mod.reseed_if_terminal(auth, _FRESH_SEED) == "reseeded"
     store = json.loads(Path(auth).read_text())
     assert store["providers"]["openai-codex"]["tokens"]["access_token"] == "codex-at"
-    assert store["providers"]["nous"]["refresh_token"] == "FRESH-rt"
+    assert store["providers"]["flash"]["refresh_token"] == "FRESH-rt"
 
 
 def test_no_seed_is_noop(tmp_path):
-    auth = _write_auth(tmp_path, {"nous": _terminal_nous_state()})
+    auth = _write_auth(tmp_path, {"flash": _terminal_flash_state()})
     assert mod.reseed_if_terminal(auth, "") == "no_seed"
 
 
 def test_bad_seed_is_noop(tmp_path):
-    auth = _write_auth(tmp_path, {"nous": _terminal_nous_state()})
+    auth = _write_auth(tmp_path, {"flash": _terminal_flash_state()})
     assert mod.reseed_if_terminal(auth, "}{not json") == "bad_seed"
     # Original terminal entry left untouched.
     store = json.loads(Path(auth).read_text())
-    assert store["providers"]["nous"]["last_auth_error"]["relogin_required"] is True
+    assert store["providers"]["flash"]["last_auth_error"]["relogin_required"] is True
 
 
-def test_seed_without_nous_entry_is_noop(tmp_path):
-    auth = _write_auth(tmp_path, {"nous": _terminal_nous_state()})
+def test_seed_without_flash_entry_is_noop(tmp_path):
+    auth = _write_auth(tmp_path, {"flash": _terminal_flash_state()})
     seed = json.dumps({"version": 1, "providers": {"openai-codex": {}}})
     assert mod.reseed_if_terminal(auth, seed) == "bad_seed"
 
@@ -136,5 +136,5 @@ def test_unreadable_auth_file_is_left_alone(tmp_path):
 def test_terminal_entry_missing_marker_is_not_terminal(tmp_path):
     """No last_auth_error at all (e.g. a merely-expired but not-quarantined
     entry) → not terminal, no re-seed."""
-    auth = _write_auth(tmp_path, {"nous": {"client_id": "flash-cli-vps"}})
+    auth = _write_auth(tmp_path, {"flash": {"client_id": "flash-cli-vps"}})
     assert mod.reseed_if_terminal(auth, _FRESH_SEED) == "not_terminal"

@@ -1929,7 +1929,7 @@ async def get_status(profile: Optional[str] = None):
 
         # Dashboard auth gate (Phase 7): surface whether the gate is engaged
         # and which providers are registered so ``nyxo status`` and the
-        # SPA's StatusPage can show "OAuth gate ON via Nous Research" or
+        # SPA's StatusPage can show "OAuth gate ON via Flash Org" or
         # "loopback only — no auth gate" with no extra round trips.
         auth_required = bool(getattr(app.state, "auth_required", False))
         auth_providers: list[str] = []
@@ -2183,20 +2183,20 @@ async def get_portal_status():
     cfg = load_config() or {}
     auth: Dict[str, Any] = {}
     try:
-        from nyxo_cli.auth import get_nous_auth_status
+        from nyxo_cli.auth import get_flash_auth_status
 
-        auth = get_nous_auth_status() or {}
+        auth = get_flash_auth_status() or {}
     except Exception:
         auth = {}
 
     features = []
     try:
-        from nyxo_cli.nous_subscription import get_nous_subscription_features
+        from nyxo_cli.flash_subscription import get_flash_subscription_features
 
-        feats = get_nous_subscription_features(cfg)
+        feats = get_flash_subscription_features(cfg)
         if feats is not None:
             for feat in feats.items():
-                if getattr(feat, "managed_by_nous", False):
+                if getattr(feat, "managed_by_flash", False):
                     state = "via Nous Portal"
                 elif getattr(feat, "active", False) and getattr(feat, "current_provider", None):
                     state = feat.current_provider
@@ -2267,7 +2267,7 @@ async def run_debug_share_endpoint(body: DebugShareRequest | None = None):
     """Upload a redacted debug report + full logs and return the paste URLs.
 
     Unlike the other diagnostics actions (doctor, dump, prompt-size) this is
-    *synchronous*: the whole point of ``debug share`` is the set of shareable
+    *synchroflash*: the whole point of ``debug share`` is the set of shareable
     URLs it produces, so we run the upload in a worker thread and return the
     structured ``{urls, failures, redacted, ...}`` payload directly. The
     dashboard renders those as real, copyable links instead of scraping a log
@@ -3679,25 +3679,25 @@ def get_recommended_default_model(provider: str = ""):
     """
     slug = (provider or "").strip().lower()
 
-    if slug == "nous":
+    if slug == "flash":
         try:
             from nyxo_cli.models import (
-                get_curated_nous_model_ids,
+                get_curated_flash_model_ids,
                 get_pricing_for_provider,
-                check_nous_free_tier,
-                partition_nous_models_by_tier,
+                check_flash_free_tier,
+                partition_flash_models_by_tier,
                 union_with_portal_free_recommendations,
                 union_with_portal_paid_recommendations,
             )
             from nyxo_cli.auth import get_provider_auth_state
 
-            model_ids = get_curated_nous_model_ids()
-            pricing = get_pricing_for_provider("nous") or {}
-            free_tier = check_nous_free_tier(force_fresh=True)
+            model_ids = get_curated_flash_model_ids()
+            pricing = get_pricing_for_provider("flash") or {}
+            free_tier = check_flash_free_tier(force_fresh=True)
 
             portal_url = ""
             try:
-                state = get_provider_auth_state("nous") or {}
+                state = get_provider_auth_state("flash") or {}
                 portal_url = state.get("portal_base_url", "") or ""
             except Exception:
                 portal_url = ""
@@ -3706,7 +3706,7 @@ def get_recommended_default_model(provider: str = ""):
                 model_ids, pricing = union_with_portal_free_recommendations(
                     model_ids, pricing, portal_url
                 )
-                model_ids, _unavailable = partition_nous_models_by_tier(
+                model_ids, _unavailable = partition_flash_models_by_tier(
                     model_ids, pricing, free_tier=True
                 )
             else:
@@ -3715,10 +3715,10 @@ def get_recommended_default_model(provider: str = ""):
                 )
 
             model = model_ids[0] if model_ids else ""
-            return {"provider": "nous", "model": model, "free_tier": bool(free_tier)}
+            return {"provider": "flash", "model": model, "free_tier": bool(free_tier)}
         except Exception:
-            _log.exception("GET /api/model/recommended-default (nous) failed")
-            return {"provider": "nous", "model": "", "free_tier": None}
+            _log.exception("GET /api/model/recommended-default (flash) failed")
+            return {"provider": "flash", "model": "", "free_tier": None}
 
     # Non-Nous: first curated model for the provider, matching prior behaviour.
     try:
@@ -3850,7 +3850,7 @@ async def set_model_assignment(body: ModelAssignment, profile: Optional[str] = N
 def _apply_model_assignment_sync(
     scope: str, provider: str, model: str, task: str, base_url: str, api_key: str = ""
 ):
-    """Synchronous body of POST /api/model/set.
+    """Synchroflash body of POST /api/model/set.
 
     Runs inside ``_profile_scope`` (in a worker thread) so every
     load_config/save_config lands in the requested profile.  Raises
@@ -3869,32 +3869,32 @@ def _apply_model_assignment_sync(
 
         # When switching the main provider to Nous, mirror the CLI's
         # post-model-selection behaviour (nyxo_cli/main.py
-        # prompt_enable_tool_gateway / tools_config apply_nous_managed_defaults):
+        # prompt_enable_tool_gateway / tools_config apply_flash_managed_defaults):
         # auto-route any *unconfigured* tools through the Nous Tool Gateway.
-        # This is purely additive — apply_nous_managed_defaults skips every
+        # This is purely additive — apply_flash_managed_defaults skips every
         # tool where the user already has a direct key (FIRECRAWL_API_KEY,
         # FAL_KEY, etc.) or an explicit backend/provider in config, so it
         # never overwrites a user's own setup. GUI users thus land on the
         # gateway the same way CLI users do, without a separate prompt.
         gateway_tools: list[str] = []
-        if provider.strip().lower() == "nous":
+        if provider.strip().lower() == "flash":
             try:
-                from nyxo_cli.nous_subscription import apply_nous_managed_defaults
+                from nyxo_cli.flash_subscription import apply_flash_managed_defaults
                 from nyxo_cli.tools_config import _get_platform_tools
 
                 enabled = _get_platform_tools(
                     cfg, "cli", include_default_mcp_servers=False
                 )
-                changed = apply_nous_managed_defaults(
+                changed = apply_flash_managed_defaults(
                     cfg,
                     enabled_toolsets=enabled,
                     force_fresh=True,
                 )
                 gateway_tools = sorted(changed)
             except Exception:
-                # Portal lookup hiccups / non-subscriber / non-nous gating
+                # Portal lookup hiccups / non-subscriber / non-flash gating
                 # must never block saving the model assignment.
-                _log.debug("apply_nous_managed_defaults skipped", exc_info=True)
+                _log.debug("apply_flash_managed_defaults skipped", exc_info=True)
 
         save_config(cfg)
 
@@ -3923,7 +3923,7 @@ def _apply_model_assignment_sync(
         # the new main one. Switching the main model does NOT touch aux pins
         # (they're independent, sticky per-task overrides — see
         # auxiliary_client._resolve_auto). A user who switches main away from
-        # a now-unpaid provider (e.g. nous with $0 balance) keeps paying 402s
+        # a now-unpaid provider (e.g. flash with $0 balance) keeps paying 402s
         # on every background aux call until they reset those pins. We never
         # auto-clear them — pinning aux to a cheaper/different model is a
         # legitimate config — but we tell the caller so the UI can offer a
@@ -5694,12 +5694,12 @@ def _copilot_acp_status() -> Dict[str, Any]:
 # CLI like Claude Code or Qwen), ``loopback`` = 127.0.0.1 callback listener.
 _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     {
-        "id": "nous",
+        "id": "flash",
         "name": "Nous Portal",
         "flow": "device_code",
-        "cli_command": "nyxo auth add nous",
+        "cli_command": "nyxo auth add flash",
         "docs_url": "https://portal.flash.com",
-        "status_fn": None,  # dispatched via auth.get_nous_auth_status
+        "status_fn": None,  # dispatched via auth.get_flash_auth_status
     },
     {
         "id": "openai-codex",
@@ -5780,11 +5780,11 @@ def _resolve_provider_status(provider_id: str, status_fn) -> Dict[str, Any]:
             return {"logged_in": False, "error": str(e)}
     try:
         from nyxo_cli import auth as hauth
-        if provider_id == "nous":
-            raw = hauth.get_nous_auth_status()
+        if provider_id == "flash":
+            raw = hauth.get_flash_auth_status()
             return {
                 "logged_in": bool(raw.get("logged_in")),
-                "source": "nous_portal",
+                "source": "flash_portal",
                 "source_label": raw.get("portal_base_url") or "Nous Portal",
                 "token_preview": _truncate_token(raw.get("access_token")),
                 "expires_at": raw.get("access_expires_at"),
@@ -6052,10 +6052,10 @@ async def disconnect_oauth_provider(
             return {"ok": bool(cleared), "provider": provider_id}
 
         try:
-            from nyxo_cli.auth import clear_provider_auth, invalidate_nous_auth_status_cache
+            from nyxo_cli.auth import clear_provider_auth, invalidate_flash_auth_status_cache
             cleared = clear_provider_auth(provider_id)
-            if provider_id == "nous":
-                invalidate_nous_auth_status_cache()
+            if provider_id == "flash":
+                invalidate_flash_auth_status_cache()
             _log.info("oauth/disconnect: %s (cleared=%s)", provider_id, cleared)
             return {"ok": bool(cleared), "provider": provider_id}
         except Exception as e:
@@ -6081,7 +6081,7 @@ async def disconnect_oauth_provider(
 #          → returns { ok: true, status: "approved" }
 #
 #   Device code (Nous, OpenAI Codex):
-#     1. POST /api/providers/oauth/{nous|openai-codex}/start
+#     1. POST /api/providers/oauth/{flash|openai-codex}/start
 #          → server hits provider's device-auth endpoint
 #          → gets { user_code, verification_url, device_code, interval, expires_in }
 #          → spawns background poller thread that polls the token endpoint
@@ -6373,13 +6373,13 @@ async def _start_device_code_flow(
     then spawns a background poller. Returns the user-facing display fields
     so the UI can render the verification page link + user code.
     """
-    if provider_id == "nous":
+    if provider_id == "flash":
         from nyxo_cli.auth import (
             _request_device_code,
             PROVIDER_REGISTRY,
         )
         import httpx
-        pconfig = PROVIDER_REGISTRY["nous"]
+        pconfig = PROVIDER_REGISTRY["flash"]
         portal_base_url = (
             os.getenv("NYXO_PORTAL_BASE_URL")
             or os.getenv("NOUS_PORTAL_BASE_URL")
@@ -6388,7 +6388,7 @@ async def _start_device_code_flow(
         client_id = pconfig.client_id
         scope = pconfig.scope
 
-        def _do_nous_device_request():
+        def _do_flash_device_request():
             with httpx.Client(
                 timeout=httpx.Timeout(15.0),
                 headers={"Accept": "application/json"},
@@ -6404,9 +6404,9 @@ async def _start_device_code_flow(
                 )
 
         device_data, effective_scope = await asyncio.get_running_loop().run_in_executor(
-            None, _do_nous_device_request
+            None, _do_flash_device_request
         )
-        sid, sess = _new_oauth_session("nous", "device_code", profile=profile)
+        sid, sess = _new_oauth_session("flash", "device_code", profile=profile)
         sess["device_code"] = str(device_data["device_code"])
         sess["interval"] = int(device_data["interval"])
         sess["expires_at"] = time.time() + int(device_data["expires_in"])
@@ -6414,7 +6414,7 @@ async def _start_device_code_flow(
         sess["client_id"] = client_id
         sess["scope"] = effective_scope
         threading.Thread(
-            target=_nous_poller, args=(sid,), daemon=True, name=f"oauth-poll-{sid[:6]}"
+            target=_flash_poller, args=(sid,), daemon=True, name=f"oauth-poll-{sid[:6]}"
         ).start()
         return {
             "session_id": sid,
@@ -6754,11 +6754,11 @@ def _add_xai_oauth_pool_entry(
         _log.warning("xai-oauth pool add (dashboard) failed: %s", e)
 
 
-def _nous_poller(session_id: str) -> None:
+def _flash_poller(session_id: str) -> None:
     """Background poller that drives a Nous device-code flow to completion."""
     from nyxo_cli.auth import (
         _poll_for_token,
-        refresh_nous_oauth_from_state,
+        refresh_flash_oauth_from_state,
     )
     from datetime import datetime, timezone
     import httpx
@@ -6782,7 +6782,7 @@ def _nous_poller(session_id: str) -> None:
                 expires_in=expires_in,
                 poll_interval=interval,
             )
-        # Same post-processing as _nous_device_code_login (validate/refresh JWT)
+        # Same post-processing as _flash_device_code_login (validate/refresh JWT)
         now = datetime.now(timezone.utc)
         token_ttl = int(token_data.get("expires_in") or 0)
         auth_state = {
@@ -6801,18 +6801,18 @@ def _nous_poller(session_id: str) -> None:
             "expires_in": token_ttl,
         }
         with _profile_scope(_oauth_session_profile(session_id)):
-            full_state = refresh_nous_oauth_from_state(
+            full_state = refresh_flash_oauth_from_state(
                 auth_state,
                 timeout_seconds=15.0,
                 force_refresh=False,
             )
-            from nyxo_cli.auth import persist_nous_credentials
-            persist_nous_credentials(full_state)
+            from nyxo_cli.auth import persist_flash_credentials
+            persist_flash_credentials(full_state)
         with _oauth_sessions_lock:
             sess["status"] = "approved"
-        _log.info("oauth/device: nous login completed (session=%s)", session_id)
+        _log.info("oauth/device: flash login completed (session=%s)", session_id)
     except Exception as e:
-        _log.warning("nous device-code poll failed (session=%s): %s", session_id, e)
+        _log.warning("flash device-code poll failed (session=%s): %s", session_id, e)
         with _oauth_sessions_lock:
             sess["status"] = "error"
             sess["error_message"] = str(e)
@@ -6821,7 +6821,7 @@ def _nous_poller(session_id: str) -> None:
 def _minimax_poller(session_id: str) -> None:
     """Background poller that drives a MiniMax OAuth flow to completion.
 
-    Mirrors `_nous_poller` but calls the MiniMax-specific token endpoint,
+    Mirrors `_flash_poller` but calls the MiniMax-specific token endpoint,
     which uses a PKCE-style ``code_verifier`` + ``user_code`` rather than
     the ``device_code`` field used by Nous. On success, builds the same
     auth_state dict that ``_minimax_oauth_login`` (the CLI flow) builds
@@ -8342,7 +8342,7 @@ async def install_mcp_catalog_entry(body: MCPCatalogInstall, profile: Optional[s
             raise HTTPException(status_code=500, detail=f"Install failed: {exc}")
         return {"ok": True, "name": name, "background": True, "action": "mcp-install"}
 
-    # No git step — install synchronously via the catalog API. install_entry
+    # No git step — install synchroflashly via the catalog API. install_entry
     # routes through load_config/save_config + save_env_value, all call-time
     # resolvers, so the context override scopes it. Wrap the to_thread body
     # in the scope INSIDE the thread (contextvars don't propagate into
@@ -10525,7 +10525,7 @@ async def get_toolset_config(name: str, profile: Optional[str] = None):
                     "tag": prov.get("tag", ""),
                     "env_vars": env_vars,
                     "post_setup": prov.get("post_setup"),
-                    "requires_nous_auth": bool(prov.get("requires_nous_auth")),
+                    "requires_flash_auth": bool(prov.get("requires_flash_auth")),
                     "is_active": is_active,
                 })
     return {
@@ -11415,7 +11415,7 @@ async def _resolve_chat_argv_async(
     """Resolve chat argv without blocking the dashboard event loop.
 
     ``_resolve_chat_argv`` may run ``npm install`` / ``npm run build`` through
-    ``_make_tui_argv``.  Keep that synchronous work off the WebSocket event
+    ``_make_tui_argv``.  Keep that synchroflash work off the WebSocket event
     loop so reverse proxies and existing dashboard connections can continue
     to exchange keepalives while the TUI launch command is prepared.  The
     async lock preserves the previous one-build-at-a-time behavior when
@@ -11899,7 +11899,7 @@ def mount_spa(application: FastAPI):
 _BUILTIN_DASHBOARD_THEMES = [
     {"name": "default",       "label": "Nyxo Teal",         "description": "Classic dark teal — the canonical Nyxo look"},
     {"name": "default-large", "label": "Nyxo Teal (Large)", "description": "Nyxo Teal with bigger fonts and roomier spacing"},
-    {"name": "nous-blue",     "label": "Nous Blue",           "description": "Light mode — vivid Nous-blue accents on cream canvas"},
+    {"name": "flash-blue",     "label": "Nous Blue",           "description": "Light mode — vivid Nous-blue accents on cream canvas"},
     {"name": "midnight",      "label": "Midnight",            "description": "Deep blue-violet with cool accents"},
     {"name": "ember",     "label": "Ember",          "description": "Warm crimson and bronze — forge vibes"},
     {"name": "mono",      "label": "Mono",           "description": "Clean grayscale — minimal and focused"},
@@ -12914,9 +12914,9 @@ def start_server(
     import uvicorn
 
     try:
-        from nyxo_cli.nous_auth_keepalive import start_nous_auth_keepalive
+        from nyxo_cli.flash_auth_keepalive import start_flash_auth_keepalive
 
-        start_nous_auth_keepalive()
+        start_flash_auth_keepalive()
     except Exception as exc:
         _log.debug("Nous auth keepalive did not start: %s", exc)
 
@@ -12953,11 +12953,11 @@ def start_server(
             # is misleading when the provider IS installed but unconfigured.
             skip_reasons: list[str] = []
             try:
-                from plugins.dashboard_auth import nous as _nous_plugin
+                from plugins.dashboard_auth import flash as _flash_plugin
 
-                if _nous_plugin.LAST_SKIP_REASON:
+                if _flash_plugin.LAST_SKIP_REASON:
                     skip_reasons.append(
-                        f"  • nous: {_nous_plugin.LAST_SKIP_REASON}"
+                        f"  • flash: {_flash_plugin.LAST_SKIP_REASON}"
                     )
             except Exception:
                 pass

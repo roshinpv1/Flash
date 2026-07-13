@@ -7,14 +7,14 @@ import type {
   ToolsetInfo,
   ToolsetProvider,
 } from "@/lib/api";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Toast } from "@nous-research/ui/ui/components/toast";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Label } from "@flash-research/ui/ui/components/label";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Switch } from "@flash-research/ui/ui/components/switch";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Toast } from "@flash-research/ui/ui/components/toast";
 import { cn, themedBody } from "@/lib/utils";
 
 interface Props {
@@ -58,7 +58,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
   const [postSetupTrigger, setPostSetupTrigger] = useState(0);
 
   const loadConfig = useCallback(() => {
-    // Promise-chain shape (not async/await with a leading synchronous
+    // Promise-chain shape (not async/await with a leading synchroflash
     // setLoading) so callers in a useEffect don't trip
     // react-hooks/set-state-in-effect — setState only fires inside the
     // async .then/.catch/.finally callbacks.
@@ -297,7 +297,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                           {provider.badge}
                         </Badge>
                       )}
-                      {provider.requires_nous_auth && (
+                      {provider.requires_flash_auth && (
                         <Badge tone="outline" className="text-xs">
                           Nous Portal
                         </Badge>
@@ -405,14 +405,14 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                         outlined
                         className={cn(
                           postSetupRunning &&
-                            postSetupKey === provider.post_setup &&
-                            "[&_svg]:animate-spin",
+                          postSetupKey === provider.post_setup &&
+                          "[&_svg]:animate-spin",
                         )}
                         onClick={() => void handleRunPostSetup(provider)}
                         disabled={postSetupRunning}
                         prefix={
                           postSetupRunning &&
-                          postSetupKey === provider.post_setup ? (
+                            postSetupKey === provider.post_setup ? (
                             <Loader2 />
                           ) : (
                             <Terminal />
@@ -420,7 +420,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                         }
                       >
                         {postSetupRunning &&
-                        postSetupKey === provider.post_setup
+                          postSetupKey === provider.post_setup
                           ? "Installing…"
                           : "Run setup"}
                       </Button>

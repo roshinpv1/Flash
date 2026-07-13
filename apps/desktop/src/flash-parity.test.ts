@@ -110,7 +110,7 @@ describe('Flash REST parity helpers (hub / mcp / maintenance)', () => {
     )
   })
 
-  it('runs debug share synchronously with an upload-tolerant timeout', async () => {
+  it('runs debug share synchroflashly with an upload-tolerant timeout', async () => {
     await runDebugShare()
 
     expect(api).toHaveBeenCalledWith(

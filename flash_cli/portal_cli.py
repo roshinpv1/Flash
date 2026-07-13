@@ -3,7 +3,7 @@
 Running ``flash portal`` with no subcommand performs the one-shot Portal
 onboarding: OAuth login, pick a Nous model, switch the inference provider to
 Nous, and offer to enable the Tool Gateway. It is the friendly alias for
-``flash auth add nous --type oauth`` (which still works), is identical to
+``flash auth add flash --type oauth`` (which still works), is identical to
 ``flash setup --portal``, and runs the same Nous flow as the first-time quick
 setup.
 
@@ -33,13 +33,13 @@ DOCS_URL = "https://flash-agent.flashorg.com/docs/user-guide/features/tool-gatew
 
 def _cmd_status(args) -> int:
     """Show Portal auth + Tool Gateway routing summary."""
-    from flash_cli.auth import get_nous_auth_status
-    from flash_cli.nous_subscription import get_nous_subscription_features
+    from flash_cli.auth import get_flash_auth_status
+    from flash_cli.flash_subscription import get_flash_subscription_features
 
     config = load_config() or {}
 
     try:
-        auth = get_nous_auth_status() or {}
+        auth = get_flash_auth_status() or {}
     except Exception:
         auth = {}
 
@@ -63,7 +63,7 @@ def _cmd_status(args) -> int:
     # Provider selection (independent of auth)
     model_cfg = config.get("model") if isinstance(config.get("model"), dict) else {}
     provider = str(model_cfg.get("provider") or "").strip().lower()
-    if provider == "nous":
+    if provider == "flash":
         print(f"  Model:   {color('✓ using Nous as inference provider', Colors.GREEN)}")
     elif provider:
         print(f"  Model:   currently {provider} (switch with `flash model`)")
@@ -73,7 +73,7 @@ def _cmd_status(args) -> int:
     print(color("  Tool Gateway", Colors.MAGENTA))
     print(color("  ────────────", Colors.MAGENTA))
     try:
-        features = get_nous_subscription_features(config)
+        features = get_flash_subscription_features(config)
     except Exception:
         features = None
 
@@ -83,7 +83,7 @@ def _cmd_status(args) -> int:
 
     rows = []
     for feat in features.items():
-        if feat.managed_by_nous:
+        if feat.managed_by_flash:
             state = color("via Nous Portal", Colors.GREEN)
         elif feat.active and feat.current_provider:
             state = feat.current_provider
@@ -120,11 +120,11 @@ def _cmd_open(args) -> int:
 
 def _cmd_tools(args) -> int:
     """List the Tool Gateway catalog + current routing."""
-    from flash_cli.nous_subscription import get_nous_subscription_features
+    from flash_cli.flash_subscription import get_flash_subscription_features
 
     config = load_config() or {}
     try:
-        features = get_nous_subscription_features(config)
+        features = get_flash_subscription_features(config)
     except Exception:
         print("Could not resolve Tool Gateway state.", file=sys.stderr)
         return 1
@@ -142,7 +142,7 @@ def _cmd_tools(args) -> int:
     print(color("  Tool Gateway catalog", Colors.MAGENTA))
     print(color("  ────────────────────", Colors.MAGENTA))
 
-    if not features.nous_auth_present:
+    if not features.flash_auth_present:
         print(color("  Not logged into Nous Portal — sign in with `flash portal`.", Colors.YELLOW))
         print()
 
@@ -151,7 +151,7 @@ def _cmd_tools(args) -> int:
         feat = features.features.get(key)
         if feat is None:
             state = color("unknown", Colors.DIM)
-        elif feat.managed_by_nous:
+        elif feat.managed_by_flash:
             state = color("✓ via Nous Portal", Colors.GREEN)
         elif feat.active and feat.current_provider:
             state = feat.current_provider
@@ -170,7 +170,7 @@ def _cmd_tools(args) -> int:
 def _cmd_login(args) -> int:
     """Run the one-shot Nous Portal onboarding (login + model + provider + tools).
 
-    This is the human-readable front door for `flash auth add nous --type
+    This is the human-readable front door for `flash auth add flash --type
     oauth`. It reuses the exact wiring behind `flash setup --portal` (which in
     turn runs the same Nous flow as the first-time quick setup), so the
     commands stay in lockstep: device-code login, pick a Nous model, switch the
@@ -193,7 +193,7 @@ def portal_command(args) -> int:
     sub = getattr(args, "portal_command", None)
     if sub in {None, "", "login"}:
         # Default to the one-shot onboarding — `flash portal` is the
-        # human-readable alias for `flash auth add nous --type oauth` /
+        # human-readable alias for `flash auth add flash --type oauth` /
         # `flash setup --portal`.
         return _cmd_login(args)
     if sub in {"info", "status"}:
@@ -217,7 +217,7 @@ def add_parser(subparsers) -> None:
             "Run `flash portal` with no subcommand to log in to Nous Portal "
             "and set it up — pick a model, set Nous as your provider, and offer "
             "the Tool Gateway (the human-readable alias for `flash auth add "
-            "nous --type oauth`, identical to `flash setup --portal`). "
+            "flash --type oauth`, identical to `flash setup --portal`). "
             "Subcommands: login (default), info, open, tools."
         ),
     )

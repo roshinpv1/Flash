@@ -71,9 +71,9 @@ class ChronosCronScheduler(CronScheduler):
         """
         if not (_cfg("cron", "chronos", "portal_url") and _cfg("cron", "chronos", "callback_url")):
             return False
-        return self._have_nous_token()
+        return self._have_flash_token()
 
-    def _have_nous_token(self) -> bool:
+    def _have_flash_token(self) -> bool:
         """True if the agent has a Nous Portal login (no network call).
 
         Checks the stored auth state for a Nous access token — does NOT refresh
@@ -82,7 +82,7 @@ class ChronosCronScheduler(CronScheduler):
         """
         try:
             from flash_cli.auth import get_provider_auth_state
-            state = get_provider_auth_state("nous") or {}
+            state = get_provider_auth_state("flash") or {}
             return bool(state.get("access_token"))
         except Exception:
             return False

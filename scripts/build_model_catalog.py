@@ -2,7 +2,7 @@
 """Build the Flash Model Catalog — a centralized JSON manifest of curated models.
 
 This script reads the in-repo hardcoded curated lists (``OPENROUTER_MODELS``,
-``_PROVIDER_MODELS["nous"]``) and writes them to a JSON manifest that the
+``_PROVIDER_MODELS["flash"]``) and writes them to a JSON manifest that the
 Flash CLI fetches at runtime. Publishing the catalog through the docs site
 lets maintainers update model lists without shipping a Flash release.
 
@@ -61,17 +61,17 @@ def build_catalog() -> dict:
                     for mid, desc in OPENROUTER_MODELS
                 ],
             },
-            "nous": {
+            "flash": {
                 "metadata": {
                     "display_name": "Nous Portal",
                     "note": (
                         "Free-tier gating is determined live via Portal pricing "
-                        "(partition_nous_models_by_tier), not this manifest."
+                        "(partition_flash_models_by_tier), not this manifest."
                     ),
                 },
                 "models": [
                     {"id": mid}
-                    for mid in _PROVIDER_MODELS.get("nous", [])
+                    for mid in _PROVIDER_MODELS.get("flash", [])
                 ],
             },
         },

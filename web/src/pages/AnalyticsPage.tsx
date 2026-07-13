@@ -17,10 +17,10 @@ import type {
   AnalyticsSkillEntry,
 } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Stats } from "@nous-research/ui/ui/components/stats";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Stats } from "@flash-research/ui/ui/components/stats";
+import { Card, CardContent, CardHeader, CardTitle } from "@flash-research/ui/ui/components/card";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
 import { PluginSlot } from "@/plugins";
@@ -262,24 +262,24 @@ function DailyTable({ daily }: { daily: AnalyticsDailyEntry[] }) {
             <tbody>
               {sorted.map((d) => (
                 <tr
-                    key={d.day}
-                    className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
-                  >
+                  key={d.day}
+                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors"
+                >
                   <td className="py-2 pr-4 font-medium">
-                      {formatDate(d.day)}
-                    </td>
+                    {formatDate(d.day)}
+                  </td>
                   <td className="text-right py-2 px-4 text-muted-foreground">
-                      {d.sessions}
-                    </td>
+                    {d.sessions}
+                  </td>
                   <td className="text-right py-2 px-4">
                     <span style={{ color: "var(--series-input-token)" }}>
-                        {formatTokens(d.input_tokens)}
-                      </span>
+                      {formatTokens(d.input_tokens)}
+                    </span>
                   </td>
                   <td className="text-right py-2 pl-4">
                     <span style={{ color: "var(--series-output-token)" }}>
-                        {formatTokens(d.output_tokens)}
-                      </span>
+                      {formatTokens(d.output_tokens)}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -565,7 +565,7 @@ export default function AnalyticsPage() {
                       label: t.analytics.apiCalls,
                       value: String(
                         data.totals.total_api_calls ??
-                          data.daily.reduce((sum, d) => sum + d.sessions, 0),
+                        data.daily.reduce((sum, d) => sum + d.sessions, 0),
                       ),
                     },
                   ]}

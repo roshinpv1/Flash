@@ -54,7 +54,7 @@ HERMES_OVERLAYS: Dict[str, FlashOverlay] = {
         is_aggregator=True,
         base_url_env_var="OPENROUTER_BASE_URL",
     ),
-    "nous": FlashOverlay(
+    "flash": FlashOverlay(
         transport="openai_chat",
         auth_type="oauth_device_code",
         base_url_override="https://inference-api.flashorg.com/v1",
@@ -370,7 +370,7 @@ ALIASES: Dict[str, str] = {
 
 _LABEL_OVERRIDES: Dict[str, str] = {
     "moa": "Mixture of Agents",
-    "nous": "Nous Portal",
+    "flash": "Nous Portal",
     "openai-codex": "OpenAI Codex",
     "copilot-acp": "GitHub Copilot ACP",
     "stepfun": "StepFun Step Plan",
@@ -411,7 +411,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
-      1. Flash overlays (for providers not in models.dev: nous, openai-codex, etc.)
+      1. Flash overlays (for providers not in models.dev: flash, openai-codex, etc.)
       2. models.dev catalog + Flash overlay
 
     User-defined providers from config.yaml (``providers:`` / ``custom_providers:``)

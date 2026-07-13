@@ -447,12 +447,12 @@ fi
 #
 # The [ ! -f ] guard above deliberately refuses to clobber an existing
 # auth.json, so a container whose Nous bootstrap session took a terminal
-# invalid_grant (tokens cleared, providers.nous.last_auth_error.relogin_required
+# invalid_grant (tokens cleared, providers.flash.last_auth_error.relogin_required
 # stamped) can NOT recover from a plain restart — it stays unauthenticated until
 # the credential is replaced. An orchestrator that manages the container can
 # supply a freshly-issued session via HERMES_AUTH_JSON_REBOOTSTRAP (distinct
 # from the create-only *_BOOTSTRAP var); this helper swaps ONLY the
-# providers.nous entry, and ONLY when the on-disk entry is provably terminal.
+# providers.flash entry, and ONLY when the on-disk entry is provably terminal.
 # Every other case (healthy, rotating, absent, or unparseable auth.json) is a
 # no-op, so it is safe to leave the env set across restarts and never risks
 # clobbering a good/rotated token. Runs as its own stdlib-only subprocess (no
@@ -462,9 +462,9 @@ if [ -f "$HERMES_HOME/auth.json" ] && [ -n "${HERMES_AUTH_JSON_REBOOTSTRAP:-}" ]
         :
     else
         s6-setuidgid flash "$INSTALL_DIR/.venv/bin/python" \
-            "$INSTALL_DIR/scripts/docker_rebootstrap_nous_session.py" \
+            "$INSTALL_DIR/scripts/docker_rebootstrap_flash_session.py" \
             "$HERMES_HOME/auth.json" \
-            || echo "[stage2] Warning: docker_rebootstrap_nous_session.py failed; continuing"
+            || echo "[stage2] Warning: docker_rebootstrap_flash_session.py failed; continuing"
     fi
 fi
 

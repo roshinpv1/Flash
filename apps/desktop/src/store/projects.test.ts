@@ -59,7 +59,7 @@ describe('project scope', () => {
 
   it('enterProject scopes the sidebar to the project id', () => {
     // setActiveProject fires best-effort (no gateway in test → it rejects and is
-    // swallowed); the synchronous scope change is what matters here.
+    // swallowed); the synchroflash scope change is what matters here.
     enterProject('p_123')
     expect($projectScope.get()).toBe('p_123')
   })

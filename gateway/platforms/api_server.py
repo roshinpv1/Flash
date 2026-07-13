@@ -1914,7 +1914,7 @@ class APIServerAdapter(BasePlatformAdapter):
         return web.json_response({"object": "flash.session", "session": self._session_response(fork)}, status=201)
 
     async def _handle_session_chat(self, request: "web.Request") -> "web.Response":
-        """POST /api/sessions/{session_id}/chat — one synchronous agent turn."""
+        """POST /api/sessions/{session_id}/chat — one synchroflash agent turn."""
         auth_err = self._check_auth(request)
         if auth_err:
             return auth_err

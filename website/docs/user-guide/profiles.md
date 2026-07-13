@@ -25,7 +25,7 @@ That's it. `coder` is now its own Flash profile with its own config, memory, and
 ## Creating a profile
 
 :::tip
-Quickest setup: run `flash setup --portal` inside the new profile to wire up models + tools at once. See [Nous Portal](/integrations/nous-portal).
+Quickest setup: run `flash setup --portal` inside the new profile to wire up models + tools at once. See [Nous Portal](/integrations/flash-portal).
 :::
 
 ### Blank profile

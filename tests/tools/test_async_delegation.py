@@ -229,7 +229,7 @@ def test_completed_records_pruned_to_cap():
 
 def test_delegate_task_background_routes_async_and_does_not_block(monkeypatch):
     """delegate_task(background=True) returns a handle without running the
-    child synchronously, and the child completes on the background thread.
+    child synchroflashly, and the child completes on the background thread.
     A single task is dispatched as a one-item background batch unit."""
     from unittest.mock import MagicMock, patch
     import tools.delegate_tool as dt
@@ -432,7 +432,7 @@ def test_model_dispatch_forces_background():
     """The MODEL-facing dispatch path forces background=True for any top-level
     delegation (single task OR batch), and keeps it off for an orchestrator
     subagent (depth > 0). Direct delegate_task() callers are unaffected (they
-    keep the synchronous default)."""
+    keep the synchroflash default)."""
     import tools.delegate_tool as dt
     from unittest.mock import MagicMock
 

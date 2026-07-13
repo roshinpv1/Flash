@@ -21,8 +21,8 @@ import copy
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from nyxo_cli.nous_subscription import get_nous_subscription_features
-from tools.tool_backend_helpers import managed_nous_tools_enabled
+from nyxo_cli.flash_subscription import get_flash_subscription_features
+from tools.tool_backend_helpers import managed_flash_tools_enabled
 from utils import base_url_hostname
 from nyxo_constants import get_optional_skills_dir
 
@@ -393,7 +393,7 @@ def _print_setup_summary(config: dict, nyxo_home):
     print_header("Tool Availability Summary")
 
     tool_status = []
-    subscription_features = get_nous_subscription_features(config)
+    subscription_features = get_flash_subscription_features(config)
 
     # Vision — use the same runtime resolver as the actual vision tools
     try:
@@ -415,7 +415,7 @@ def _print_setup_summary(config: dict, nyxo_home):
         tool_status.append(("Mixture of Agents", False, "OPENROUTER_API_KEY"))
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
-    if subscription_features.web.managed_by_nous:
+    if subscription_features.web.managed_by_flash:
         tool_status.append(("Web Search & Extract (Nous subscription)", True, None))
     elif subscription_features.web.available:
         label = "Web Search & Extract"
@@ -427,7 +427,7 @@ def _print_setup_summary(config: dict, nyxo_home):
 
     # Browser tools (local Chromium, Camofox, Browserbase, Browser Use, or Firecrawl)
     browser_provider = subscription_features.browser.current_provider
-    if subscription_features.browser.managed_by_nous:
+    if subscription_features.browser.managed_by_flash:
         tool_status.append(("Browser Automation (Nous Browser Use)", True, None))
     elif subscription_features.browser.available:
         label = "Browser Automation"
@@ -457,7 +457,7 @@ def _print_setup_summary(config: dict, nyxo_home):
 
     # Image generation — FAL (direct or via Nous), or any plugin-registered
     # provider (OpenAI, etc.)
-    if subscription_features.image_gen.managed_by_nous:
+    if subscription_features.image_gen.managed_by_flash:
         tool_status.append(("Image Generation (Nous subscription)", True, None))
     elif subscription_features.image_gen.available:
         tool_status.append(("Image Generation", True, None))
@@ -489,7 +489,7 @@ def _print_setup_summary(config: dict, nyxo_home):
     # Video generation — opt-in via `nyxo tools` → Video Generation.
     # Only show the row when a plugin reports available so we don't badger
     # users who don't care about video gen with a "missing" status line.
-    if subscription_features.video_gen.managed_by_nous:
+    if subscription_features.video_gen.managed_by_flash:
         tool_status.append(("Video Generation (FAL via Nous subscription)", True, None))
     else:
         try:
@@ -511,7 +511,7 @@ def _print_setup_summary(config: dict, nyxo_home):
 
     # TTS — show configured provider
     tts_provider = cfg_get(config, "tts", "provider", default="edge")
-    if subscription_features.tts.managed_by_nous:
+    if subscription_features.tts.managed_by_flash:
         tool_status.append(("Text-to-Speech (OpenAI via Nous subscription)", True, None))
     elif tts_provider == "elevenlabs" and get_env_value("ELEVENLABS_API_KEY"):
         tool_status.append(("Text-to-Speech (ElevenLabs)", True, None))
@@ -546,14 +546,14 @@ def _print_setup_summary(config: dict, nyxo_home):
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
-    if subscription_features.modal.managed_by_nous:
+    if subscription_features.modal.managed_by_flash:
         tool_status.append(("Modal Execution (Nous subscription)", True, None))
     elif cfg_get(config, "terminal", "backend") == "modal":
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
             tool_status.append(("Modal Execution", False, "run 'nyxo setup terminal'"))
-    elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
+    elif managed_flash_tools_enabled() and subscription_features.flash_auth_present:
         tool_status.append(("Modal Execution (optional via Nous subscription)", True, None))
 
     # Home Assistant
@@ -777,7 +777,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     # on demand via `nyxo auth add`, `nyxo setup` vision, and
     # `nyxo setup tts`. This keeps both quick and full setup thin.
 
-    # Tool Gateway prompt is already shown by _model_flow_nous() above.
+    # Tool Gateway prompt is already shown by _model_flow_flash() above.
     save_config(config)
 
 
@@ -922,7 +922,7 @@ def _setup_tts_provider(config: dict):
     """Interactive TTS provider selection with install flow for NeuTTS."""
     tts_config = config.get("tts", {})
     current_provider = tts_config.get("provider", "edge")
-    subscription_features = get_nous_subscription_features(config)
+    subscription_features = get_flash_subscription_features(config)
 
     provider_labels = {
         "edge": "Edge TTS",
@@ -944,9 +944,9 @@ def _setup_tts_provider(config: dict):
 
     choices = []
     providers = []
-    if managed_nous_tools_enabled() and subscription_features.nous_auth_present:
+    if managed_flash_tools_enabled() and subscription_features.flash_auth_present:
         choices.append("Nous Subscription (managed OpenAI TTS, billed to your subscription)")
-        providers.append("nous-openai")
+        providers.append("flash-openai")
     choices.extend(
         [
             "Edge TTS (free, cloud-based, no setup needed)",
@@ -969,8 +969,8 @@ def _setup_tts_provider(config: dict):
         return
 
     selected = providers[idx]
-    selected_via_nous = selected == "nous-openai"
-    if selected == "nous-openai":
+    selected_via_flash = selected == "flash-openai"
+    if selected == "flash-openai":
         selected = "openai"
         print_info("OpenAI TTS will use the managed Nous gateway and bill to your subscription.")
         if get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY"):
@@ -1013,7 +1013,7 @@ def _setup_tts_provider(config: dict):
                 print_warning("No API key provided. Falling back to Edge TTS.")
                 selected = "edge"
 
-    elif selected == "openai" and not selected_via_nous:
+    elif selected == "openai" and not selected_via_flash:
         existing = get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY")
         if not existing:
             print()
@@ -1260,9 +1260,9 @@ def setup_terminal_backend(config: dict):
         from tools.tool_backend_helpers import normalize_modal_mode
 
         managed_modal_available = bool(
-            managed_nous_tools_enabled()
+            managed_flash_tools_enabled()
             and
-            get_nous_subscription_features(config).nous_auth_present
+            get_flash_subscription_features(config).flash_auth_present
             and is_managed_tool_gateway_ready("modal")
         )
         modal_mode = normalize_modal_mode(cfg_get(config, "terminal", "modal_mode"))
@@ -2638,7 +2638,7 @@ def _run_portal_one_shot(config: dict) -> None:
     ``nyxo setup`` and hunt for the quick-setup option.
 
     The login + model selection + provider switch + Tool Gateway opt-in are all
-    delegated to ``_model_flow_nous`` — the exact same flow quick setup uses
+    delegated to ``_model_flow_flash`` — the exact same flow quick setup uses
     (``_run_first_time_quick_setup``) and the same one ``nyxo model`` runs
     when you pick Nous. Routing through it (instead of hand-rolling the auth +
     provider write here) means ``nyxo portal`` always offers a model picker,
@@ -2668,18 +2668,18 @@ def _run_portal_one_shot(config: dict) -> None:
     print_info("  Sign up: https://portal.flash.com/manage-subscription")
     print()
 
-    # _model_flow_nous handles BOTH the logged-out path (device-code OAuth,
+    # _model_flow_flash handles BOTH the logged-out path (device-code OAuth,
     # which selects a model internally) and the already-logged-in path (curated
     # Nous model picker), then offers the Tool Gateway opt-in and sets
-    # provider=nous via the login/model save. This is the same routine quick
+    # provider=flash via the login/model save. This is the same routine quick
     # setup calls, so `nyxo portal` == quick setup's Nous step.
     try:
-        from nyxo_cli.main import _model_flow_nous
+        from nyxo_cli.main import _model_flow_flash
 
-        _model_flow_nous(config)
+        _model_flow_flash(config)
     except (KeyboardInterrupt, EOFError, SystemExit):
-        # _login_nous raises SystemExit(130)/(1) on cancel/failure; the
-        # logged-out path inside _model_flow_nous catches it, but the
+        # _login_flash raises SystemExit(130)/(1) on cancel/failure; the
+        # logged-out path inside _model_flow_flash catches it, but the
         # expired-session re-login path only catches Exception, so a
         # SystemExit there would otherwise escape and kill the whole CLI.
         # Treat all of these as a graceful cancel/abort for the portal flow.
@@ -2688,13 +2688,13 @@ def _run_portal_one_shot(config: dict) -> None:
         print_info("  You can retry later with `nyxo portal`.")
         return
     except Exception as exc:
-        logger.debug("_model_flow_nous error during `nyxo portal`: %s", exc)
+        logger.debug("_model_flow_flash error during `nyxo portal`: %s", exc)
         print()
         print_error(f"  Nous Portal setup encountered an error: {exc}")
         print_info("  You can retry later with `nyxo portal`.")
         return
 
-    # Re-sync the in-memory config from disk — _model_flow_nous (and the
+    # Re-sync the in-memory config from disk — _model_flow_flash (and the
     # underlying login/model save) write via their own load/save cycle, so any
     # later save_config(config) by a caller must not clobber those values.
     try:
@@ -2958,9 +2958,9 @@ def _run_first_time_quick_setup(config: dict, nyxo_home, is_existing: bool):
     from nyxo_cli.config import load_config
 
     # Step 1: Nous Portal — OAuth login + model selection.
-    # _model_flow_nous() handles both the logged-out path (device-code OAuth,
+    # _model_flow_flash() handles both the logged-out path (device-code OAuth,
     # which selects a model internally) and the already-logged-in path (curated
-    # Nous model picker). Provider is set to "nous" by the login/model save.
+    # Nous model picker). Provider is set to "flash" by the login/model save.
     print()
     print_header("Nous Portal")
     print_info("One subscription, 300+ models, plus the Tool Gateway:")
@@ -2968,17 +2968,17 @@ def _run_first_time_quick_setup(config: dict, nyxo_home, is_existing: bool):
     print_info("Sign up: https://portal.flash.com/manage-subscription")
     print()
     try:
-        from nyxo_cli.main import _model_flow_nous
-        _model_flow_nous(config)
+        from nyxo_cli.main import _model_flow_flash
+        _model_flow_flash(config)
     except (KeyboardInterrupt, EOFError):
         print()
         print_info("Nous Portal setup cancelled.")
     except Exception as exc:
-        logger.debug("_model_flow_nous error during quick setup: %s", exc)
+        logger.debug("_model_flow_flash error during quick setup: %s", exc)
         print_warning(f"Nous Portal setup encountered an error: {exc}")
         print_info("You can try again later with: nyxo model")
 
-    # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
+    # Re-sync the wizard's config dict from disk — _model_flow_flash (and the
     # underlying login/model save) write via their own load/save cycle, and the
     # wizard's later save_config(config) must not clobber those values (#4172).
     _refreshed = load_config()

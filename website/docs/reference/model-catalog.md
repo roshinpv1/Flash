@@ -33,7 +33,7 @@ Published on every merge to `main` via the existing `deploy-site.yml` GitHub Pag
         {"id": "openai/gpt-5.4",       "description": ""}
       ]
     },
-    "nous": {
+    "flash": {
       "metadata": {},
       "models": [
         {"id": "anthropic/claude-opus-4.7"},
@@ -94,7 +94,7 @@ Maintainers:
 
 ```bash
 # Re-generate from the in-repo hardcoded lists (keeps manifest in sync after
-# editing OPENROUTER_MODELS or _PROVIDER_MODELS["nous"] in flash_cli/models.py).
+# editing OPENROUTER_MODELS or _PROVIDER_MODELS["flash"] in flash_cli/models.py).
 python scripts/build_model_catalog.py
 ```
 

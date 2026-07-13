@@ -1149,7 +1149,7 @@ def execute_code(
 
     # execute_code runs arbitrary Python (subprocess/os.system/...) that never
     # passes through terminal()/DANGEROUS_PATTERNS, so guard the whole script
-    # here before either dispatch path spawns it. Runs synchronously in the
+    # here before either dispatch path spawns it. Runs synchroflashly in the
     # caller (tool-executor) thread, which holds the session context (#30882).
     # A Docker sandbox with host bind mounts is no longer isolated, so its
     # script does not get the container fast-path.

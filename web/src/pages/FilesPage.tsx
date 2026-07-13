@@ -16,9 +16,9 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Card, CardContent } from "@flash-research/ui/ui/components/card";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +26,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@nous-research/ui/ui/components/dialog";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
+} from "@flash-research/ui/ui/components/dialog";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Toast } from "@flash-research/ui/ui/components/toast";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { api } from "@/lib/api";
@@ -332,11 +332,10 @@ export default function FilesPage() {
         onDrop={handleDrop}
         disabled={!canUpload}
         aria-label="Upload files"
-        className={`flex min-h-20 w-full min-w-0 items-center justify-between gap-4 border border-dashed px-4 py-3 text-left transition ${
-          draggingFiles
+        className={`flex min-h-20 w-full min-w-0 items-center justify-between gap-4 border border-dashed px-4 py-3 text-left transition ${draggingFiles
             ? "border-primary bg-primary/10 text-foreground"
             : "border-border bg-background/20 text-text-secondary hover:border-text-tertiary hover:bg-background/35"
-        } disabled:cursor-not-allowed disabled:opacity-60`}
+          } disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className="flex min-w-0 items-center gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-border bg-background/45 text-text-tertiary">

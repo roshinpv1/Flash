@@ -23,24 +23,24 @@ import {
   X,
 } from "lucide-react";
 import spinners from "unicode-animations";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
+import { H2 } from "@flash-research/ui/ui/components/typography/h2";
 import { api } from "@/lib/api";
 import type { ActiveProfileInfo, ProfileInfo } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
+import { useConfirmDelete } from "@flash-research/ui/hooks/use-confirm-delete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
+import { Toast } from "@flash-research/ui/ui/components/toast";
+import { Card, CardContent } from "@flash-research/ui/ui/components/card";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Label } from "@flash-research/ui/ui/components/label";
 import {
   Select,
   SelectOption,
-} from "@nous-research/ui/ui/components/select";
-import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
+} from "@flash-research/ui/ui/components/select";
+import { Checkbox } from "@flash-research/ui/ui/components/checkbox";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn, themedBody } from "@/lib/utils";
@@ -434,8 +434,8 @@ export default function ProfilesPage() {
       const cloning = cloneFrom !== null;
       const picked = modelChoice
         ? modelChoices?.find(
-            (c) => `${c.provider}\u0000${c.model}` === modelChoice,
-          )
+          (c) => `${c.provider}\u0000${c.model}` === modelChoice,
+        )
         : undefined;
       const res = await api.createProfile({
         name,
@@ -589,10 +589,10 @@ export default function ProfilesPage() {
         prev.map((p) =>
           p.name === name
             ? {
-                ...p,
-                description: res.description,
-                description_auto: res.description_auto,
-              }
+              ...p,
+              description: res.description,
+              description_auto: res.description_auto,
+            }
             : p,
         ),
       );
@@ -623,10 +623,10 @@ export default function ProfilesPage() {
           prev.map((p) =>
             p.name === name
               ? {
-                  ...p,
-                  description: res.description ?? "",
-                  description_auto: res.description_auto,
-                }
+                ...p,
+                description: res.description ?? "",
+                description_auto: res.description_auto,
+              }
               : p,
           ),
         );
@@ -662,8 +662,8 @@ export default function ProfilesPage() {
   const handleSaveModel = async (name: string) => {
     const picked = modelEditChoice
       ? modelChoices?.find(
-          (c) => `${c.provider}\u0000${c.model}` === modelEditChoice,
-        )
+        (c) => `${c.provider}\u0000${c.model}` === modelEditChoice,
+      )
       : undefined;
     if (!picked) return;
     setModelSaving(true);

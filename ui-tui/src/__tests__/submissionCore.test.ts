@@ -8,7 +8,7 @@ import type { GatewayClient } from '../gatewayClient.js'
 // observe UI state DURING the async gap — the exact window the queue-mode race
 // lived in.
 function makeDeferredGateway() {
-  let resolveDrop: (v: unknown) => void = () => {}
+  let resolveDrop: (v: unknown) => void = () => { }
 
   const dropPromise = new Promise(res => {
     resolveDrop = res
@@ -44,7 +44,7 @@ function makeDeps(gw: GatewayClient, over: Partial<SubmitPromptDeps> = {}): Subm
   }
 }
 
-describe('submissionCore.submitPrompt — synchronous busy (queue-race fix)', () => {
+describe('submissionCore.submitPrompt — synchroflash busy (queue-race fix)', () => {
   beforeEach(() => {
     resetUiState()
     patchUiState({ sid: 'sess-1' })

@@ -667,7 +667,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'integrations/index',
-        'integrations/nous-portal',
+        'integrations/flash-portal',
         'integrations/providers',
         'user-guide/features/mcp',
         'user-guide/features/acp',
@@ -682,7 +682,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       items: [
         'guides/run-nemotron-3-ultra-free',
-        'guides/run-flash-with-nous-portal',
+        'guides/run-flash-with-flash-portal',
         'guides/tips',
         'guides/local-llm-on-mac',
         'guides/daily-briefing-bot',

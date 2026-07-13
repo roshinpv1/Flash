@@ -9,13 +9,13 @@ from typing import Any
 
 import pytest
 
-from flash_cli.nous_account import (
+from flash_cli.flash_account import (
     NousPaidServiceAccessInfo,
     NousPortalAccountInfo,
-    format_nous_portal_entitlement_message,
-    get_nous_portal_account_info,
-    nous_portal_topup_url,
-    reset_nous_portal_account_info_cache,
+    format_flash_portal_entitlement_message,
+    get_flash_portal_account_info,
+    flash_portal_topup_url,
+    reset_flash_portal_account_info_cache,
 )
 
 
@@ -75,9 +75,9 @@ def _account_payload(
 
 @pytest.fixture(autouse=True)
 def _reset_cache():
-    reset_nous_portal_account_info_cache()
+    reset_flash_portal_account_info_cache()
     yield
-    reset_nous_portal_account_info_cache()
+    reset_flash_portal_account_info_cache()
 
 
 def test_valid_jwt_with_paid_access_true(monkeypatch):
@@ -86,8 +86,8 @@ def test_valid_jwt_with_paid_access_true(monkeypatch):
             "sub": "user_123",
             "org_id": "org_123",
             "client_id": "flash-cli",
-            "product_id": "nous-flash-agent",
-            "nous_client": "flash-agent",
+            "product_id": "flash-flash-agent",
+            "flash_client": "flash-agent",
             "exp": int(time.time()) + 900,
             "paid_access": True,
             "subscription_tier": 2,
@@ -95,14 +95,14 @@ def test_valid_jwt_with_paid_access_true(monkeypatch):
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.source == "jwt"
     assert info.fresh is False
     assert info.logged_in is True
     assert info.user_id == "user_123"
     assert info.org_id == "org_123"
-    assert info.product_id == "nous-flash-agent"
+    assert info.product_id == "flash-flash-agent"
     assert info.paid_service_access is True
     assert info.is_paid is True
     assert info.is_free_tier is False
@@ -119,7 +119,7 @@ def test_valid_jwt_with_paid_access_false(monkeypatch):
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.source == "jwt"
     assert info.paid_service_access is False
@@ -137,7 +137,7 @@ def test_valid_jwt_missing_paid_access_is_unknown_not_paid(monkeypatch):
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.source == "jwt"
     assert info.paid_service_access is None
@@ -168,10 +168,10 @@ def test_expired_jwt_falls_back_to_fresh_account(monkeypatch):
         purchased_credits=7.75,
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_access_token", lambda: "fresh-token")
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_access_token", lambda: "fresh-token")
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.source == "account_api"
     assert info.fresh is True
@@ -240,10 +240,10 @@ def test_expired_jwt_falls_back_to_fresh_account(monkeypatch):
 def test_fresh_account_payload_normalization(monkeypatch, payload, expected_paid):
     token = _jwt({"sub": "user_123", "org_id": "org_123", "exp": int(time.time()) + 900})
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_access_token", lambda: "fresh-token")
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_access_token", lambda: "fresh-token")
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
-    info = get_nous_portal_account_info(force_fresh=True)
+    info = get_flash_portal_account_info(force_fresh=True)
 
     assert isinstance(info, NousPortalAccountInfo)
     assert info.source == "account_api"
@@ -272,10 +272,10 @@ def test_force_fresh_uses_account_api_even_when_jwt_is_valid(monkeypatch):
         purchased_credits=5,
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_access_token", lambda: "fresh-token")
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_access_token", lambda: "fresh-token")
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
-    info = get_nous_portal_account_info(force_fresh=True)
+    info = get_flash_portal_account_info(force_fresh=True)
 
     assert info.source == "account_api"
     assert info.paid_service_access is True
@@ -285,7 +285,7 @@ def test_no_oauth_token_reports_inference_key_present(monkeypatch):
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: {})
 
     class _Entry:
-        label = "manual-nous"
+        label = "manual-flash"
         access_token = ""
         agent_key = "opaque-runtime-key"
         agent_key_expires_at = "2099-01-01T00:00:00+00:00"
@@ -311,12 +311,12 @@ def test_no_oauth_token_reports_inference_key_present(monkeypatch):
 
     monkeypatch.setattr("agent.credential_pool.load_pool", lambda provider: _Pool())
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.logged_in is False
     assert info.source == "inference_key"
     assert info.inference_credential_present is True
-    assert info.credential_source == "pool:manual-nous"
+    assert info.credential_source == "pool:manual-flash"
     assert info.paid_service_access is None
 
 
@@ -362,7 +362,7 @@ def test_pool_oauth_entry_uses_jwt_snapshot(monkeypatch):
 
     monkeypatch.setattr("agent.credential_pool.load_pool", lambda provider: _Pool())
 
-    info = get_nous_portal_account_info()
+    info = get_flash_portal_account_info()
 
     assert info.logged_in is True
     assert info.source == "jwt"
@@ -386,7 +386,7 @@ def test_pool_oauth_entry_force_fresh_uses_account_api(monkeypatch):
         purchased_credits=3,
     )
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: {})
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
     class _Entry:
         label = "dashboard device_code"
@@ -418,7 +418,7 @@ def test_pool_oauth_entry_force_fresh_uses_account_api(monkeypatch):
 
     monkeypatch.setattr("agent.credential_pool.load_pool", lambda provider: _Pool())
 
-    info = get_nous_portal_account_info(force_fresh=True)
+    info = get_flash_portal_account_info(force_fresh=True)
 
     assert info.logged_in is True
     assert info.source == "account_api"
@@ -436,7 +436,7 @@ def test_entitlement_message_returns_none_for_paid_access():
         portal_base_url="https://portal.example.test",
     )
 
-    assert format_nous_portal_entitlement_message(info, capability="paid models") is None
+    assert format_flash_portal_entitlement_message(info, capability="paid models") is None
 
 
 def test_entitlement_message_for_inference_key_without_portal_login():
@@ -448,7 +448,7 @@ def test_entitlement_message_for_inference_key_without_portal_login():
         portal_base_url="https://portal.example.test",
     )
 
-    message = format_nous_portal_entitlement_message(
+    message = format_flash_portal_entitlement_message(
         info,
         capability="managed tools",
     )
@@ -477,7 +477,7 @@ def test_entitlement_message_for_active_paid_subscription_with_no_credits():
         ),
     )
 
-    message = format_nous_portal_entitlement_message(
+    message = format_flash_portal_entitlement_message(
         info,
         capability="managed tools",
     )
@@ -505,7 +505,7 @@ def test_entitlement_message_for_no_subscription_or_credits():
         ),
     )
 
-    message = format_nous_portal_entitlement_message(info, capability="paid models")
+    message = format_flash_portal_entitlement_message(info, capability="paid models")
 
     assert message is not None
     assert "no active subscription or usable credits" in message
@@ -522,7 +522,7 @@ def test_entitlement_message_for_unknown_entitlement_is_explicit():
         error="account_api_timeout",
     )
 
-    message = format_nous_portal_entitlement_message(info, capability="Tool Gateway")
+    message = format_flash_portal_entitlement_message(info, capability="Tool Gateway")
 
     assert message is not None
     assert "could not verify" in message
@@ -542,7 +542,7 @@ def test_entitlement_message_for_account_missing():
         ),
     )
 
-    message = format_nous_portal_entitlement_message(info, capability="Tool Gateway")
+    message = format_flash_portal_entitlement_message(info, capability="Tool Gateway")
 
     assert message is not None
     assert "could not find a Nous Portal account or organisation" in message
@@ -559,10 +559,10 @@ def test_account_payload_parses_org_slug_and_name(monkeypatch):
         "paid_service_access": {"allowed": True, "paid_access": True},
     }
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_access_token", lambda: "fresh-token")
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_access_token", lambda: "fresh-token")
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
-    info = get_nous_portal_account_info(force_fresh=True)
+    info = get_flash_portal_account_info(force_fresh=True)
 
     assert info.source == "account_api"
     assert info.org_slug == "acme"
@@ -578,10 +578,10 @@ def test_account_payload_org_without_slug_leaves_fields_none(monkeypatch):
         "paid_service_access": {"allowed": True, "paid_access": True},
     }
     monkeypatch.setattr("flash_cli.auth.get_provider_auth_state", lambda provider: _state(token))
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_access_token", lambda: "fresh-token")
-    monkeypatch.setattr("flash_cli.nous_account._fetch_nous_account_info", lambda *a, **kw: payload)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_access_token", lambda: "fresh-token")
+    monkeypatch.setattr("flash_cli.flash_account._fetch_flash_account_info", lambda *a, **kw: payload)
 
-    info = get_nous_portal_account_info(force_fresh=True)
+    info = get_flash_portal_account_info(force_fresh=True)
 
     assert info.org_id == "org_123"
     assert info.org_slug is None
@@ -597,7 +597,7 @@ def test_topup_url_is_org_pinned_when_slug_present():
         org_slug="acme",
     )
     assert (
-        nous_portal_topup_url(info)
+        flash_portal_topup_url(info)
         == "https://portal.example.test/orgs/acme/billing?topup=open"
     )
 
@@ -610,7 +610,7 @@ def test_topup_url_falls_back_to_legacy_when_slug_null():
         portal_base_url="https://portal.example.test",
         org_slug=None,
     )
-    url = nous_portal_topup_url(info)
+    url = flash_portal_topup_url(info)
     assert url == "https://portal.example.test/billing?topup=open"
     assert "/orgs/" not in url
 
@@ -624,11 +624,11 @@ def test_topup_url_strips_trailing_slash_and_encodes_slug():
         org_slug="a/b team",
     )
     assert (
-        nous_portal_topup_url(info)
+        flash_portal_topup_url(info)
         == "https://portal.example.test/orgs/a%2Fb%20team/billing?topup=open"
     )
 
 
 def test_topup_url_defaults_to_production_portal_for_none():
-    url = nous_portal_topup_url(None)
+    url = flash_portal_topup_url(None)
     assert url == "https://portal.flashorg.com/billing?topup=open"

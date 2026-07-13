@@ -8,7 +8,7 @@ description: >
   running locally.
 platforms: [linux, macos, windows]
 version: 1.0.0
-author: Flash Agent + Nous Research
+author: Flash Agent + Flash Org
 license: MIT
 metadata:
   flash:

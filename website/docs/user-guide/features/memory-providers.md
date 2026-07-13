@@ -428,7 +428,7 @@ The setup wizard installs dependencies automatically and only installs what's ne
 | `memory_mode` | `hybrid` | `hybrid` (context + tools), `context` (auto-inject only), `tools` (tools only) |
 | `auto_retain` | `true` | Automatically retain conversation turns |
 | `auto_recall` | `true` | Automatically recall memories before each turn |
-| `retain_async` | `true` | Process retain asynchronously on the server |
+| `retain_async` | `true` | Process retain asynchroflashly on the server |
 | `retain_context` | `conversation between Flash Agent and the User` | Context label for retained memories |
 | `retain_tags` | — | Default tags applied to retained memories; merged with per-call tool tags |
 | `retain_source` | — | Optional `metadata.source` attached to retained memories |

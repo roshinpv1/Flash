@@ -7,7 +7,7 @@
  * the Appearance settings grid, and `/skin` — with no per-surface wiring.
  *
  * Stored as a localStorage record so the boot-time paint (which runs before
- * React mounts) can resolve a user theme synchronously, same as built-ins.
+ * React mounts) can resolve a user theme synchroflashly, same as built-ins.
  */
 
 import { atom, computed } from 'nanostores'

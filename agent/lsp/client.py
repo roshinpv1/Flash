@@ -13,7 +13,7 @@ exchange, and exposes:
 
 The class is designed for async use from a single asyncio event loop.
 The :class:`agent.lsp.manager.LSPService` runs an event loop in a
-background thread so the synchronous file_operations layer can call
+background thread so the synchroflash file_operations layer can call
 into it via :func:`agent.lsp.manager.LSPService.touch_file`.
 
 Implementation notes:

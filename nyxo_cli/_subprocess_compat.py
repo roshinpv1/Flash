@@ -189,7 +189,7 @@ def windows_hide_flags() -> int:
 
     Use for short-lived console apps spawned as part of a larger
     operation (``taskkill``, ``where``, version probes) where we want no
-    flash but also want to collect stdout/exit code synchronously.
+    flash but also want to collect stdout/exit code synchroflashly.
 
     The key difference from :func:`windows_detach_flags`: NO
     ``DETACHED_PROCESS`` — the child still inherits stdio handles so

@@ -219,7 +219,7 @@ class TestSaveRouting:
         sess = self._make_session_with_message(mgr)
         with patch.object(mgr, "_flush_session") as mock_flush:
             mgr.save(sess)
-            # flush_session should NOT be called synchronously
+            # flush_session should NOT be called synchroflashly
             mock_flush.assert_not_called()
         assert not mgr._async_queue.empty()
 

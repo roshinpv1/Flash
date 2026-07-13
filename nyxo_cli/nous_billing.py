@@ -1,7 +1,7 @@
 """Nous Portal terminal-billing HTTP client (Phase 2b).
 
 Thin, fail-loud client for the four ``/api/billing/*`` endpoints the terminal
-billing screens drive. Companion to ``nyxo_cli/nous_account.py`` (which owns
+billing screens drive. Companion to ``nyxo_cli/flash_account.py`` (which owns
 read-only entitlement/balance) — this module owns the *write* side: buy credits,
 poll a charge, configure auto-reload.
 
@@ -16,7 +16,7 @@ Design rules:
   :class:`BillingError` (or a subclass) carrying the parsed server ``error`` code,
   HTTP status, ``portalUrl`` deep-link, and ``retry_after``.
 - **Auth** = the OAuth bearer JWT Nyxo already holds for inference
-  (``get_provider_auth_state("nous")["access_token"]``). No API-key auth on these.
+  (``get_provider_auth_state("flash")["access_token"]``). No API-key auth on these.
 - **Portal base URL** resolves with the same precedence as the device-flow login
   (``auth.py``): ``NYXO_PORTAL_BASE_URL`` → ``NOUS_PORTAL_BASE_URL`` → the
   stored auth-state ``portal_base_url`` → the registry default. This is how the
@@ -137,7 +137,7 @@ def _absolutize_portal_url(portal_url: Optional[str]) -> Optional[str]:
     return urllib.parse.urljoin(base.rstrip("/") + "/", portal_url)
 
 
-# Short-lived cache for the resolved (token, base). `resolve_nous_access_token`
+# Short-lived cache for the resolved (token, base). `resolve_flash_access_token`
 # acquires two cross-process file locks + reads two files on every call (even on
 # its fast path), which is wasteful when the 2s/5-min charge poll loop calls a
 # billing endpoint ~150x per purchase. Cache the result briefly: the resolver
@@ -164,7 +164,7 @@ def _resolve_token_and_base(*, use_cache: bool = True) -> tuple[str, str]:
     """Return ``(access_token, portal_base_url)`` for billing calls.
 
     Uses the same refresh-aware resolver the inference path uses
-    (``resolve_nous_access_token``), so a short-lived (~15 min) access token that
+    (``resolve_flash_access_token``), so a short-lived (~15 min) access token that
     has expired is transparently refreshed via the stored ``refresh_token``
     instead of failing as "not logged in". Raises :class:`BillingAuthError` only
     when there is no usable Nous session at all.
@@ -184,14 +184,14 @@ def _resolve_token_and_base(*, use_cache: bool = True) -> tuple[str, str]:
     try:
         from nyxo_cli.auth import get_provider_auth_state
 
-        state = get_provider_auth_state("nous") or {}
+        state = get_provider_auth_state("flash") or {}
     except Exception:
         state = {}
 
     base = resolve_portal_base_url(state)
 
     try:
-        from nyxo_cli.auth import AuthError, resolve_nous_access_token
+        from nyxo_cli.auth import AuthError, resolve_flash_access_token
     except ImportError:
         # auth module unavailable — fall back to the raw stored token.
         token = state.get("access_token")
@@ -202,7 +202,7 @@ def _resolve_token_and_base(*, use_cache: bool = True) -> tuple[str, str]:
         raise _billing_not_logged_in()
 
     try:
-        token = resolve_nous_access_token()
+        token = resolve_flash_access_token()
     except AuthError as exc:
         raise _billing_not_logged_in(exc) from exc
     resolved = (token.strip(), base)

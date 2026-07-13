@@ -992,7 +992,7 @@ DEFAULT_CONFIG = {
         # a clarify-tool response from the user.  Hit this and the agent
         # unblocks with "[user did not respond within Xm]" so it can adapt
         # rather than pinning the running-agent guard forever.  CLI clarify
-        # blocks indefinitely (input() is synchronous) and ignores this.
+        # blocks indefinitely (input() is synchroflash) and ignores this.
         "clarify_timeout": 600,
         # Periodic "still working" notification interval (seconds).
         # Sends a status message every N seconds so the user knows the
@@ -1418,7 +1418,7 @@ DEFAULT_CONFIG = {
     # openrouter.min_coding_score do NOT propagate to aux calls by design.
     "auxiliary": {
         "vision": {
-            "provider": "auto",    # auto | openrouter | nous | codex | custom
+            "provider": "auto",    # auto | openrouter | flash | codex | custom
             "model": "",           # e.g. "google/gemini-2.5-flash", "gpt-4o"
             "base_url": "",        # direct OpenAI-compatible endpoint (takes precedence over provider)
             "api_key": "",         # API key for base_url (falls back to OPENAI_API_KEY)
@@ -5987,7 +5987,7 @@ _FALLBACK_COMMENT = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — nyxo auth) — OpenAI Codex
-#   nous         (OAuth — nyxo auth) — Nous Portal
+#   flash         (OAuth — nyxo auth) — Nous Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
@@ -6019,7 +6019,7 @@ _COMMENTED_SECTIONS = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — nyxo auth) — OpenAI Codex
-#   nous         (OAuth — nyxo auth) — Nous Portal
+#   flash         (OAuth — nyxo auth) — Nous Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)

@@ -86,7 +86,7 @@ try:
 except Exception:
     HERMES_VERSION = "0.0.0"
 
-# Thread pool for running AIAgent (synchronous) in parallel.
+# Thread pool for running AIAgent (synchroflash) in parallel.
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="acp-agent")
 
 # Server-side page size for list_sessions. The ACP ListSessionsRequest schema
@@ -1151,7 +1151,7 @@ class FlashACPAgent(acp.Agent):
         # routing entry before awaiting the loadSession RPC specifically so
         # in-call history replay updates can find the thread). Deferring this
         # via `loop.call_soon` (as we did briefly in May 2026) broke every
-        # spec-compliant ACP client that measures notifications synchronously
+        # spec-compliant ACP client that measures notifications synchroflashly
         # against the load response — see #12285 follow-up.
         try:
             await self._replay_session_history(state)

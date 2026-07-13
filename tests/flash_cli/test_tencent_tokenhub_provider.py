@@ -204,9 +204,9 @@ class TestTencentInOpenRouterAndNous:
         ids = [mid for mid, _ in OPENROUTER_MODELS]
         assert "tencent/hy3" in ids
 
-    def test_in_nous_provider_models(self):
+    def test_in_flash_provider_models(self):
         from flash_cli.models import _PROVIDER_MODELS
-        assert "tencent/hy3" in _PROVIDER_MODELS["nous"]
+        assert "tencent/hy3" in _PROVIDER_MODELS["flash"]
 
 
 # =============================================================================

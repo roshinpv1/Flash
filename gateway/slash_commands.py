@@ -124,7 +124,7 @@ class GatewaySlashCommandsMixin:
         # daemons, background processes) before evicting from cache.
         # Guard with getattr because test fixtures may skip __init__.
         #
-        # _cleanup_agent_resources is synchronous and can block for a long time
+        # _cleanup_agent_resources is synchroflash and can block for a long time
         # (agent.close() does subprocess teardown; shutdown_memory_provider()
         # may do network IO). This handler runs ON the event loop when a
         # Telegram/Discord/Slack confirm-button click resolves the slash-confirm
@@ -1492,7 +1492,7 @@ class GatewaySlashCommandsMixin:
             if has_picker:
                 try:
                     # Offload blocking provider-listing (can fall through to a
-                    # synchronous urllib HTTP fetch on a stale cache) off the
+                    # synchroflash urllib HTTP fetch on a stale cache) off the
                     # event loop so the gateway doesn't freeze. See #41289.
                     providers = await asyncio.to_thread(
                         list_picker_providers,
@@ -1525,7 +1525,7 @@ class GatewaySlashCommandsMixin:
                         if skew_error:
                             return skew_error
                         # Offload the switch off the event loop — switch_model()
-                        # can fall through to a synchronous models.dev HTTP fetch
+                        # can fall through to a synchroflash models.dev HTTP fetch
                         # (requests.get, 15s timeout) on a cold/expired cache,
                         # which freezes the gateway otherwise. See #20525, #41289.
                         result = await asyncio.to_thread(
@@ -1768,7 +1768,7 @@ class GatewaySlashCommandsMixin:
         if skew_error:
             return skew_error
         # Offload the switch off the event loop — switch_model() can fall
-        # through to a synchronous models.dev HTTP fetch (requests.get, 15s
+        # through to a synchroflash models.dev HTTP fetch (requests.get, 15s
         # timeout) on a cold/expired cache, which freezes the gateway
         # otherwise. See #20525, #41289.
         result = await asyncio.to_thread(
@@ -3996,7 +3996,7 @@ class GatewaySlashCommandsMixin:
                 account_lines = render_account_usage_lines(account_snapshot, markdown=True)
 
         # ── Nous credits magnitudes + monthly-grant % gauge ─────────────
-        # Shared with the CLI / TUI /usage block via nous_credits_lines(): a single
+        # Shared with the CLI / TUI /usage block via flash_credits_lines(): a single
         # auth-gate + portal-fetch + render path (which also honors the dev fixture).
         # Run off the event loop. The helper gates on "a Nous account is logged in"
         # — NOT the inference provider and NOT nested under `if provider:` — so a
@@ -4004,9 +4004,9 @@ class GatewaySlashCommandsMixin:
         # still sees their balance. NO recovery trigger: messaging binds no notice
         # consumer, so /usage only displays. Fail-open: never break /usage.
         try:
-            from agent.account_usage import nous_credits_lines
+            from agent.account_usage import flash_credits_lines
 
-            credits_lines = await asyncio.to_thread(nous_credits_lines, markdown=True)
+            credits_lines = await asyncio.to_thread(flash_credits_lines, markdown=True)
         except Exception:
             credits_lines = []  # fail-open: never break /usage
 
@@ -4343,7 +4343,7 @@ class GatewaySlashCommandsMixin:
         The agent thread(s) are blocked inside tools/approval.py waiting for
         the user to respond.  This handler signals the event so the agent
         resumes and the terminal_tool executes the command inline — the same
-        flow as the CLI's synchronous input() approval.
+        flow as the CLI's synchroflash input() approval.
 
         Supports multiple concurrent approvals (parallel subagents,
         execute_code).  ``/approve`` resolves the oldest pending command;

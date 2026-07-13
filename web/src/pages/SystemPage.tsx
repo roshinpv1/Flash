@@ -27,19 +27,19 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
-import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
-import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { H2 } from "@flash-research/ui/ui/components/typography/h2";
+import { Card, CardContent } from "@flash-research/ui/ui/components/card";
+import { Checkbox } from "@flash-research/ui/ui/components/checkbox";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Label } from "@flash-research/ui/ui/components/label";
+import { Select, SelectOption } from "@flash-research/ui/ui/components/select";
+import { Toast } from "@flash-research/ui/ui/components/toast";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
+import { useConfirmDelete } from "@flash-research/ui/hooks/use-confirm-delete";
+import { ConfirmDialog } from "@flash-research/ui/ui/components/confirm-dialog";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { FlashConsoleModal } from "@/components/FlashConsoleModal";

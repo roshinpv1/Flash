@@ -62,15 +62,15 @@ construction.
 
 ### Seam #2 — hub installs are async, so create cannot be fully atomic
 
-Built-in/optional skill enabling and MCP writes are **synchronous config ops**
+Built-in/optional skill enabling and MCP writes are **synchroflash config ops**
 and can be part of the create call. Hub installs are long-running git fetches
 spawned detached (`_spawn_flash_action` returns a PID immediately). So the
 create flow is:
 
-1. `create_profile()` — make the dir (synchronous)
-2. write model (synchronous, HERMES_HOME override)
-3. write selected MCP servers (synchronous, HERMES_HOME override)
-4. seed/enable selected built-in + optional skills (synchronous)
+1. `create_profile()` — make the dir (synchroflash)
+2. write model (synchroflash, HERMES_HOME override)
+3. write selected MCP servers (synchroflash, HERMES_HOME override)
+4. seed/enable selected built-in + optional skills (synchroflash)
 5. spawn `flash -p <profile> skills install <id>` per hub skill (async, returns PIDs)
 
 Steps 1–4 commit before the response; step 5 returns a list of action PIDs the
@@ -94,8 +94,8 @@ class ProfileCreate(BaseModel):
     provider: Optional[str] = None
     model: Optional[str] = None
     # NEW — all optional, all best-effort post-create (profile already exists)
-    mcp_servers: List[MCPServerCreate] = []      # synchronous, HERMES_HOME override
-    builtin_skills: List[str] = []               # synchronous enable/seed
+    mcp_servers: List[MCPServerCreate] = []      # synchroflash, HERMES_HOME override
+    builtin_skills: List[str] = []               # synchroflash enable/seed
     hub_skills: List[str] = []                   # async spawn, returns PIDs
 ```
 

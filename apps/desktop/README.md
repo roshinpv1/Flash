@@ -7,7 +7,7 @@
   <a href="https://github.com/FlashOrg/flash-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-**The native desktop app for [Flash Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://flashorg.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
+**The native desktop app for [Flash Agent](../../README.md) — the self-improving AI agent from [Flash Org](https://flashorg.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
 
 <table>
 <tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Flash surface.</td></tr>
@@ -200,4 +200,4 @@ Remove-Item -Recurse -Force "$env:LOCALAPPDATA\flash\flash-agent\venv"
 
 MIT — see [LICENSE](../../LICENSE).
 
-Built by [Nous Research](https://flashorg.com).
+Built by [Flash Org](https://flashorg.com).

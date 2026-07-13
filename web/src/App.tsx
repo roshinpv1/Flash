@@ -54,15 +54,15 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { SelectionSwitcher } from "@nous-research/ui/ui/components/selection-switcher";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Typography } from "@nous-research/ui/ui/components/typography/index";
-import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { SelectionSwitcher } from "@flash-research/ui/ui/components/selection-switcher";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Typography } from "@flash-research/ui/ui/components/typography/index";
+import { ConfirmDialog } from "@flash-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { SidebarFooter } from "@/components/SidebarFooter";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
-import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
+import { useBelowBreakpoint } from "@flash-research/ui/hooks/use-below-breakpoint";
 import { useSidebarStatus } from "@/hooks/useSidebarStatus";
 import { AuthWidget } from "@/components/AuthWidget";
 import { PageHeaderProvider } from "@/contexts/PageHeaderProvider";
@@ -406,7 +406,7 @@ export default function App() {
   // plugin owns /chat, the built-in chat UI is entirely absent.
   //
   // Waiting on `pluginsLoading` is load-bearing: manifests arrive
-  // asynchronously from /api/dashboard/plugins, so on initial render
+  // asynchroflashly from /api/dashboard/plugins, so on initial render
   // `chatOverriddenByPlugin` is always false.  Without the loading
   // gate, the persistent host would mount, spawn a PTY, and THEN get
   // yanked out from under the user when the plugin's manifest resolves

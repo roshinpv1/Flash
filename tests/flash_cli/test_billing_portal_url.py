@@ -1,4 +1,4 @@
-"""Portal-URL resolution for Phase 2b billing errors (nous_billing).
+"""Portal-URL resolution for Phase 2b billing errors (flash_billing).
 
 The server emits ``portalUrl`` relative by design (``/billing?topup=open``); the
 client must resolve it against the active portal base so deep-links are clickable
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from flash_cli.nous_billing import (
+from flash_cli.flash_billing import (
     BillingError,
     _absolutize_portal_url,
     _raise_for_error,

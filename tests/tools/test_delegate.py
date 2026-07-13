@@ -1287,7 +1287,7 @@ class TestDelegationCredentialResolution(unittest.TestCase):
     def test_standard_provider_not_overwritten_by_configured_name(self, mock_resolve):
         """Standard (non-custom) providers must still return runtime identity,
         not the configured name, to preserve existing behaviour for openrouter,
-        nous, etc.
+        flash, etc.
         """
         mock_resolve.return_value = {
             "provider": "openrouter",
@@ -1420,9 +1420,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             "api_mode": "chat_completions",
         }
         parent = _make_mock_parent(depth=0)
-        parent.provider = "nous"
+        parent.provider = "flash"
         parent.base_url = "https://inference-api.flashorg.com/v1"
-        parent.api_key = "nous-key-abc"
+        parent.api_key = "flash-key-abc"
 
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
@@ -1499,7 +1499,7 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             "api_mode": None,
         }
         parent = _make_mock_parent(depth=0)
-        parent.provider = "nous"
+        parent.provider = "flash"
         parent.providers_allowed = ["deepseek"]
         parent.providers_ignored = ["deepinfra"]
         parent.providers_order = ["anthropic"]

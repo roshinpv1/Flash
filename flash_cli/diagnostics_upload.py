@@ -1,6 +1,6 @@
 """Client for uploading ``flash debug share`` bundles to Nous-internal S3.
 
-This is the opt-in (``--nous``) destination for ``flash debug share``.
+This is the opt-in (``--flash``) destination for ``flash debug share``.
 Unlike the public paste.rs path, bundles uploaded here go to a Nous-owned
 S3 bucket via a short-lived signed URL minted by the Nous account service
 (NAS).  The bucket auto-expires objects after 14 days, and the contents are
@@ -119,7 +119,7 @@ def put_bundle(
             raise RuntimeError(f"diagnostics bundle PUT failed: HTTP {status}")
 
 
-def share_to_nous(report_bundle: bytes) -> dict:
+def share_to_flash(report_bundle: bytes) -> dict:
     """Orchestrate the full Nous-S3 upload of a gzipped *report_bundle*.
 
     Two steps: mint a presigned PUT URL (sending the exact ``sizeBytes`` NAS

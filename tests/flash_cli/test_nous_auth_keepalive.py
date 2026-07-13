@@ -1,4 +1,4 @@
-from flash_cli import nous_auth_keepalive as keepalive
+from flash_cli import flash_auth_keepalive as keepalive
 
 
 def test_keepalive_refreshes_stale_pool_entry(monkeypatch):
@@ -25,7 +25,7 @@ def test_keepalive_refreshes_stale_pool_entry(monkeypatch):
     pool = _Pool()
     monkeypatch.setattr("agent.credential_pool.load_pool", lambda provider: pool)
 
-    assert keepalive.refresh_nous_auth_keepalive_once() is True
+    assert keepalive.refresh_flash_auth_keepalive_once() is True
     assert pool.refreshed is True
 
 
@@ -36,10 +36,10 @@ def test_keepalive_falls_back_to_singleton_state(monkeypatch):
         def has_credentials(self):
             return False
 
-    def _resolve_nous_runtime_credentials(**kwargs):
+    def _resolve_flash_runtime_credentials(**kwargs):
         calls.append(kwargs)
         return {
-            "provider": "nous",
+            "provider": "flash",
             "api_key": "fresh-agent-key",
             "base_url": "https://inference-api.flashorg.com/v1",
         }
@@ -52,9 +52,9 @@ def test_keepalive_falls_back_to_singleton_state(monkeypatch):
     )
     monkeypatch.setattr(
         keepalive,
-        "resolve_nous_runtime_credentials",
-        _resolve_nous_runtime_credentials,
+        "resolve_flash_runtime_credentials",
+        _resolve_flash_runtime_credentials,
     )
 
-    assert keepalive.refresh_nous_auth_keepalive_once(timeout_seconds=15.0) is True
+    assert keepalive.refresh_flash_auth_keepalive_once(timeout_seconds=15.0) is True
     assert calls == [{"timeout_seconds": 15.0}]

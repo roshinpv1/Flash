@@ -24,16 +24,16 @@ const NOUS_BLUE = '#0053FD'
 const PSYCHE_BLUE = '#1540B1'
 const PSYCHE_WARM = '#FFE6CB'
 
-const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
-const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
+const flashTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
+const flashTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
 
 /**
  * Nous — canonical Flash desktop identity. The palette keeps the current
  * glass geometry neutral, then lets the old bb/gui blue and psyche cream
  * return as accent seeds.
  */
-export const nousTheme: DesktopTheme = {
-  name: 'nous',
+export const flashTheme: DesktopTheme = {
+  name: 'flash',
   label: 'Nous',
   description: 'Glass neutrals with Nous blue accents',
   colors: {
@@ -41,27 +41,27 @@ export const nousTheme: DesktopTheme = {
     foreground: '#17171A',
     card: '#FFFFFF',
     cardForeground: '#17171A',
-    muted: nousTint(5),
+    muted: flashTint(5),
     mutedForeground: '#666678',
     popover: '#FFFFFF',
     popoverForeground: '#17171A',
     primary: NOUS_BLUE,
     primaryForeground: '#FCFCFC',
-    secondary: nousTint(7),
+    secondary: flashTint(7),
     secondaryForeground: '#242432',
-    accent: nousTint(10),
+    accent: flashTint(10),
     accentForeground: '#202030',
-    border: nousTintTransparent(22),
-    input: nousTintTransparent(30),
+    border: flashTintTransparent(22),
+    input: flashTintTransparent(30),
     ring: NOUS_BLUE,
     midground: NOUS_BLUE,
     composerRing: NOUS_BLUE,
     destructive: '#C72E4D',
     destructiveForeground: '#FFFFFF',
     sidebarBackground: '#F3F7FF',
-    sidebarBorder: nousTintTransparent(18),
-    userBubble: nousTint(6),
-    userBubbleBorder: nousTintTransparent(24)
+    sidebarBorder: flashTintTransparent(18),
+    userBubble: flashTint(6),
+    userBubbleBorder: flashTintTransparent(24)
   },
   darkColors: {
     background: '#0D2F86',
@@ -278,7 +278,7 @@ export const slateTheme: DesktopTheme = {
 }
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
-  nous: nousTheme,
+  flash: flashTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,
@@ -289,4 +289,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'flash'

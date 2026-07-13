@@ -447,7 +447,7 @@ class HonchoMemoryProvider(MemoryProvider):
 
         # Create the remote session before running startup-only migration and
         # prewarm work. Do not mark the provider ready until this method's
-        # synchronous setup has finished; background startup sets _manager before
+        # synchroflash setup has finished; background startup sets _manager before
         # get_or_create()/migration/prewarm are complete, and lifecycle hooks must
         # not treat that partially initialized state as usable.
         session = self._manager.get_or_create(self._session_key)
@@ -666,7 +666,7 @@ class HonchoMemoryProvider(MemoryProvider):
         parts = []
 
         # ----- Layer 1: Base context (representation + card) -----
-        # First fetch is asynchronous: a slow Honcho backend must not block the
+        # First fetch is asynchroflash: a slow Honcho backend must not block the
         # first response. Serve empty context now and consume the background
         # result on a later turn.
         with self._base_context_lock:

@@ -633,26 +633,26 @@ def build_nvidia_nim_headers(base_url: str | None) -> dict:
 # in lockstep with flash_cli.__version__ across every Portal call site
 # (main loop, aux, compression, web_extract). Do not inline a literal here;
 # see agent/portal_tags.py for the rationale.
-from agent.portal_tags import nous_portal_tags as _nous_portal_tags
+from agent.portal_tags import flash_portal_tags as _flash_portal_tags
 
 
-def _nous_extra_body() -> dict:
+def _flash_extra_body() -> dict:
     """Return a fresh Nous Portal ``extra_body`` dict.
 
     Computed at call time so a hot-reloaded ``flash_cli.__version__`` is
     reflected without restarting long-running processes.
     """
-    return {"tags": _nous_portal_tags()}
+    return {"tags": _flash_portal_tags()}
 
 
 # Backwards-compatible module attribute. Some callers (tests, third-party
 # plugins) read ``NOUS_EXTRA_BODY`` directly; keep it as a snapshot of the
 # current tags. Callers that need the freshest value should call
-# ``_nous_extra_body()`` or import ``nous_portal_tags`` directly.
-NOUS_EXTRA_BODY = _nous_extra_body()
+# ``_flash_extra_body()`` or import ``flash_portal_tags`` directly.
+NOUS_EXTRA_BODY = _flash_extra_body()
 
 # Set at resolve time — True if the auxiliary client points to Nous Portal
-auxiliary_is_nous: bool = False
+auxiliary_is_flash: bool = False
 
 # Default auxiliary models per provider
 _OPENROUTER_MODEL = "google/gemini-3-flash-preview"
@@ -784,7 +784,7 @@ def _pool_runtime_api_key(entry: Any) -> str:
     if entry is None:
         return ""
     # Use the PooledCredential.runtime_api_key property which handles
-    # provider-specific fallback (e.g. agent_key for nous).
+    # provider-specific fallback (e.g. agent_key for flash).
     key = getattr(entry, "runtime_api_key", None) or getattr(entry, "access_token", "")
     return str(key or "").strip()
 
@@ -792,15 +792,15 @@ def _pool_runtime_api_key(entry: Any) -> str:
 def _pool_runtime_base_url(entry: Any, fallback: str = "") -> str:
     if entry is None:
         return str(fallback or "").strip().rstrip("/")
-    if getattr(entry, "provider", None) == "nous":
+    if getattr(entry, "provider", None) == "flash":
         # Funnel through the canonical auth-layer reader so the env override
         # shares one normalization path with the rest of the NOUS resolution.
-        from flash_cli.auth import _nous_inference_env_override
+        from flash_cli.auth import _flash_inference_env_override
 
-        env_url = _nous_inference_env_override()
+        env_url = _flash_inference_env_override()
         if env_url:
             return env_url
-    # runtime_base_url handles provider-specific logic (e.g. nous prefers inference_base_url).
+    # runtime_base_url handles provider-specific logic (e.g. flash prefers inference_base_url).
     # Fall back through inference_base_url and base_url for non-PooledCredential entries.
     url = (
         getattr(entry, "runtime_base_url", None)
@@ -833,7 +833,7 @@ def _is_anthropic_compatible_host(url: str) -> bool:
         return False
 
 
-def _nous_min_key_ttl_seconds() -> int:
+def _flash_min_key_ttl_seconds() -> int:
     try:
         return max(60, int(os.getenv("HERMES_NOUS_MIN_KEY_TTL_SECONDS", "1800")))
     except (TypeError, ValueError):
@@ -1580,13 +1580,13 @@ def _maybe_wrap_anthropic(
     )
 
 
-def _read_nous_auth() -> Optional[dict]:
+def _read_flash_auth() -> Optional[dict]:
     """Read and validate ~/.flash/auth.json for an active Nous provider.
 
     Returns the provider state dict if Nous is active with tokens,
     otherwise None.
     """
-    pool_present, entry = _select_pool_entry("nous")
+    pool_present, entry = _select_pool_entry("flash")
     if pool_present:
         if entry is None:
             return None
@@ -1606,9 +1606,9 @@ def _read_nous_auth() -> Optional[dict]:
         if not _AUTH_JSON_PATH.is_file():
             return None
         data = json.loads(_AUTH_JSON_PATH.read_text())
-        if data.get("active_provider") != "nous":
+        if data.get("active_provider") != "flash":
             return None
-        provider = data.get("providers", {}).get("nous", {})
+        provider = data.get("providers", {}).get("flash", {})
         # Must have at least an access_token or agent_key
         if not provider.get("agent_key") and not provider.get("access_token"):
             return None
@@ -1618,9 +1618,9 @@ def _read_nous_auth() -> Optional[dict]:
         return None
 
 
-def _nous_api_key(provider: dict) -> str:
+def _flash_api_key(provider: dict) -> str:
     """Extract a usable Nous inference JWT from stored auth state."""
-    from flash_cli.auth import _nous_invoke_jwt_is_usable
+    from flash_cli.auth import _flash_invoke_jwt_is_usable
 
     for token_key, expiry_key in (
         ("agent_key", "agent_key_expires_at"),
@@ -1629,7 +1629,7 @@ def _nous_api_key(provider: dict) -> str:
         token = provider.get(token_key)
         if not isinstance(token, str) or not token.strip():
             continue
-        if _nous_invoke_jwt_is_usable(
+        if _flash_invoke_jwt_is_usable(
             token,
             scope=provider.get("scope"),
             expires_at=provider.get(expiry_key),
@@ -1638,17 +1638,17 @@ def _nous_api_key(provider: dict) -> str:
     return ""
 
 
-def _nous_base_url() -> str:
+def _flash_base_url() -> str:
     """Resolve the Nous inference base URL from env or default."""
     return os.getenv("NOUS_INFERENCE_BASE_URL", _NOUS_DEFAULT_BASE_URL)
 
 
-def _resolve_nous_pool_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[str, str]]:
+def _resolve_flash_pool_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[str, str]]:
     """Resolve Nous auxiliary credentials from the selected pool entry."""
     try:
         from flash_cli.auth import _agent_key_is_usable
 
-        pool = load_pool("nous")
+        pool = load_pool("flash")
     except Exception as exc:
         logger.debug("Auxiliary Nous pool credential resolution failed: %s", exc)
         return None
@@ -1670,7 +1670,7 @@ def _resolve_nous_pool_runtime_api(*, force_refresh: bool = False) -> Optional[t
         "agent_key_expires_at": getattr(entry, "agent_key_expires_at", None),
         "scope": getattr(entry, "scope", None),
     }
-    if force_refresh or not _agent_key_is_usable(state, _nous_min_key_ttl_seconds()):
+    if force_refresh or not _agent_key_is_usable(state, _flash_min_key_ttl_seconds()):
         try:
             refreshed = pool.try_refresh_current()
         except Exception as exc:
@@ -1687,14 +1687,14 @@ def _resolve_nous_pool_runtime_api(*, force_refresh: bool = False) -> Optional[t
         "expires_at": getattr(entry, "expires_at", None),
         "scope": getattr(entry, "scope", None),
     }
-    api_key = _nous_api_key(provider)
+    api_key = _flash_api_key(provider)
     base_url = _pool_runtime_base_url(entry, _NOUS_DEFAULT_BASE_URL)
     if not api_key or not base_url:
         return None
     return api_key, base_url
 
 
-def _resolve_nous_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[str, str]]:
+def _resolve_flash_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[str, str]]:
     """Return fresh Nous runtime credentials when available.
 
     This mirrors the main agent's 401 recovery path and keeps auxiliary
@@ -1702,14 +1702,14 @@ def _resolve_nous_runtime_api(*, force_refresh: bool = False) -> Optional[tuple[
     relying only on whatever raw tokens happen to be sitting in auth.json
     or the credential pool.
     """
-    pooled = _resolve_nous_pool_runtime_api(force_refresh=force_refresh)
+    pooled = _resolve_flash_pool_runtime_api(force_refresh=force_refresh)
     if pooled is not None:
         return pooled
 
     try:
-        from flash_cli.auth import resolve_nous_runtime_credentials
+        from flash_cli.auth import resolve_flash_runtime_credentials
 
-        creds = resolve_nous_runtime_credentials(
+        creds = resolve_flash_runtime_credentials(
             timeout_seconds=env_float("HERMES_NOUS_TIMEOUT_SECONDS", 15),
             force_refresh=force_refresh,
         )
@@ -1975,51 +1975,51 @@ def _describe_openrouter_unavailable() -> str:
     return "no usable OpenRouter credentials found"
 
 
-def _try_nous(vision: bool = False) -> Tuple[Optional[OpenAI], Optional[str]]:
+def _try_flash(vision: bool = False) -> Tuple[Optional[OpenAI], Optional[str]]:
     # Check cross-session rate limit guard before attempting Nous —
     # if another session already recorded a 429, skip Nous entirely
     # to avoid piling more requests onto the tapped RPH bucket.
     try:
-        from agent.nous_rate_guard import nous_rate_limit_remaining
-        _remaining = nous_rate_limit_remaining()
+        from agent.flash_rate_guard import flash_rate_limit_remaining
+        _remaining = flash_rate_limit_remaining()
         if _remaining is not None and _remaining > 0:
             logger.debug(
                 "Auxiliary: skipping Nous Portal (rate-limited, resets in %.0fs)",
                 _remaining,
             )
-            _mark_provider_unhealthy("nous", ttl=_remaining)
+            _mark_provider_unhealthy("flash", ttl=_remaining)
             return None, None
     except Exception:
         pass
 
-    nous = _read_nous_auth()
-    runtime = _resolve_nous_runtime_api(force_refresh=False)
-    if runtime is None and not nous:
+    flash = _read_flash_auth()
+    runtime = _resolve_flash_runtime_api(force_refresh=False)
+    if runtime is None and not flash:
         logger.warning(
             "Auxiliary Nous client unavailable: no Nous authentication found "
             "(run: flash auth)."
         )
-        _mark_provider_unhealthy("nous", ttl=60)
+        _mark_provider_unhealthy("flash", ttl=60)
         return None, None
-    if runtime is None and nous:
+    if runtime is None and flash:
         logger.debug(
             "Auxiliary Nous: runtime JWT refresh failed; checking stored "
             "auth.json token."
         )
-    global auxiliary_is_nous
-    auxiliary_is_nous = True
+    global auxiliary_is_flash
+    auxiliary_is_flash = True
     logger.debug("Auxiliary client: Nous Portal")
 
     # Ask the Portal which model it currently recommends for this task type.
-    # The /api/nous/recommended-models endpoint is the authoritative source:
-    # it distinguishes paid vs free tier recommendations, and get_nous_recommended_aux_model
-    # auto-detects the caller's tier via check_nous_free_tier().  Fall back to
+    # The /api/flash/recommended-models endpoint is the authoritative source:
+    # it distinguishes paid vs free tier recommendations, and get_flash_recommended_aux_model
+    # auto-detects the caller's tier via check_flash_free_tier().  Fall back to
     # _NOUS_MODEL (google/gemini-3-flash-preview) when the Portal is unreachable
     # or returns a null recommendation for this task type.
     model = _NOUS_MODEL
     try:
-        from flash_cli.models import get_nous_recommended_aux_model
-        recommended = get_nous_recommended_aux_model(vision=vision)
+        from flash_cli.models import get_flash_recommended_aux_model
+        recommended = get_flash_recommended_aux_model(vision=vision)
         if recommended:
             model = recommended
             logger.debug(
@@ -2041,15 +2041,15 @@ def _try_nous(vision: bool = False) -> Tuple[Optional[OpenAI], Optional[str]]:
     if runtime is not None:
         api_key, base_url = runtime
     else:
-        api_key = _nous_api_key(nous or {})
+        api_key = _flash_api_key(flash or {})
         if not api_key:
             logger.warning(
                 "Auxiliary Nous client unavailable: no usable inference JWT found "
-                "(run: flash auth add nous)."
+                "(run: flash auth add flash)."
             )
-            _mark_provider_unhealthy("nous", ttl=60)
+            _mark_provider_unhealthy("flash", ttl=60)
             return None, None
-        base_url = str((nous or {}).get("inference_base_url") or _nous_base_url()).rstrip("/")
+        base_url = str((flash or {}).get("inference_base_url") or _flash_base_url()).rstrip("/")
     return (
         _create_openai_client(
             api_key=api_key,
@@ -2059,7 +2059,7 @@ def _try_nous(vision: bool = False) -> Tuple[Optional[OpenAI], Optional[str]]:
     )
 
 
-def _refresh_nous_recommended_model(
+def _refresh_flash_recommended_model(
     *, vision: bool, stale_model: Optional[str]
 ) -> Optional[str]:
     """Re-fetch the Nous Portal's recommended model after a stale-model 404.
@@ -2083,9 +2083,9 @@ def _refresh_nous_recommended_model(
     stale = (stale_model or "").strip().lower()
     fresh: Optional[str] = None
     try:
-        from flash_cli.models import get_nous_recommended_aux_model
+        from flash_cli.models import get_flash_recommended_aux_model
 
-        fresh = get_nous_recommended_aux_model(vision=vision, force_refresh=True)
+        fresh = get_flash_recommended_aux_model(vision=vision, force_refresh=True)
     except Exception as exc:
         logger.debug(
             "Nous recommended-model refresh failed (%s); using default %s",
@@ -2502,7 +2502,7 @@ def _try_azure_foundry(
 ) -> Tuple[Optional[Any], Optional[str]]:
     """Resolve an Azure Foundry auxiliary client via the runtime resolver.
 
-    Mirrors the ``_try_anthropic`` / ``_try_nous`` shape but delegates to
+    Mirrors the ``_try_anthropic`` / ``_try_flash`` shape but delegates to
     :func:`flash_cli.runtime_provider._resolve_azure_foundry_runtime` —
     the same resolver the main agent uses — so:
 
@@ -2672,7 +2672,7 @@ def _try_anthropic(explicit_api_key: str = None) -> Tuple[Optional[Any], Optiona
 
 _AUTO_PROVIDER_LABELS = {
     "_try_openrouter": "openrouter",
-    "_try_nous": "nous",
+    "_try_flash": "flash",
     "_try_custom_endpoint": "local/custom",
     "_resolve_api_key_provider": "api-key",
 }
@@ -2721,7 +2721,7 @@ def _get_provider_chain() -> List[tuple]:
     """
     return [
         ("openrouter", _try_openrouter),
-        ("nous", _try_nous),
+        ("flash", _try_flash),
         ("local/custom", _try_custom_endpoint),
         ("api-key", _resolve_api_key_provider),
     ]
@@ -2756,7 +2756,7 @@ _aux_unhealthy_logged_at: Dict[str, float] = {}
 # with the alias map in _try_payment_fallback below.
 _AUX_UNHEALTHY_LABEL_ALIASES = {
     "openrouter": "openrouter",
-    "nous": "nous",
+    "flash": "flash",
     "custom": "local/custom",
     "local/custom": "local/custom",
     "openai-codex": "openai-codex",
@@ -2876,12 +2876,12 @@ def _is_payment_error(exc: Exception) -> bool:
     return False
 
 
-def _nous_portal_account_has_fresh_paid_access() -> bool:
+def _flash_portal_account_has_fresh_paid_access() -> bool:
     """Return True only when the fresh Nous account API says paid access is allowed."""
     try:
-        from flash_cli.nous_account import get_nous_portal_account_info
+        from flash_cli.flash_account import get_flash_portal_account_info
 
-        account_info = get_nous_portal_account_info(force_fresh=True)
+        account_info = get_flash_portal_account_info(force_fresh=True)
         return account_info.paid_service_access is True
     except Exception as exc:
         logger.debug("Auxiliary Nous paid-entitlement refresh check failed: %s", exc)
@@ -3305,7 +3305,7 @@ def _recoverable_pool_provider(
     if base_url_host_matches(base, "openrouter.ai"):
         return "openrouter"
     if base_url_host_matches(base, "inference-api.flashorg.com"):
-        return "nous"
+        return "flash"
     if base_url_host_matches(base, "api.anthropic.com"):
         return "anthropic"
     if base_url_host_matches(base, "githubcopilot.com"):
@@ -3524,10 +3524,10 @@ def _refresh_provider_credentials(provider: str) -> bool:
                 return False
             _evict_cached_clients(normalized)
             return True
-        if normalized == "nous":
-            from flash_cli.auth import resolve_nous_runtime_credentials
+        if normalized == "flash":
+            from flash_cli.auth import resolve_flash_runtime_credentials
 
-            creds = resolve_nous_runtime_credentials(
+            creds = resolve_flash_runtime_credentials(
                 timeout_seconds=env_float("HERMES_NOUS_TIMEOUT_SECONDS", 15),
                 force_refresh=True,
             )
@@ -3591,7 +3591,7 @@ def _auth_refresh_provider_for_route(
     if base_url_host_matches(client_base_url, "api.anthropic.com"):
         return "anthropic"
     if base_url_host_matches(client_base_url, "inference-api.flashorg.com"):
-        return "nous"
+        return "flash"
     return normalized
 
 
@@ -3738,7 +3738,7 @@ def _try_payment_fallback(
     if main_provider and main_provider.lower() in skip:
         skip_labels.add(main_provider.lower())
     # Map common resolved_provider values back to chain labels.
-    _alias_to_label = {"openrouter": "openrouter", "nous": "nous",
+    _alias_to_label = {"openrouter": "openrouter", "flash": "flash",
                        "openai-codex": "openai-codex", "codex": "openai-codex",
                        "custom": "local/custom", "local/custom": "local/custom"}
     skip_chain_labels = {_alias_to_label.get(s, s) for s in skip_labels}
@@ -4139,8 +4139,8 @@ def _resolve_auto(
       2. OpenRouter → Nous → custom → Codex → API-key providers (fallback
          chain, only used when the main provider has no working client).
     """
-    global auxiliary_is_nous, _stale_base_url_warned
-    auxiliary_is_nous = False  # Reset — _try_nous() will set True if it wins
+    global auxiliary_is_flash, _stale_base_url_warned
+    auxiliary_is_flash = False  # Reset — _try_flash() will set True if it wins
     runtime = _normalize_main_runtime(main_runtime)
     runtime_provider = runtime.get("provider", "")
     runtime_model = str(runtime.get("model") or "")
@@ -4410,7 +4410,7 @@ def resolve_provider_client(
 
     Args:
         provider: Provider identifier.  One of:
-            "openrouter", "nous", "openai-codex" (or "codex"),
+            "openrouter", "flash", "openai-codex" (or "codex"),
             "zai", "kimi-coding", "minimax", "minimax-cn",
             "custom" (OPENAI_BASE_URL + OPENAI_API_KEY),
             "auto" (full auto-detection chain).
@@ -4558,16 +4558,16 @@ def resolve_provider_client(
                 else (client, final_model))
 
     # ── Nous Portal (OAuth) ──────────────────────────────────────────
-    if provider == "nous":
+    if provider == "flash":
         # Detect vision tasks: either explicit model override from
         # _PROVIDER_VISION_MODELS, or caller passed a known vision model.
         _is_vision = (
             model in _PROVIDER_VISION_MODELS.values()
             or (model or "").strip().lower() == "mimo-v2-omni"
         )
-        client, default = _try_nous(vision=_is_vision)
+        client, default = _try_flash(vision=_is_vision)
         if client is None:
-            logger.warning("resolve_provider_client: nous requested "
+            logger.warning("resolve_provider_client: flash requested "
                            "but Nous Portal not configured (run: flash auth)")
             return None, None
         final_model = _normalize_resolved_model(model or default, provider)
@@ -4720,7 +4720,7 @@ def resolve_provider_client(
         # name, the custom entry is the intended target — the built-in alias
         # rewriting would otherwise hijack the request.  Only preferred when
         # the raw name is an alias (not a canonical provider name) so custom
-        # entries that coincidentally match a canonical provider (e.g. ``nous``)
+        # entries that coincidentally match a canonical provider (e.g. ``flash``)
         # still defer to the built-in per `_get_named_custom_provider`'s guard.
         custom_entry = None
         if original_provider and original_provider != provider:
@@ -5105,8 +5105,8 @@ def resolve_provider_client(
 
     elif pconfig.auth_type in {"oauth_device_code", "oauth_external"}:
         # OAuth providers — route through their specific try functions
-        if provider == "nous":
-            return resolve_provider_client("nous", model, async_mode)
+        if provider == "flash":
+            return resolve_provider_client("flash", model, async_mode)
         if provider == "openai-codex":
             return resolve_provider_client("openai-codex", model, async_mode)
         if provider == "xai-oauth":
@@ -5177,7 +5177,7 @@ def get_async_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Di
 
 _VISION_AUTO_PROVIDER_ORDER = (
     "openrouter",
-    "nous",
+    "flash",
 )
 
 
@@ -5225,8 +5225,8 @@ def _resolve_strict_vision_backend(
         return resolve_provider_client("copilot", model, is_vision=True)
     if provider == "openrouter":
         return _try_openrouter(model=model)
-    if provider == "nous":
-        return _try_nous(vision=True)
+    if provider == "flash":
+        return _try_flash(vision=True)
     if provider == "openai-codex":
         # Route through resolve_provider_client so the caller's explicit
         # model is used.  There is no safe default Codex model (shifting
@@ -5329,7 +5329,7 @@ def resolve_vision_provider_client(
         main_model = _read_main_model()
         if main_provider and main_provider not in {"auto", ""}:
             vision_model = _PROVIDER_VISION_MODELS.get(main_provider, main_model)
-            if main_provider == "nous":
+            if main_provider == "flash":
                 sync_client, default_model = _resolve_strict_vision_backend(
                     main_provider, vision_model
                 )
@@ -5467,7 +5467,7 @@ def get_auxiliary_extra_body() -> dict:
     Includes Nous Portal product tags when the auxiliary client is backed
     by Nous Portal. Returns empty dict otherwise.
     """
-    return _nous_extra_body() if auxiliary_is_nous else {}
+    return _flash_extra_body() if auxiliary_is_flash else {}
 
 
 def auxiliary_max_tokens_param(value: int, *, model: Optional[str] = None) -> dict:
@@ -5486,7 +5486,7 @@ def auxiliary_max_tokens_param(value: int, *, model: Optional[str] = None) -> di
     # max_tokens on newer GPT-4o/o-series/GPT-5-style models.
     _custom_host = base_url_hostname(custom_base) or ""
     if (not or_key
-            and _read_nous_auth() is None
+            and _read_flash_auth() is None
             and (
                 _custom_host == "api.openai.com"
                 or _custom_host == "api.githubcopilot.com"
@@ -5568,7 +5568,7 @@ def _store_cached_client(cache_key: tuple, client: Any, default_model: Optional[
         _client_cache[cache_key] = (client, default_model, bound_loop)
 
 
-def _refresh_nous_auxiliary_client(
+def _refresh_flash_auxiliary_client(
     *,
     cache_provider: str,
     model: Optional[str],
@@ -5580,7 +5580,7 @@ def _refresh_nous_auxiliary_client(
     is_vision: bool = False,
 ) -> Tuple[Optional[Any], Optional[str]]:
     """Refresh Nous runtime creds, rebuild the client, and replace the cache entry."""
-    runtime = _resolve_nous_runtime_api(force_refresh=True)
+    runtime = _resolve_flash_runtime_api(force_refresh=True)
     if runtime is None:
         return None, model
 
@@ -5943,7 +5943,7 @@ def _resolve_task_provider_model(
                 "copilot",
                 "copilot-acp",
                 "minimax-oauth",
-                "nous",
+                "flash",
                 "openai-codex",
                 "qwen-oauth",
                 "xai-oauth",
@@ -6289,8 +6289,8 @@ def _build_call_kwargs(
 
     # Provider-specific extra_body
     merged_extra = dict(extra_body or {})
-    if provider == "nous":
-        merged_extra.setdefault("tags", []).extend(_nous_portal_tags())
+    if provider == "flash":
+        merged_extra.setdefault("tags", []).extend(_flash_portal_tags())
     if merged_extra:
         kwargs["extra_body"] = merged_extra
 
@@ -6407,7 +6407,7 @@ def call_llm(
     stream: bool = False,
     stream_options: dict = None,
 ) -> Any:
-    """Centralized synchronous LLM call.
+    """Centralized synchroflash LLM call.
 
     Resolves provider + model (from task config, explicit args, or auto-detect),
     handles auth, request formatting, and model-specific arg adjustments.
@@ -6673,12 +6673,12 @@ def call_llm(
         # auxiliary call 404s with "model does not exist". Force a fresh
         # Portal fetch and retry once with the current recommendation (or the
         # known-good default). Only applies to Nous-routed calls.
-        _heal_is_nous = (
-            resolved_provider == "nous"
+        _heal_is_flash = (
+            resolved_provider == "flash"
             or base_url_host_matches(_base_info, "inference-api.flashorg.com")
         )
-        if _is_model_not_found_error(first_err) and _heal_is_nous:
-            healed_model = _refresh_nous_recommended_model(
+        if _is_model_not_found_error(first_err) and _heal_is_flash:
+            healed_model = _refresh_flash_recommended_model(
                 vision=(task == "vision"), stale_model=kwargs.get("model"))
             if healed_model and healed_model != kwargs.get("model"):
                 logger.warning(
@@ -6694,17 +6694,17 @@ def call_llm(
                     first_err = retry_err
 
         # ── Nous auth refresh parity with main agent ──────────────────
-        client_is_nous = (
-            resolved_provider == "nous"
+        client_is_flash = (
+            resolved_provider == "flash"
             or base_url_host_matches(_base_info, "inference-api.flashorg.com")
         )
         if (
             _is_payment_error(first_err)
-            and client_is_nous
-            and _nous_portal_account_has_fresh_paid_access()
+            and client_is_flash
+            and _flash_portal_account_has_fresh_paid_access()
         ):
-            refreshed_client, refreshed_model = _refresh_nous_auxiliary_client(
-                cache_provider=resolved_provider or "nous",
+            refreshed_client, refreshed_model = _refresh_flash_auxiliary_client(
+                cache_provider=resolved_provider or "flash",
                 model=final_model,
                 async_mode=False,
                 base_url=resolved_base_url,
@@ -6733,9 +6733,9 @@ def call_llm(
                         raise
                     first_err = retry_err
 
-        if _is_auth_error(first_err) and client_is_nous:
-            refreshed_client, refreshed_model = _refresh_nous_auxiliary_client(
-                cache_provider=resolved_provider or "nous",
+        if _is_auth_error(first_err) and client_is_flash:
+            refreshed_client, refreshed_model = _refresh_flash_auxiliary_client(
+                cache_provider=resolved_provider or "flash",
                 model=final_model,
                 async_mode=False,
                 base_url=resolved_base_url,
@@ -6757,7 +6757,7 @@ def call_llm(
             resolved_provider, _base_info)
         if (_is_auth_error(first_err)
                 and auth_refresh_provider not in {"auto", "", None}
-                and not client_is_nous):
+                and not client_is_flash):
             if _refresh_provider_credentials(auth_refresh_provider):
                 if auth_refresh_provider != _normalize_aux_provider(resolved_provider):
                     # The stale client is cached under the route label
@@ -7055,7 +7055,7 @@ async def async_call_llm(
     timeout: float = None,
     extra_body: dict = None,
 ) -> Any:
-    """Centralized asynchronous LLM call.
+    """Centralized asynchroflash LLM call.
 
     Same as call_llm() but async. See call_llm() for full documentation.
     """
@@ -7223,12 +7223,12 @@ async def async_call_llm(
         # can pin a Portal-recommended model that has since been dropped from
         # the Nous → OpenRouter catalog, 404'ing every auxiliary call. Force a
         # fresh Portal fetch and retry once with the current recommendation.
-        _heal_is_nous = (
-            resolved_provider == "nous"
+        _heal_is_flash = (
+            resolved_provider == "flash"
             or base_url_host_matches(_client_base, "inference-api.flashorg.com")
         )
-        if _is_model_not_found_error(first_err) and _heal_is_nous:
-            healed_model = _refresh_nous_recommended_model(
+        if _is_model_not_found_error(first_err) and _heal_is_flash:
+            healed_model = _refresh_flash_recommended_model(
                 vision=(task == "vision"), stale_model=kwargs.get("model"))
             if healed_model and healed_model != kwargs.get("model"):
                 logger.warning(
@@ -7244,17 +7244,17 @@ async def async_call_llm(
                     first_err = retry_err
 
         # ── Nous auth refresh parity with main agent ──────────────────
-        client_is_nous = (
-            resolved_provider == "nous"
+        client_is_flash = (
+            resolved_provider == "flash"
             or base_url_host_matches(_client_base, "inference-api.flashorg.com")
         )
         if (
             _is_payment_error(first_err)
-            and client_is_nous
-            and _nous_portal_account_has_fresh_paid_access()
+            and client_is_flash
+            and _flash_portal_account_has_fresh_paid_access()
         ):
-            refreshed_client, refreshed_model = _refresh_nous_auxiliary_client(
-                cache_provider=resolved_provider or "nous",
+            refreshed_client, refreshed_model = _refresh_flash_auxiliary_client(
+                cache_provider=resolved_provider or "flash",
                 model=final_model,
                 async_mode=True,
                 base_url=resolved_base_url,
@@ -7282,9 +7282,9 @@ async def async_call_llm(
                         raise
                     first_err = retry_err
 
-        if _is_auth_error(first_err) and client_is_nous:
-            refreshed_client, refreshed_model = _refresh_nous_auxiliary_client(
-                cache_provider=resolved_provider or "nous",
+        if _is_auth_error(first_err) and client_is_flash:
+            refreshed_client, refreshed_model = _refresh_flash_auxiliary_client(
+                cache_provider=resolved_provider or "flash",
                 model=final_model,
                 async_mode=True,
                 base_url=resolved_base_url,
@@ -7305,7 +7305,7 @@ async def async_call_llm(
             resolved_provider, _client_base)
         if (_is_auth_error(first_err)
                 and auth_refresh_provider not in {"auto", "", None}
-                and not client_is_nous):
+                and not client_is_flash):
             if _refresh_provider_credentials(auth_refresh_provider):
                 if auth_refresh_provider != _normalize_aux_provider(resolved_provider):
                     # The stale client is cached under the route label

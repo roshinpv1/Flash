@@ -11,7 +11,7 @@ review trigger.
 Behavior-neutral: the body is moved unchanged. All ``agent.*`` side effects fire
 exactly as before; only the post-loop *locals* are passed in as keyword args, and
 the assembled ``result`` dict is returned to ``run_conversation`` which returns it
-to the caller. The function is synchronous with a single return — mirroring the
+to the caller. The function is synchroflash with a single return — mirroring the
 region it replaces (no awaits, no early returns).
 
 Module ``logger`` is imported lazily inside the body (``from

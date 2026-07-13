@@ -17,7 +17,7 @@ Migrate a user's OpenClaw customization footprint into Flash Agent. Imports Flas
 | Source | Optional — install with `flash skills install official/migration/openclaw-migration` |
 | Path | `optional-skills/migration/openclaw-migration` |
 | Version | `1.0.0` |
-| Author | Flash Agent (Nous Research) |
+| Author | Flash Agent (Flash Org) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Migration`, `OpenClaw`, `Flash`, `Memory`, `Persona`, `Import` |

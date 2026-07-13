@@ -7,17 +7,17 @@ from pathlib import Path
 from typing import Dict, Iterable, Optional, Set
 
 from flash_cli.config import get_env_value, load_config
-from flash_cli.nous_account import (
+from flash_cli.flash_account import (
     NousPortalAccountInfo,
-    format_nous_portal_entitlement_message,
-    get_nous_portal_account_info,
+    format_flash_portal_entitlement_message,
+    get_flash_portal_account_info,
 )
 from tools.managed_tool_gateway import is_managed_tool_gateway_ready
 from utils import is_truthy_value
 from tools.tool_backend_helpers import (
     fal_key_is_configured,
     has_direct_modal_credentials,
-    managed_nous_tools_enabled,
+    managed_flash_tools_enabled,
     normalize_browser_cloud_provider,
     normalize_modal_mode,
     resolve_modal_backend_state,
@@ -29,11 +29,11 @@ _DEFAULT_PLATFORM_TOOLSETS = {
     "cli": "flash-cli",
 }
 
-# Maps a tools_config provider's ``managed_nous_feature`` to the tool-pool
-# coverage category (flash_cli.nous_account.TOOL_COVERAGE_CATEGORIES). Lets the
+# Maps a tools_config provider's ``managed_flash_feature`` to the tool-pool
+# coverage category (flash_cli.flash_account.TOOL_COVERAGE_CATEGORIES). Lets the
 # `flash tools` picker scope its entitlement gate to the selected backend, so a
 # free-tool-pool user is allowed image gen but denied video gen at select time —
-# consistent with the per-category feature gates in get_nous_subscription_features.
+# consistent with the per-category feature gates in get_flash_subscription_features.
 MANAGED_FEATURE_COVERAGE_CATEGORY: Dict[str, str] = {
     "web": "firecrawl",
     "image_gen": "fal",
@@ -61,7 +61,7 @@ class NousFeatureState:
     included_by_default: bool
     available: bool
     active: bool
-    managed_by_nous: bool
+    managed_by_flash: bool
     direct_override: bool
     toolset_enabled: bool
     current_provider: str = ""
@@ -71,8 +71,8 @@ class NousFeatureState:
 @dataclass(frozen=True)
 class NousSubscriptionFeatures:
     subscribed: bool
-    nous_auth_present: bool
-    provider_is_nous: bool
+    flash_auth_present: bool
+    provider_is_flash: bool
     features: Dict[str, NousFeatureState]
     account_info: Optional[NousPortalAccountInfo] = None
 
@@ -237,7 +237,7 @@ def _local_stt_backend_available() -> bool:
 
     True when faster-whisper is importable or a custom local STT command
     is configured. Used both for feature detection and to stop
-    ``apply_nous_managed_defaults`` from flipping a working local setup
+    ``apply_flash_managed_defaults`` from flipping a working local setup
     to the managed gateway.
     """
     if get_env_value("HERMES_LOCAL_STT_COMMAND"):
@@ -326,7 +326,7 @@ def _resolve_browser_feature_state(
     return "local", available, active, False
 
 
-def get_nous_subscription_features(
+def get_flash_subscription_features(
     config: Optional[Dict[str, object]] = None,
     *,
     force_fresh: bool = False,
@@ -335,13 +335,13 @@ def get_nous_subscription_features(
         config = load_config() or {}
     config = dict(config)
     model_cfg = _model_config_dict(config)
-    provider_is_nous = str(model_cfg.get("provider") or "").strip().lower() == "nous"
+    provider_is_flash = str(model_cfg.get("provider") or "").strip().lower() == "flash"
 
     try:
         if force_fresh:
-            account_info = get_nous_portal_account_info(force_fresh=True)
+            account_info = get_flash_portal_account_info(force_fresh=True)
         else:
-            account_info = get_nous_portal_account_info()
+            account_info = get_flash_portal_account_info()
     except Exception:
         account_info = None
 
@@ -353,11 +353,11 @@ def get_nous_subscription_features(
         and account_info.logged_in
         and account_info.tool_gateway_entitled
     )
-    nous_auth_present = bool(account_info and account_info.logged_in)
+    flash_auth_present = bool(account_info and account_info.logged_in)
 
     def _entitled_for(category: str) -> bool:
         return bool(account_info and account_info.tool_gateway_entitled_for(category))
-    subscribed = provider_is_nous or nous_auth_present
+    subscribed = provider_is_flash or flash_auth_present
 
     web_tool_enabled = _toolset_enabled(config, "web")
     image_tool_enabled = _toolset_enabled(config, "image_gen")
@@ -381,7 +381,7 @@ def get_nous_subscription_features(
     # STT default is "local" (faster-whisper) per DEFAULT_CONFIG, which
     # requires `pip install faster-whisper`. For Nous subscribers we'd
     # rather route through the managed OpenAI audio gateway — see
-    # apply_nous_managed_defaults below.
+    # apply_flash_managed_defaults below.
     stt_provider = str(stt_cfg.get("provider") or "local").strip().lower()
     browser_provider_explicit = "cloud_provider" in browser_cfg
     browser_provider = normalize_browser_cloud_provider(
@@ -460,13 +460,13 @@ def get_nous_subscription_features(
 
     managed_web_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("firecrawl")
         and _entitled_for("firecrawl")
     )
     managed_image_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("fal-queue")
         and _entitled_for("fal")
     )
@@ -475,13 +475,13 @@ def get_nous_subscription_features(
     # rather than aliasing it to image. (Paid users are entitled to both.)
     managed_video_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("fal-queue")
         and _entitled_for("fal-video")
     )
     managed_tts_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("openai-audio")
         and _entitled_for("openai-audio")
     )
@@ -491,13 +491,13 @@ def get_nous_subscription_features(
     managed_stt_available = managed_tts_available
     managed_browser_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("browser-use")
         and _entitled_for("browser-use")
     )
     managed_modal_available = (
         managed_tools_flag
-        and nous_auth_present
+        and flash_auth_present
         and is_managed_tool_gateway_ready("modal")
         and _entitled_for("modal")
     )
@@ -642,7 +642,7 @@ def get_nous_subscription_features(
             included_by_default=True,
             available=web_available,
             active=web_active,
-            managed_by_nous=web_managed,
+            managed_by_flash=web_managed,
             direct_override=web_active and not web_managed,
             toolset_enabled=web_tool_enabled,
             current_provider=web_backend or web_search_backend or "",
@@ -654,7 +654,7 @@ def get_nous_subscription_features(
             included_by_default=True,
             available=image_available,
             active=image_active,
-            managed_by_nous=image_managed,
+            managed_by_flash=image_managed,
             direct_override=image_active and not image_managed,
             toolset_enabled=image_tool_enabled,
             current_provider="FAL" if direct_fal else ("Nous Subscription" if image_managed else ""),
@@ -666,7 +666,7 @@ def get_nous_subscription_features(
             included_by_default=False,
             available=video_available,
             active=video_active,
-            managed_by_nous=video_managed,
+            managed_by_flash=video_managed,
             direct_override=video_active and not video_managed,
             toolset_enabled=video_tool_enabled,
             current_provider="FAL" if direct_fal_video else ("Nous Subscription" if video_managed else ""),
@@ -678,7 +678,7 @@ def get_nous_subscription_features(
             included_by_default=True,
             available=tts_available,
             active=tts_active,
-            managed_by_nous=tts_managed,
+            managed_by_flash=tts_managed,
             direct_override=tts_active and not tts_managed,
             toolset_enabled=tts_tool_enabled,
             current_provider=_tts_label(tts_current_provider),
@@ -690,7 +690,7 @@ def get_nous_subscription_features(
             included_by_default=True,
             available=stt_available,
             active=stt_active,
-            managed_by_nous=stt_managed,
+            managed_by_flash=stt_managed,
             direct_override=stt_active and not stt_managed,
             # STT isn't toolset-gated (gateway middleware calls it
             # unconditionally on inbound voice), so report True so the
@@ -705,7 +705,7 @@ def get_nous_subscription_features(
             included_by_default=True,
             available=browser_available,
             active=browser_active,
-            managed_by_nous=browser_managed,
+            managed_by_flash=browser_managed,
             direct_override=browser_active and not browser_managed,
             toolset_enabled=browser_tool_enabled,
             current_provider=_browser_label(browser_current_provider),
@@ -717,7 +717,7 @@ def get_nous_subscription_features(
             included_by_default=False,
             available=modal_available,
             active=modal_active,
-            managed_by_nous=modal_managed,
+            managed_by_flash=modal_managed,
             direct_override=terminal_backend == "modal" and modal_direct_override,
             toolset_enabled=modal_tool_enabled,
             current_provider="Modal" if terminal_backend == "modal" else terminal_backend or "local",
@@ -727,8 +727,8 @@ def get_nous_subscription_features(
 
     return NousSubscriptionFeatures(
         subscribed=subscribed,
-        nous_auth_present=nous_auth_present,
-        provider_is_nous=provider_is_nous,
+        flash_auth_present=flash_auth_present,
+        provider_is_flash=provider_is_flash,
         features=features,
         account_info=account_info,
     )
@@ -737,20 +737,20 @@ def get_nous_subscription_features(
 
 
 
-def apply_nous_managed_defaults(
+def apply_flash_managed_defaults(
     config: Dict[str, object],
     *,
     enabled_toolsets: Optional[Iterable[str]] = None,
     force_fresh: bool = False,
 ) -> set[str]:
-    features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    features = get_flash_subscription_features(config, force_fresh=force_fresh)
     if not (
         features.account_info
         and features.account_info.logged_in
         and features.account_info.tool_gateway_entitled
     ):
         return set()
-    if not features.provider_is_nous:
+    if not features.provider_is_flash:
         return set()
 
     selected_toolsets = set(enabled_toolsets or ())
@@ -926,7 +926,7 @@ def get_gateway_eligible_tools(
     # pool) AND tells us which categories are covered (the pool funds image but
     # not video, etc.). Fails closed on any error.
     try:
-        account_info = get_nous_portal_account_info(force_fresh=force_fresh)
+        account_info = get_flash_portal_account_info(force_fresh=force_fresh)
     except Exception:
         return [], [], []
     if not (account_info and account_info.logged_in and account_info.tool_gateway_entitled):
@@ -935,15 +935,15 @@ def get_gateway_eligible_tools(
     if config is None:
         config = load_config() or {}
 
-    # Quick provider check without the heavy get_nous_subscription_features call
+    # Quick provider check without the heavy get_flash_subscription_features call
     model_cfg = config.get("model")
-    if not isinstance(model_cfg, dict) or str(model_cfg.get("provider") or "").strip().lower() != "nous":
+    if not isinstance(model_cfg, dict) or str(model_cfg.get("provider") or "").strip().lower() != "flash":
         return [], [], []
 
     direct = _get_gateway_direct_credentials()
 
     # Check which tools the user has explicitly opted into the gateway for.
-    # This is distinct from managed_by_nous which fires implicitly when
+    # This is distinct from managed_by_flash which fires implicitly when
     # no direct keys exist — we only skip the prompt for tools where
     # use_gateway was explicitly set.
     opted_in = {
@@ -1080,7 +1080,7 @@ def prompt_enable_tool_gateway(
     # Frame the offer by entitlement: a $0 free-tool-pool user is not on a paid
     # plan, so don't call it "your subscription".
     try:
-        account_info = get_nous_portal_account_info(force_fresh=False)
+        account_info = get_flash_portal_account_info(force_fresh=False)
     except Exception:
         account_info = None
     pool_only = bool(
@@ -1135,7 +1135,7 @@ def prompt_enable_tool_gateway(
 # ---------------------------------------------------------------------------
 
 
-def ensure_nous_portal_access(
+def ensure_flash_portal_access(
     *,
     capability: str = "the Nous Tool Gateway",
     coverage_category: Optional[str] = None,
@@ -1173,7 +1173,7 @@ def ensure_nous_portal_access(
 
     # Fast path: already entitled.
     try:
-        info = get_nous_portal_account_info(force_fresh=True)
+        info = get_flash_portal_account_info(force_fresh=True)
     except Exception:
         info = None
     if _entitled(info):
@@ -1181,10 +1181,10 @@ def ensure_nous_portal_access(
 
     # If not logged in at all, run the device-code login (auth only).
     if info is None or not info.logged_in:
-        if not _run_nous_portal_login_only(capability=capability):
+        if not _run_flash_portal_login_only(capability=capability):
             return False
         try:
-            info = get_nous_portal_account_info(force_fresh=True)
+            info = get_flash_portal_account_info(force_fresh=True)
         except Exception:
             info = None
 
@@ -1194,7 +1194,7 @@ def ensure_nous_portal_access(
     # Logged in but not entitled for this capability — surface neutral billing
     # guidance, do not enable. coverage_category keeps a pool user who lacks this
     # one category from being told their credits are exhausted.
-    message = format_nous_portal_entitlement_message(
+    message = format_flash_portal_entitlement_message(
         info, capability=capability, coverage_category=coverage_category
     )
     if message:
@@ -1203,7 +1203,7 @@ def ensure_nous_portal_access(
     return False
 
 
-def _run_nous_portal_login_only(*, capability: str) -> bool:
+def _run_flash_portal_login_only(*, capability: str) -> bool:
     """Run the Nous Portal device-code OAuth and persist credentials only.
 
     No model selection, no provider switch, no Tool Gateway bulk prompt.
@@ -1214,13 +1214,13 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
         from flash_cli.auth import (
             _auth_store_lock,
             _load_auth_store,
-            _nous_device_code_login,
-            _read_shared_nous_state,
+            _flash_device_code_login,
+            _read_shared_flash_state,
             _save_auth_store,
             _save_provider_state,
-            _sync_nous_pool_from_auth_store,
-            _try_import_shared_nous_state,
-            _write_shared_nous_state,
+            _sync_flash_pool_from_auth_store,
+            _try_import_shared_flash_state,
+            _write_shared_flash_state,
         )
     except Exception as exc:  # pragma: no cover - defensive
         print(f"  Could not start Nous Portal login: {exc}")
@@ -1244,7 +1244,7 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
             prior_active_provider = _load_auth_store().get("active_provider")
 
         auth_state = None
-        shared = _read_shared_nous_state()
+        shared = _read_shared_flash_state()
         if shared:
             try:
                 do_import = input(
@@ -1253,14 +1253,14 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
             except (EOFError, KeyboardInterrupt):
                 do_import = "y"
             if do_import in {"", "y", "yes"}:
-                auth_state = _try_import_shared_nous_state(timeout_seconds=15.0)
+                auth_state = _try_import_shared_flash_state(timeout_seconds=15.0)
 
         if auth_state is None:
-            auth_state = _nous_device_code_login()
+            auth_state = _flash_device_code_login()
 
         with _auth_store_lock():
             auth_store = _load_auth_store()
-            _save_provider_state(auth_store, "nous", auth_state)
+            _save_provider_state(auth_store, "flash", auth_state)
             # Preserve the user's existing inference provider — this login is
             # for tool entitlement only, not a provider switch.
             if prior_active_provider:
@@ -1269,15 +1269,15 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
                 auth_store.pop("active_provider", None)
             _save_auth_store(auth_store)
 
-        _write_shared_nous_state(auth_state)
-        _sync_nous_pool_from_auth_store()
+        _write_shared_flash_state(auth_state)
+        _sync_flash_pool_from_auth_store()
         print("  Nous Portal login successful.")
         return True
     except KeyboardInterrupt:
         print("\n  Login cancelled.")
         return False
     except SystemExit:
-        # _nous_device_code_login raises SystemExit on subscription_required;
+        # _flash_device_code_login raises SystemExit on subscription_required;
         # it already printed billing guidance.
         return False
     except Exception as exc:

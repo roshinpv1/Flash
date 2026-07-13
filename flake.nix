@@ -1,5 +1,5 @@
 {
-  description = "Flash Agent - AI agent framework by Nous Research";
+  description = "Flash Agent - AI agent framework by Flash Org";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

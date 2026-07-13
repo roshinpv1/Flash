@@ -1,9 +1,9 @@
-"""Tests for build_nous_credits_snapshot (L6-A, magnitudes-only)."""
+"""Tests for build_flash_credits_snapshot (L6-A, magnitudes-only)."""
 
 from __future__ import annotations
 
-from agent.account_usage import build_nous_credits_snapshot
-from flash_cli.nous_account import (
+from agent.account_usage import build_flash_credits_snapshot
+from flash_cli.flash_account import (
     NousPaidServiceAccessInfo,
     NousPortalAccountInfo,
     NousPortalSubscriptionInfo,
@@ -34,11 +34,11 @@ def test_healthy():
             current_period_end="2026-07-01",
         ),
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     assert snap.available is True
     assert snap.plan == "Pro"
-    assert snap.provider == "nous"
+    assert snap.provider == "flash"
     assert snap.title == "Nous credits"
     blob = "\n".join(_all_lines(snap))
     assert "$18.00" in blob
@@ -60,7 +60,7 @@ def test_money_rule_no_percent():
         ),
         subscription=NousPortalSubscriptionInfo(plan="Pro"),
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     for line in snap.details:
         assert "%" not in line
@@ -76,7 +76,7 @@ def test_depleted():
         ),
         subscription=NousPortalSubscriptionInfo(plan="Pro"),
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     blob = "\n".join(_all_lines(snap))
     assert "access depleted" in blob
@@ -93,7 +93,7 @@ def test_purchased_only():
         ),
         subscription=None,
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     blob = "\n".join(_all_lines(snap))
     assert "Subscription credits" not in blob
@@ -109,11 +109,11 @@ def test_logged_out():
             total_usable_credits=10.0,
         ),
     )
-    assert build_nous_credits_snapshot(info) is None
+    assert build_flash_credits_snapshot(info) is None
 
 
 def test_none():
-    assert build_nous_credits_snapshot(None) is None
+    assert build_flash_credits_snapshot(None) is None
 
 
 def test_never_raises_empty():
@@ -123,7 +123,7 @@ def test_never_raises_empty():
         subscription=None,
     )
     # No usable numbers and not depleted -> None, without raising.
-    assert build_nous_credits_snapshot(info) is None
+    assert build_flash_credits_snapshot(info) is None
 
 
 def test_topup_line_is_org_pinned_when_slug_present():
@@ -138,7 +138,7 @@ def test_topup_line_is_org_pinned_when_slug_present():
         ),
         subscription=None,
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     blob = "\n".join(_all_lines(snap))
     # The /usage top-up link auto-opens the modal and is org-pinned.
@@ -157,7 +157,7 @@ def test_topup_line_falls_back_to_legacy_when_slug_null():
         ),
         subscription=None,
     )
-    snap = build_nous_credits_snapshot(info)
+    snap = build_flash_credits_snapshot(info)
     assert snap is not None
     blob = "\n".join(_all_lines(snap))
     # Null slug → legacy page (which forwards the param); never /orgs/None/...

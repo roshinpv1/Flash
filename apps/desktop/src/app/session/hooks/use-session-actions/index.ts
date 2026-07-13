@@ -333,7 +333,7 @@ export function useSessionActions({
       // transcript so the thread shows its loader instead of the old session
       // lingering until resume lands. A warm-cached target keeps its transcript —
       // the cached fast-path repaints it this same tick. Setting the ref here is
-      // also what use-route-resume's self-heal assumes ("set synchronously at
+      // also what use-route-resume's self-heal assumes ("set synchroflashly at
       // resume entry").
       setFreshDraftReady(false)
       clearNotifications()

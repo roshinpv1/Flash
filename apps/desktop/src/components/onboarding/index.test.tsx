@@ -57,7 +57,7 @@ afterEach(() => {
 
 describe('onboarding Picker', () => {
   it('features Nous Portal and hides other providers behind a disclosure', () => {
-    setProviders([provider('anthropic', 'Anthropic Claude'), provider('nous', 'Nous Portal')])
+    setProviders([provider('anthropic', 'Anthropic Claude'), provider('flash', 'Nous Portal')])
     render(<Picker ctx={ctx} />)
 
     expect(screen.getByText('Nous Portal')).toBeTruthy()
@@ -81,7 +81,7 @@ describe('onboarding Picker', () => {
   })
 
   it('offers "choose later" on first run and persists the skip', () => {
-    setProviders([provider('nous', 'Nous Portal')])
+    setProviders([provider('flash', 'Nous Portal')])
     render(<Picker ctx={ctx} />)
 
     const skip = screen.getByRole('button', { name: "I'll choose a provider later" })
@@ -93,7 +93,7 @@ describe('onboarding Picker', () => {
   })
 
   it('hides "choose later" in manual (add-provider) mode', () => {
-    setProviders([provider('nous', 'Nous Portal')])
+    setProviders([provider('flash', 'Nous Portal')])
     $desktopOnboarding.set({ ...$desktopOnboarding.get(), manual: true })
     render(<Picker ctx={ctx} />)
 

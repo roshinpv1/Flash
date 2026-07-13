@@ -140,13 +140,13 @@ class TestProviderModelIdsPreferred:
 
 
 class TestOpenRouterAndNousUnchanged:
-    """Per Teknium: openrouter and nous are NEVER merged with models.dev."""
+    """Per Teknium: openrouter and flash are NEVER merged with models.dev."""
 
     def test_openrouter_not_in_preferred_set(self):
         assert "openrouter" not in _MODELS_DEV_PREFERRED
 
-    def test_nous_not_in_preferred_set(self):
-        assert "nous" not in _MODELS_DEV_PREFERRED
+    def test_flash_not_in_preferred_set(self):
+        assert "flash" not in _MODELS_DEV_PREFERRED
 
     def test_openrouter_does_not_call_merge(self):
         """openrouter takes its own live path — merge helper must NOT run."""

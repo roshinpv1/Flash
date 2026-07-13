@@ -429,7 +429,7 @@ class TestManagedGatewayErrorTranslation:
         # Simulate: managed mode active, managed submit raises 4xx.
         managed_gateway = MagicMock()
         managed_gateway.gateway_origin = "https://fal-queue-gateway.example.com"
-        managed_gateway.nous_user_token = "test-token"
+        managed_gateway.flash_user_token = "test-token"
         monkeypatch.setattr(image_tool, "_resolve_managed_fal_gateway",
                             lambda: managed_gateway)
 
@@ -563,7 +563,7 @@ class TestManagedKreaRouting:
             lambda: SimpleNamespace(
                 vendor="krea",
                 gateway_origin="https://krea-gateway.example.com",
-                nous_user_token="tok",
+                flash_user_token="tok",
                 managed_mode=True,
             ),
         )
@@ -603,7 +603,7 @@ class TestManagedKreaRouting:
             lambda: SimpleNamespace(
                 vendor="krea",
                 gateway_origin="https://krea-gateway.example.com",
-                nous_user_token="tok",
+                flash_user_token="tok",
                 managed_mode=True,
             ),
         )

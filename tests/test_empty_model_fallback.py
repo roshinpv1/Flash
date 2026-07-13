@@ -30,7 +30,7 @@ class TestGetDefaultModelForProvider:
         # Custom providers don't have entries in _PROVIDER_MODELS
         assert get_default_model_for_provider("some-random-custom") == ""
 
-    def test_nous_silent_default_is_not_the_expensive_flagship(self):
+    def test_flash_silent_default_is_not_the_expensive_flagship(self):
         """Nous Portal is a metered aggregator whose curated list is ordered
         most-capable-first, so entry [0] is the priciest flagship
         (anthropic/claude-opus-4.8). The silent fallback (provider set, no model)
@@ -43,17 +43,17 @@ class TestGetDefaultModelForProvider:
             get_default_model_for_provider,
         )
 
-        result = get_default_model_for_provider("nous")
-        assert result, "nous must resolve to a usable default model"
+        result = get_default_model_for_provider("flash")
+        assert result, "flash must resolve to a usable default model"
         assert "opus" not in result.lower(), (
             f"silent default escalated to an expensive flagship: {result!r}"
         )
-        assert result != _PROVIDER_MODELS["nous"][0], (
+        assert result != _PROVIDER_MODELS["flash"][0], (
             "silent default must not be the most-capable/priciest catalog entry"
         )
         # The override must point at a model that actually exists in the catalog.
-        assert result == _PROVIDER_SILENT_DEFAULT_OVERRIDES["nous"]
-        assert result in _PROVIDER_MODELS["nous"]
+        assert result == _PROVIDER_SILENT_DEFAULT_OVERRIDES["flash"]
+        assert result in _PROVIDER_MODELS["flash"]
 
     def test_override_falls_back_to_catalog_when_missing(self):
         """If an override model is no longer in the catalog, fall back to [0]

@@ -24,11 +24,11 @@ from nyxo_cli.config import (
     load_config, save_config, get_env_value, save_env_value,
 )
 from nyxo_cli.colors import Colors, color
-from nyxo_cli.nous_subscription import (
-    apply_nous_managed_defaults,
-    get_nous_subscription_features,
+from nyxo_cli.flash_subscription import (
+    apply_flash_managed_defaults,
+    get_flash_subscription_features,
 )
-from nyxo_cli.nous_account import format_nous_portal_entitlement_message
+from nyxo_cli.flash_account import format_flash_portal_entitlement_message
 from tools.tool_backend_helpers import fal_key_is_configured
 from utils import base_url_hostname, is_truthy_value
 
@@ -254,8 +254,8 @@ TOOL_CATEGORIES = {
                 "tag": "Managed OpenAI TTS billed to your subscription",
                 "env_vars": [],
                 "tts_provider": "openai",
-                "requires_nous_auth": True,
-                "managed_nous_feature": "tts",
+                "requires_flash_auth": True,
+                "managed_flash_feature": "tts",
                 "override_env_vars": ["VOICE_TOOLS_OPENAI_KEY", "OPENAI_API_KEY"],
             },
             {
@@ -330,7 +330,7 @@ TOOL_CATEGORIES = {
         # in _visible_providers(). Only non-provider UX setup-flow rows
         # for the firecrawl backend are listed here:
         #   - "Nous Subscription" — managed Firecrawl billed via Nous
-        #     subscription (requires_nous_auth + override_env_vars).
+        #     subscription (requires_flash_auth + override_env_vars).
         #   - "Firecrawl Self-Hosted" — points firecrawl at a private
         #     Docker instance via FIRECRAWL_API_URL only.
         # See PR #25182 for the migration rationale.
@@ -341,8 +341,8 @@ TOOL_CATEGORIES = {
                 "tag": "Managed Firecrawl billed to your subscription",
                 "web_backend": "firecrawl",
                 "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "web",
+                "requires_flash_auth": True,
+                "managed_flash_feature": "web",
                 "override_env_vars": ["FIRECRAWL_API_KEY", "FIRECRAWL_API_URL"],
             },
             {
@@ -365,7 +365,7 @@ TOOL_CATEGORIES = {
         # ``_plugin_image_gen_providers()`` in ``_visible_providers``.
         # Only non-provider UX setup-flow rows remain here:
         #   - "Nous Subscription" — managed FAL billed via the Nous
-        #     subscription (requires_nous_auth + override_env_vars).
+        #     subscription (requires_flash_auth + override_env_vars).
         #     Uses the fal plugin as the underlying backend but has a
         #     distinct setup UX.
         # Mirrors the shape browser/video_gen ship today.
@@ -375,8 +375,8 @@ TOOL_CATEGORIES = {
                 "badge": "subscription",
                 "tag": "Managed FAL image generation billed to your subscription",
                 "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "image_gen",
+                "requires_flash_auth": True,
+                "managed_flash_feature": "image_gen",
                 "override_env_vars": ["FAL_KEY"],
                 "imagegen_backend": "fal",
             },
@@ -395,8 +395,8 @@ TOOL_CATEGORIES = {
                 "badge": "subscription",
                 "tag": "Managed FAL video generation billed to your subscription",
                 "env_vars": [],
-                "requires_nous_auth": True,
-                "managed_nous_feature": "video_gen",
+                "requires_flash_auth": True,
+                "managed_flash_feature": "video_gen",
                 "override_env_vars": ["FAL_KEY"],
                 # The underlying plugin backend — when the user picks
                 # "Nous Subscription" we set video_gen.provider = "fal"
@@ -451,7 +451,7 @@ TOOL_CATEGORIES = {
         # backend, never on the paid Nous Subscription gateway row:
         #   - "Local Browser" — non-cloud option, no CloudBrowserProvider.
         #   - "Nous Subscription (Browser Use cloud)" — managed Browser Use
-        #     billed via Nous subscription (requires_nous_auth +
+        #     billed via Nous subscription (requires_flash_auth +
         #     override_env_vars). Uses the browser-use plugin as the
         #     underlying backend but has a distinct setup UX.
         #   - "Camofox" — anti-detection local Firefox; short-circuits the
@@ -471,8 +471,8 @@ TOOL_CATEGORIES = {
                 "tag": "Managed Browser Use billed to your subscription",
                 "env_vars": [],
                 "browser_provider": "browser-use",
-                "requires_nous_auth": True,
-                "managed_nous_feature": "browser",
+                "requires_flash_auth": True,
+                "managed_flash_feature": "browser",
                 "override_env_vars": ["BROWSER_USE_API_KEY"],
                 "post_setup": "agent_browser",
             },
@@ -1692,9 +1692,9 @@ def _toolset_has_keys(
             return False
 
     if ts_key in {"web", "image_gen", "video_gen", "tts", "browser"}:
-        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+        features = get_flash_subscription_features(config, force_fresh=force_fresh)
         feature = features.features.get(ts_key)
-        if feature and (feature.available or feature.managed_by_nous):
+        if feature and (feature.available or feature.managed_by_flash):
             return True
 
     # Check TOOL_CATEGORIES first (provider-aware)
@@ -2109,13 +2109,13 @@ def _visible_providers(
 ) -> list[dict]:
     """Return provider entries visible for the current auth/config state.
 
-    Nous-managed Tool Gateway rows (``managed_nous_feature``) are always
+    Nous-managed Tool Gateway rows (``managed_flash_feature``) are always
     shown — even to logged-out / unentitled users — so the picker advertises
     that the capability exists.  Selecting one drives an inline Nous Portal
     login + entitlement check (see ``_configure_provider``); the row only
     *activates* the gateway once paid access is confirmed.
     """
-    features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    features = get_flash_subscription_features(config, force_fresh=force_fresh)
     acct = features.account_info
     # Pool-only users (entitled to managed tools via the free tool pool but with
     # no paid access) get image gen but NOT video gen — the pool doesn't fund
@@ -2131,20 +2131,20 @@ def _visible_providers(
     visible = []
     for provider in cat.get("providers", []):
         # Nous-managed Tool Gateway rows stay visible regardless of auth —
-        # selecting one drives an inline Portal login. A `requires_nous_auth`
+        # selecting one drives an inline Portal login. A `requires_flash_auth`
         # row that is NOT a managed gateway feature (pure pre-auth UX) is
         # still hidden until the user is logged in.
         if (
-            provider.get("requires_nous_auth")
-            and not provider.get("managed_nous_feature")
-            and not features.nous_auth_present
+            provider.get("requires_flash_auth")
+            and not provider.get("managed_flash_feature")
+            and not features.flash_auth_present
         ):
             continue
         # Hide the managed video-gen row from pool-only users — their free tool
         # pool doesn't cover video, so showing it would only lead to a denial.
         if (
             pool_only
-            and provider.get("managed_nous_feature") == "video_gen"
+            and provider.get("managed_flash_feature") == "video_gen"
             and not (acct and acct.tool_gateway_entitled_for("fal-video"))
         ):
             continue
@@ -2185,7 +2185,7 @@ def _visible_providers(
     return visible
 
 
-def _hidden_nous_gateway_message(
+def _hidden_flash_gateway_message(
     cat: dict,
     config: dict,
     capability: str,
@@ -2198,7 +2198,7 @@ def _hidden_nous_gateway_message(
     category when its Nous-managed rows were filtered out for unentitled
     users. Those rows are now always listed (see ``_visible_providers``), and
     the login + entitlement guidance happens inline when the user selects one
-    (``ensure_nous_portal_access``). Kept as a no-op so call sites stay simple;
+    (``ensure_flash_portal_access``). Kept as a no-op so call sites stay simple;
     always returns an empty string.
     """
     return ""
@@ -2315,7 +2315,7 @@ def _configure_tool_category(
     icon = cat.get("icon", "")
     name = cat["name"]
     providers = _visible_providers(cat, config, force_fresh=force_fresh)
-    hidden_nous_message = _hidden_nous_gateway_message(
+    hidden_flash_message = _hidden_flash_gateway_message(
         cat,
         config,
         f"the Nous Subscription provider for {name}",
@@ -2341,8 +2341,8 @@ def _configure_tool_category(
         # For single-provider tools, show a note if available
         if cat.get("setup_note"):
             _print_info(f"  {cat['setup_note']}")
-        if hidden_nous_message:
-            for line in hidden_nous_message.splitlines():
+        if hidden_flash_message:
+            for line in hidden_flash_message.splitlines():
                 _print_warning(f"  {line}")
         _configure_provider(provider, config, force_fresh=force_fresh)
     else:
@@ -2353,8 +2353,8 @@ def _configure_tool_category(
         print(color(f"  --- {icon} {name} - {title} ---", Colors.CYAN))
         if cat.get("setup_note"):
             _print_info(f"  {cat['setup_note']}")
-        if hidden_nous_message:
-            for line in hidden_nous_message.splitlines():
+        if hidden_flash_message:
+            for line in hidden_flash_message.splitlines():
                 _print_warning(f"  {line}")
         print()
 
@@ -2363,14 +2363,14 @@ def _configure_tool_category(
         # whose access is included in their subscription so it's visually
         # obvious which options cost extra vs. cost nothing on top of Nous.
         try:
-            _nous_logged_in = bool(
-                get_nous_subscription_features(
+            _flash_logged_in = bool(
+                get_flash_subscription_features(
                     config,
                     force_fresh=force_fresh,
-                ).nous_auth_present
+                ).flash_auth_present
             )
         except Exception:
-            _nous_logged_in = False
+            _flash_logged_in = False
 
         provider_choices = []
         for p in providers:
@@ -2391,8 +2391,8 @@ def _configure_tool_category(
             # are always shown now (see _visible_providers) — selecting one
             # drives an inline login + entitlement check.
             sub_marker = ""
-            if p.get("managed_nous_feature"):
-                if _nous_logged_in:
+            if p.get("managed_flash_feature"):
+                if _flash_logged_in:
                     sub_marker = "  ★ Included with your Nous subscription"
                 else:
                     sub_marker = "  ★ via Nous Portal (login on select)"
@@ -2431,13 +2431,13 @@ def _is_provider_active(
         return isinstance(image_cfg, dict) and image_cfg.get("provider") == plugin_name
 
     video_plugin_name = provider.get("video_gen_plugin_name")
-    if video_plugin_name and not provider.get("managed_nous_feature"):
+    if video_plugin_name and not provider.get("managed_flash_feature"):
         video_cfg = config.get("video_gen", {})
         return isinstance(video_cfg, dict) and video_cfg.get("provider") == video_plugin_name
 
-    managed_feature = provider.get("managed_nous_feature")
+    managed_feature = provider.get("managed_flash_feature")
     if managed_feature:
-        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+        features = get_flash_subscription_features(config, force_fresh=force_fresh)
         feature = features.features.get(managed_feature)
         if feature is None:
             return False
@@ -2449,7 +2449,7 @@ def _is_provider_active(
                     return False
                 if image_cfg.get("use_gateway") is not None and not is_truthy_value(image_cfg.get("use_gateway"), default=False):
                     return False
-            return feature.managed_by_nous
+            return feature.managed_by_flash
         if managed_feature == "video_gen":
             video_cfg = config.get("video_gen", {})
             if isinstance(video_cfg, dict):
@@ -2458,19 +2458,19 @@ def _is_provider_active(
                     return False
                 if video_cfg.get("use_gateway") is not None and not is_truthy_value(video_cfg.get("use_gateway"), default=False):
                     return False
-            return feature.managed_by_nous
+            return feature.managed_by_flash
         if provider.get("tts_provider"):
             return (
-                feature.managed_by_nous
+                feature.managed_by_flash
                 and cfg_get(config, "tts", "provider") == provider["tts_provider"]
             )
         if "browser_provider" in provider:
             current = cfg_get(config, "browser", "cloud_provider")
-            return feature.managed_by_nous and provider["browser_provider"] == current
+            return feature.managed_by_flash and provider["browser_provider"] == current
         if provider.get("web_backend"):
             current = cfg_get(config, "web", "backend")
-            return feature.managed_by_nous and current == provider["web_backend"]
-        return feature.managed_by_nous
+            return feature.managed_by_flash and current == provider["web_backend"]
+        return feature.managed_by_flash
 
     if provider.get("tts_provider"):
         return cfg_get(config, "tts", "provider") == provider["tts_provider"]
@@ -2872,7 +2872,7 @@ def apply_provider_selection(ts_key: str, provider_name: str, config: dict) -> N
     if provider is None:
         raise KeyError(f"Unknown provider {provider_name!r} for toolset {ts_key!r}")
 
-    managed_feature = provider.get("managed_nous_feature")
+    managed_feature = provider.get("managed_flash_feature")
     _write_provider_config(provider, config, managed_feature=managed_feature)
 
     # Plugin-registered image/video gen backends record the provider name in
@@ -2913,7 +2913,7 @@ def _configure_provider(
 ):
     """Configure a single provider - prompt for API keys and set config."""
     env_vars = provider.get("env_vars", [])
-    managed_feature = provider.get("managed_nous_feature")
+    managed_feature = provider.get("managed_flash_feature")
 
     # Nous-managed Tool Gateway backends are always listed (see
     # _visible_providers), but only *activate* once the user has paid Nous
@@ -2921,12 +2921,12 @@ def _configure_provider(
     # auth + entitlement only, no inference-provider switch and no bulk
     # "enable all tools" prompt (that lives in `flash model`).
     if managed_feature:
-        from nyxo_cli.nous_subscription import (
+        from nyxo_cli.flash_subscription import (
             MANAGED_FEATURE_COVERAGE_CATEGORY,
-            ensure_nous_portal_access,
+            ensure_flash_portal_access,
         )
 
-        if not ensure_nous_portal_access(
+        if not ensure_flash_portal_access(
             capability=f"{provider.get('name', 'the Nous Tool Gateway')}",
             coverage_category=MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature),
         ):
@@ -2935,16 +2935,16 @@ def _configure_provider(
             )
             return
 
-    # Pure pre-auth UX rows (requires_nous_auth without a managed gateway
+    # Pure pre-auth UX rows (requires_flash_auth without a managed gateway
     # feature) keep the old gate. Managed rows are handled by the inline
     # login above, so don't double-check them here.
-    if provider.get("requires_nous_auth") and not managed_feature:
-        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    if provider.get("requires_flash_auth") and not managed_feature:
+        features = get_flash_subscription_features(config, force_fresh=force_fresh)
         entitled = bool(
             features.account_info and features.account_info.paid_service_access is True
         )
-        if not features.nous_auth_present or not entitled:
-            message = format_nous_portal_entitlement_message(
+        if not features.flash_auth_present or not entitled:
+            message = format_flash_portal_entitlement_message(
                 features.account_info,
                 capability=f"{provider.get('name', 'Nous Subscription')}",
             )
@@ -3013,22 +3013,22 @@ def _configure_provider(
     # they can avoid the key entirely via a Portal subscription.
     # Suppressed when the user is already authed to Nous.
     _show_portal_hint = False
-    if env_vars and not managed_feature and not provider.get("requires_nous_auth"):
+    if env_vars and not managed_feature and not provider.get("requires_flash_auth"):
         try:
             _has_managed_sibling = False
             for _cat_key, _cat in TOOL_CATEGORIES.items():
                 _providers = _cat.get("providers", [])
                 if provider in _providers and any(
-                    sib.get("managed_nous_feature") for sib in _providers
+                    sib.get("managed_flash_feature") for sib in _providers
                 ):
                     _has_managed_sibling = True
                     break
             if _has_managed_sibling:
-                _features = get_nous_subscription_features(
+                _features = get_flash_subscription_features(
                     config,
                     force_fresh=force_fresh,
                 )
-                _show_portal_hint = not _features.nous_auth_present
+                _show_portal_hint = not _features.flash_auth_present
         except Exception:
             _show_portal_hint = False
 
@@ -3224,7 +3224,7 @@ def _configure_tool_category_for_reconfig(
     icon = cat.get("icon", "")
     name = cat["name"]
     providers = _visible_providers(cat, config, force_fresh=force_fresh)
-    hidden_nous_message = _hidden_nous_gateway_message(
+    hidden_flash_message = _hidden_flash_gateway_message(
         cat,
         config,
         f"the Nous Subscription provider for {name}",
@@ -3235,15 +3235,15 @@ def _configure_tool_category_for_reconfig(
         provider = providers[0]
         print()
         print(color(f"  --- {icon} {name} ({provider['name']}) ---", Colors.CYAN))
-        if hidden_nous_message:
-            for line in hidden_nous_message.splitlines():
+        if hidden_flash_message:
+            for line in hidden_flash_message.splitlines():
                 _print_warning(f"  {line}")
         _reconfigure_provider(provider, config, force_fresh=force_fresh)
     else:
         print()
         print(color(f"  --- {icon} {name} - Choose a provider ---", Colors.CYAN))
-        if hidden_nous_message:
-            for line in hidden_nous_message.splitlines():
+        if hidden_flash_message:
+            for line in hidden_flash_message.splitlines():
                 _print_warning(f"  {line}")
         print()
 
@@ -3284,17 +3284,17 @@ def _reconfigure_provider(
 ):
     """Reconfigure a provider - update API keys."""
     env_vars = provider.get("env_vars", [])
-    managed_feature = provider.get("managed_nous_feature")
+    managed_feature = provider.get("managed_flash_feature")
 
     # Same inline Nous Portal login + entitlement gate as _configure_provider:
     # managed Tool Gateway backends only activate with paid Portal access.
     if managed_feature:
-        from nyxo_cli.nous_subscription import (
+        from nyxo_cli.flash_subscription import (
             MANAGED_FEATURE_COVERAGE_CATEGORY,
-            ensure_nous_portal_access,
+            ensure_flash_portal_access,
         )
 
-        if not ensure_nous_portal_access(
+        if not ensure_flash_portal_access(
             capability=f"{provider.get('name', 'the Nous Tool Gateway')}",
             coverage_category=MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature),
         ):
@@ -3305,13 +3305,13 @@ def _reconfigure_provider(
 
     # Pure pre-auth UX rows keep the old gate; managed rows already handled
     # by the inline login above.
-    if provider.get("requires_nous_auth") and not managed_feature:
-        features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    if provider.get("requires_flash_auth") and not managed_feature:
+        features = get_flash_subscription_features(config, force_fresh=force_fresh)
         entitled = bool(
             features.account_info and features.account_info.paid_service_access is True
         )
-        if not features.nous_auth_present or not entitled:
-            message = format_nous_portal_entitlement_message(
+        if not features.flash_auth_present or not entitled:
+            message = format_flash_portal_entitlement_message(
                 features.account_info,
                 capability=f"{provider.get('name', 'Nous Subscription')}",
             )
@@ -3522,7 +3522,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
                     label = next((l for k, l, _ in _get_effective_configurable_toolsets() if k == ts), ts)
                     print(color(f"  - {label}", Colors.RED))
 
-            auto_configured = apply_nous_managed_defaults(
+            auto_configured = apply_flash_managed_defaults(
                 config,
                 enabled_toolsets=new_enabled,
                 force_fresh=True,

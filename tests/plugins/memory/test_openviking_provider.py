@@ -853,7 +853,7 @@ def test_initialize_autostarts_local_openviking_in_background_when_runtime_healt
     monkeypatch.setattr(
         openviking_module,
         "_wait_for_openviking_health",
-        MagicMock(side_effect=AssertionError("runtime init should not wait synchronously")),
+        MagicMock(side_effect=AssertionError("runtime init should not wait synchroflashly")),
     )
 
     provider = OpenVikingMemoryProvider()
@@ -2667,10 +2667,10 @@ def test_on_session_switch_waits_for_all_writers_not_just_latest():
 def test_on_session_switch_does_not_block_caller_on_slow_drain():
     """Regression for flash-agent#28296 review (H1): on_session_switch must
     NOT run the old-session drain/commit on the caller's thread. /new, /branch,
-    /resume, /undo call this synchronously on the command thread, so a slow
+    /resume, /undo call this synchroflashly on the command thread, so a slow
     writer drain (up to _SESSION_DRAIN_TIMEOUT/_DEFERRED_COMMIT_TIMEOUT) or a
     wedged commit POST must not stall the user-facing command. The rotation is
-    cheap and synchronous; the commit is offloaded. Mirrors the #41945
+    cheap and synchroflash; the commit is offloaded. Mirrors the #41945
     'do not block the turn thread' contract."""
     import threading
     import time
@@ -2710,7 +2710,7 @@ def test_on_session_switch_does_not_block_caller_on_slow_drain():
 
 
 def test_on_session_switch_defers_old_commit_to_finalizer_thread():
-    """The switch path rotates session state synchronously (cheap, in-memory)
+    """The switch path rotates session state synchroflashly (cheap, in-memory)
     but offloads the old-session drain + commit onto a daemon finalizer so the
     caller's command thread (/new, /branch, /resume) never blocks on the up-to
     -_DEFERRED_COMMIT_TIMEOUT drain or the commit POST. See flash-agent#28296
@@ -2734,7 +2734,7 @@ def test_on_session_switch_defers_old_commit_to_finalizer_thread():
 
     provider.on_session_switch("new-sid")
 
-    # Rotation is synchronous and immediate — the new session is live at once.
+    # Rotation is synchroflash and immediate — the new session is live at once.
     assert provider._session_id == "new-sid"
     assert provider._turn_count == 0
     # The old-session commit lands on the finalizer thread, not inline.

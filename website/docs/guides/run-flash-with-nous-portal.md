@@ -6,7 +6,7 @@ description: "Start-to-finish walkthrough: subscribe, set up, switch models, ena
 
 # Run Flash Agent with Nous Portal
 
-This guide walks you through running Flash Agent on a [Nous Portal](https://portal.flashorg.com) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [Nous Portal integration page](/integrations/nous-portal). This page is the task script.
+This guide walks you through running Flash Agent on a [Nous Portal](https://portal.flashorg.com) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [Nous Portal integration page](/integrations/flash-portal). This page is the task script.
 
 ## Prerequisites
 
@@ -32,7 +32,7 @@ This single command does five things:
 
 1. Opens your browser to portal.flashorg.com for OAuth login
 2. Stores the refresh token at `~/.flash/auth.json`
-3. Sets `model.provider: nous` in `~/.flash/config.yaml`
+3. Sets `model.provider: flash` in `~/.flash/config.yaml`
 4. Picks a default agentic model (`anthropic/claude-sonnet-4.6` or similar)
 5. Turns on the Tool Gateway for web search, image generation, TTS, and browser automation
 
@@ -48,7 +48,7 @@ ssh -N -L 8642:127.0.0.1:8642 user@remote-host    # in a local terminal
 flash setup --portal                              # on the remote, open the printed URL in your local browser
 
 # Option B: device-code login (works from Cloud Shell, Codespaces, EC2 Instance Connect)
-flash auth add nous --type oauth
+flash auth add flash --type oauth
 # Then re-run `flash setup --portal` to wire the provider + gateway
 ```
 
@@ -193,7 +193,7 @@ If your browser doesn't open or the callback fails, you're likely on a remote/he
 Your local config drifted. The OAuth worked but `model.provider` is still pointing at a different provider. Fix:
 
 ```bash
-flash config set model.provider nous
+flash config set model.provider flash
 ```
 
 Or interactively:
@@ -221,7 +221,7 @@ Some users intentionally mix — e.g. routing web through Nous but using their o
 Your Portal refresh token was invalidated (password change, manual revoke, session expiry). The token is now quarantined locally so Flash doesn't replay it endlessly. Just log in again:
 
 ```bash
-flash auth add nous
+flash auth add flash
 ```
 
 The quarantine clears automatically on successful re-login.
@@ -241,14 +241,14 @@ If a model is genuinely unavailable, [open an issue](https://github.com/FlashOrg
 
 `flash portal info` will tell you whether you're actually routing through the Portal or some other provider. Common causes:
 
-- `model.provider` set to `openrouter`/`anthropic`/etc. instead of `nous`
+- `model.provider` set to `openrouter`/`anthropic`/etc. instead of `flash`
 - An OAuth refresh failure that fell back to a different configured provider
 - Multiple Flash profiles where you're using the wrong one (check `flash profile list`)
 
 ### Want to revoke and start clean
 
 ```bash
-flash auth logout nous       # wipes the local refresh token
+flash auth logout flash       # wipes the local refresh token
 # Then re-run setup or remove the subscription from the Portal web UI
 ```
 
@@ -268,7 +268,7 @@ That's the deal. If you're using more than two of those backends anyway, the sub
 
 ## See also
 
-- **[Nous Portal integration page](/integrations/nous-portal)** — Overview of what's in the subscription
+- **[Nous Portal integration page](/integrations/flash-portal)** — Overview of what's in the subscription
 - **[Tool Gateway](/user-guide/features/tool-gateway)** — Full details on every gateway-routed tool
 - **[Subscription proxy](/user-guide/features/subscription-proxy)** — Use your Portal subscription from non-Flash tools
 - **[Voice mode](/user-guide/features/voice-mode)** — Set up voice conversations on the Portal subscription

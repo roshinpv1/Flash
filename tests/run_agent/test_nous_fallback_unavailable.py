@@ -42,11 +42,11 @@ def _mock_client(base_url="https://chatgpt.com/backend-api/codex", api_key="fb-k
 
 
 class TestNousFallbackLocalAvailability:
-    def test_missing_nous_token_is_skipped_once(self):
+    def test_missing_flash_token_is_skipped_once(self):
         """Nous fallback is skipped when no access/refresh token is stored."""
         agent = _make_agent(
             fallback_model=[
-                {"provider": "nous", "model": "anthropic/claude-sonnet-4.6"},
+                {"provider": "flash", "model": "anthropic/claude-sonnet-4.6"},
                 {"provider": "openai-codex", "model": "gpt-5.5"},
             ]
         )
@@ -61,11 +61,11 @@ class TestNousFallbackLocalAvailability:
         assert activated is True
         assert agent.model == "gpt-5.5"
 
-    def test_nous_unavailable_not_retried_in_same_session(self):
+    def test_flash_unavailable_not_retried_in_same_session(self):
         """After Nous is skipped once, subsequent activations continue further."""
         agent = _make_agent(
             fallback_model=[
-                {"provider": "nous", "model": "anthropic/claude-sonnet-4.6"},
+                {"provider": "flash", "model": "anthropic/claude-sonnet-4.6"},
                 {"provider": "openai-codex", "model": "gpt-5.5"},
             ]
         )
@@ -75,17 +75,17 @@ class TestNousFallbackLocalAvailability:
         ):
             agent._try_activate_fallback(None)
         key = (
-            "nous",
+            "flash",
             "anthropic/claude-sonnet-4.6",
             "",
         )
         assert key in getattr(agent, "_unavailable_fallback_keys", set())
 
-    def test_present_nous_token_allows_activation(self):
+    def test_present_flash_token_allows_activation(self):
         """Nous is considered when token material exists."""
         agent = _make_agent(
             fallback_model=[
-                {"provider": "nous", "model": "anthropic/claude-sonnet-4.6"},
+                {"provider": "flash", "model": "anthropic/claude-sonnet-4.6"},
                 {"provider": "openai-codex", "model": "gpt-5.5"},
             ]
         )
@@ -98,4 +98,4 @@ class TestNousFallbackLocalAvailability:
         ):
             activated = agent._try_activate_fallback(None)
         assert activated is True
-        assert agent.provider == "nous"
+        assert agent.provider == "flash"

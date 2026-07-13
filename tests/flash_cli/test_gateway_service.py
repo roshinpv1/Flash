@@ -738,7 +738,7 @@ class TestLaunchdServiceRecovery:
 
     def test_refresh_uses_direct_reload_when_not_inside_gateway_tree(self, tmp_path, monkeypatch):
         """Normal CLI-initiated refresh (outside the service tree) keeps the
-        direct synchronous bootout/bootstrap path."""
+        direct synchroflash bootout/bootstrap path."""
         plist_path = tmp_path / "ai.flash.gateway.plist"
         plist_path.write_text("<plist>old content</plist>", encoding="utf-8")
 

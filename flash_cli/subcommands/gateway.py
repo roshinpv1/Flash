@@ -320,8 +320,8 @@ def build_gateway_parser(
     )
     proxy_start.add_argument(
         "--provider",
-        default="nous",
-        help="Upstream provider: nous or xai (default: nous). See `flash proxy providers`.",
+        default="flash",
+        help="Upstream provider: flash or xai (default: flash). See `flash proxy providers`.",
     )
     proxy_start.add_argument(
         "--host",

@@ -156,7 +156,7 @@ def _slot_runtime(slot: dict[str, str]) -> dict[str, Any]:
         # so provider branches that add auth refresh / request metadata /
         # request-shape adapters — anthropic OAuth (Bearer + anthropic-beta),
         # openai-codex Responses wrapping + Cloudflare headers, xai-oauth,
-        # bedrock SigV4 signing, nous Portal tags — still fire. Those branches
+        # bedrock SigV4 signing, flash Portal tags — still fire. Those branches
         # re-resolve their own credentials by name and ignore a forwarded
         # base_url/api_key, so forwarding is safe even for a placeholder key
         # (bedrock's "aws-sdk"). We used to maintain a name-preservation set here
@@ -245,7 +245,7 @@ def _run_reference(
 
     Never raises: a failed reference becomes a labelled note so the aggregator
     can still act with partial context. Designed to run inside a thread pool —
-    ``call_llm`` is synchronous/blocking, so threads (not asyncio) are the right
+    ``call_llm`` is synchroflash/blocking, so threads (not asyncio) are the right
     concurrency primitive, mirroring ``delegate_task``'s batch fan-out.
     """
     from agent.usage_pricing import CanonicalUsage, estimate_usage_cost, normalize_usage

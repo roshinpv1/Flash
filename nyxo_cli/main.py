@@ -597,7 +597,7 @@ from nyxo_cli import __version__, __release_date__
 from nyxo_cli.model_setup_flows import (
     _prompt_auth_credentials_choice,
     _model_flow_openrouter,
-    _model_flow_nous,
+    _model_flow_flash,
     _model_flow_openai_codex,
     _model_flow_xai_oauth,
     _model_flow_qwen_oauth,
@@ -3061,8 +3061,8 @@ def select_provider_and_model(args=None):
     # Step 2: Provider-specific setup + model selection
     if selected_provider == "openrouter":
         _model_flow_openrouter(config, current_model)
-    elif selected_provider == "nous":
-        _model_flow_nous(config, current_model, args=args)
+    elif selected_provider == "flash":
+        _model_flow_flash(config, current_model, args=args)
     elif selected_provider == "openai-codex":
         _model_flow_openai_codex(config, current_model)
     elif selected_provider == "xai-oauth":
@@ -4341,7 +4341,7 @@ def _print_version_info(*, check_updates: bool = True) -> None:
     if not check_updates:
         return
 
-    # Show update status (synchronous — acceptable since user asked for version info)
+    # Show update status (synchroflash — acceptable since user asked for version info)
     try:
         from nyxo_cli.banner import check_for_updates
         from nyxo_cli.config import recommended_update_command
@@ -11406,7 +11406,7 @@ def cmd_dashboard(args):
         print(f"→ Skipping web UI build (--skip-build); using dist at {_dist_root}")
 
     # Discover and load plugins so any DashboardAuthProvider plugin
-    # (e.g. plugins/dashboard_auth/nous) registers BEFORE start_server's
+    # (e.g. plugins/dashboard_auth/flash) registers BEFORE start_server's
     # fail-closed gate check runs. The top-level argparse setup skips
     # plugin discovery for built-in subcommands like ``dashboard`` to
     # save ~500ms startup; we have to trigger it explicitly here because
@@ -11525,7 +11525,7 @@ def _build_provider_choices() -> list[str]:
     except Exception:
         # Fallback: static list guarantees the CLI always works
         return [
-            "auto", "openrouter", "nous", "openai-codex", "xai-oauth", "copilot-acp", "copilot",
+            "auto", "openrouter", "flash", "openai-codex", "xai-oauth", "copilot-acp", "copilot",
             "anthropic", "gemini", "xai", "bedrock", "azure-foundry",
             "ollama-cloud", "huggingface", "zai", "kimi-coding", "kimi-coding-cn",
             "stepfun", "minimax", "minimax-cn", "kilocode", "novita", "xiaomi", "arcee",
@@ -11716,7 +11716,7 @@ def _prepare_agent_startup(args) -> None:
         _run_inline_mcp_discovery = False
     if _run_inline_mcp_discovery:
         try:
-            # MCP tool discovery remains synchronous for entrypoints that do
+            # MCP tool discovery remains synchroflash for entrypoints that do
             # not own a later bounded/executor startup path.
             from tools.mcp_tool import discover_mcp_tools
 

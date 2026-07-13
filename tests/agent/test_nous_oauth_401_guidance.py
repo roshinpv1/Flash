@@ -8,7 +8,7 @@ hint cannot be silently removed by a future refactor.
 Regression context: ashh hit a Nous 401 (OAuth token expired / portal said
 account out of credits) plus a model slug ``deepseek/deepseek-v4-flash:free``
 that's OpenRouter syntax, not a Nous catalog name. The previous guidance
-branch only covered ``openai-codex`` and ``xai-oauth``; ``nous`` fell through
+branch only covered ``openai-codex`` and ``xai-oauth``; ``flash`` fell through
 to a generic "Your API key was rejected... run flash setup" message, which is
 the wrong advice for a pure-OAuth provider.
 """
@@ -19,9 +19,9 @@ import inspect
 from agent import conversation_loop
 
 
-def test_nous_provider_is_in_oauth_401_set():
+def test_flash_provider_is_in_oauth_401_set():
     """The provider-set gate that selects OAuth-specific guidance must
-    include ``nous`` alongside ``openai-codex`` and ``xai-oauth``.
+    include ``flash`` alongside ``openai-codex`` and ``xai-oauth``.
     """
     source = inspect.getsource(conversation_loop.run_conversation)
 
@@ -29,18 +29,18 @@ def test_nous_provider_is_in_oauth_401_set():
     # near each other in the gating expression.
     assert "\"openai-codex\"" in source
     assert "\"xai-oauth\"" in source
-    assert "\"nous\"" in source
+    assert "\"flash\"" in source
 
     # And the gate string itself must mention all three so future refactors
-    # that split nous off into its own gate still get caught.
-    needle = "_provider in {\"openai-codex\", \"xai-oauth\", \"nous\"}"
+    # that split flash off into its own gate still get caught.
+    needle = "_provider in {\"openai-codex\", \"xai-oauth\", \"flash\"}"
     assert needle in source, (
-        "Expected nous to be co-gated with the other OAuth providers in the "
+        "Expected flash to be co-gated with the other OAuth providers in the "
         "actionable-401-guidance branch of run_conversation."
     )
 
 
-def test_nous_401_guidance_strings_present():
+def test_flash_401_guidance_strings_present():
     """User-facing remediation strings for Nous OAuth 401s must exist."""
     source = inspect.getsource(conversation_loop.run_conversation)
 
@@ -55,9 +55,9 @@ def test_nous_401_guidance_strings_present():
     assert "portal.flashorg.com" in source
 
 
-def test_free_slug_hint_for_nous_provider():
+def test_free_slug_hint_for_flash_provider():
     """When the failing model slug ends with ``:free`` and the provider is
-    ``nous``, the guidance must flag that ``:free`` is OpenRouter syntax and
+    ``flash``, the guidance must flag that ``:free`` is OpenRouter syntax and
     suggest switching providers via ``/model openrouter:<slug>``.
 
     Without this hint, users re-OAuth successfully and then hit the same 401

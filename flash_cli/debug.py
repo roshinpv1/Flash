@@ -9,7 +9,7 @@ Currently supports:
                           ``~/.flash/logs/*.log`` are not leaked into
                           the public paste service. Pass ``--no-redact``
                           to disable.
-                          Pass ``--nous`` to upload instead to Nous-internal
+                          Pass ``--flash`` to upload instead to Nous-internal
                           storage (AWS S3) via a signed URL minted by the
                           Nous account service: the bundle is private
                           (viewable only by Nous staff / allowlisted mods via
@@ -137,7 +137,7 @@ def _record_pending(urls: list[str], delay_seconds: int = _AUTO_DELETE_SECONDS) 
 
 
 def _sweep_expired_pastes(now: Optional[float] = None) -> tuple[int, int]:
-    """Synchronously DELETE any pending pastes whose ``expire_at`` has passed.
+    """Synchroflashly DELETE any pending pastes whose ``expire_at`` has passed.
 
     Returns ``(deleted, remaining)``.  Best-effort: failed deletes stay in
     the pending file and will be retried on the next sweep.  Silent —
@@ -622,7 +622,7 @@ def collect_share_bundle(
 
     This is the single source of collection + redaction shared by both
     destinations: the paste.rs path (:func:`build_debug_share`) and the
-    Nous-S3 path (``--nous``).  Centralising it guarantees the Nous bundle is
+    Nous-S3 path (``--flash``).  Centralising it guarantees the Nous bundle is
     built from the *same* force-redacted snapshots as the public paste path —
     redaction is the safety boundary, so the Nous path must never see raw
     logs.
@@ -678,7 +678,7 @@ def collect_share_bundle(
     return bundle
 
 
-def build_nous_bundle(bundle: dict[str, str], redact: bool = True) -> bytes:
+def build_flash_bundle(bundle: dict[str, str], redact: bool = True) -> bytes:
     """Gzip-compress a :func:`collect_share_bundle` mapping into the Nous envelope.
 
     The JSON shape is what the discord-support viewer (Repo 3) parses::
@@ -815,7 +815,7 @@ def run_debug_share(args):
     log_lines = getattr(args, "lines", 200)
     expiry = getattr(args, "expire", 7)
     local_only = getattr(args, "local", False)
-    nous = getattr(args, "nous", False)
+    flash = getattr(args, "flash", False)
     redact = not getattr(args, "no_redact", False)
 
     if local_only:
@@ -840,8 +840,8 @@ def run_debug_share(args):
                 print(body)
         return
 
-    if nous:
-        _run_debug_share_nous(args, log_lines=log_lines, redact=redact)
+    if flash:
+        _run_debug_share_flash(args, log_lines=log_lines, redact=redact)
         return
 
     print(_PRIVACY_NOTICE)
@@ -880,7 +880,7 @@ def run_debug_share(args):
 
 
 _NOUS_PRIVACY_NOTICE = """\
-⚠️  --nous: This uploads your debug bundle to Nous-INTERNAL storage (AWS S3),
+⚠️  --flash: This uploads your debug bundle to Nous-INTERNAL storage (AWS S3),
     NOT a public paste service. The following is included:
   • System info (OS, Python/Flash version, provider, which API keys are
     configured — NOT the actual keys)
@@ -894,15 +894,15 @@ _NOUS_PRIVACY_NOTICE = """\
 """
 
 
-def _run_debug_share_nous(args, *, log_lines: int, redact: bool) -> None:
-    """Handle ``flash debug share --nous``: upload the bundle to Nous-S3.
+def _run_debug_share_flash(args, *, log_lines: int, redact: bool) -> None:
+    """Handle ``flash debug share --flash``: upload the bundle to Nous-S3.
 
     Collects the same force-redacted bundle as the paste path, gzips it into
     the Nous envelope, requests a signed URL from NAS, uploads, and prints the
     private viewer link. On any failure falls back to a clear error that
     suggests ``--local``.
     """
-    from flash_cli.diagnostics_upload import share_to_nous
+    from flash_cli.diagnostics_upload import share_to_flash
 
     print(_NOUS_PRIVACY_NOTICE)
     if not _confirm_upload(args):
@@ -918,13 +918,13 @@ def _run_debug_share_nous(args, *, log_lines: int, redact: bool) -> None:
     bundle = collect_share_bundle(log_lines=log_lines, redact=redact)
     if redact:
         logger.info(
-            "flash debug share --nous: applied force-mode redaction before upload"
+            "flash debug share --flash: applied force-mode redaction before upload"
         )
-    blob = build_nous_bundle(bundle, redact=redact)
+    blob = build_flash_bundle(bundle, redact=redact)
 
     print("Uploading to Nous diagnostics storage...")
     try:
-        res = share_to_nous(blob)
+        res = share_to_flash(blob)
     except Exception as exc:
         print(
             f"\nNous upload failed: {exc}\n"
@@ -1005,7 +1005,7 @@ def run_debug(args):
         print("  --lines N    Number of log lines to include (default: 200)")
         print("  --expire N   Paste expiry in days (default: 7)")
         print("  --local      Print report locally instead of uploading")
-        print("  --nous       Upload to Nous-internal storage (private, staff-only,")
+        print("  --flash       Upload to Nous-internal storage (private, staff-only,")
         print("               auto-deletes in 14 days) instead of a public paste")
         print("  --no-redact  Disable upload-time secret redaction (default: redact)")
         print()

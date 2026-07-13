@@ -2,11 +2,11 @@
   "id": "flash-agent",
   "name": "Flash Agent",
   "version": "0.18.2",
-  "description": "Self-improving open-source AI agent by Nous Research with ACP editor integration, persistent memory, skills, and rich tool support.",
+  "description": "Self-improving open-source AI agent by Flash Org with ACP editor integration, persistent memory, skills, and rich tool support.",
   "repository": "https://github.com/FlashOrg/flash-agent",
   "website": "https://flash-agent.flashorg.com/docs/user-guide/features/acp",
   "authors": [
-    "Nous Research"
+    "Flash Org"
   ],
   "license": "MIT",
   "distribution": {

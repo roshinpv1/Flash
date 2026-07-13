@@ -3155,7 +3155,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
 
         # Snapshot sid + turn count atomically against a concurrent sync_turn
         # increment. on_session_end runs at teardown so the drain+commit stays
-        # synchronous here (we want it to land before the process exits), but
+        # synchroflash here (we want it to land before the process exits), but
         # the counter read must still be consistent.
         with self._session_state_lock:
             sid = self._session_id
@@ -3206,7 +3206,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
 
         rewound = bool(kwargs.get("rewound"))
 
-        # Rotate cached session state synchronously (cheap, in-memory) and
+        # Rotate cached session state synchroflashly (cheap, in-memory) and
         # snapshot the old session under the lock so a concurrent sync_turn
         # either lands fully before the rotation (counted under old) or fully
         # after (counted under new) — never split. The OLD session's commit

@@ -46,10 +46,10 @@ class TestFastFails:
     def test_not_logged_in_exits_1_with_setup_hint(self, capsys):
         from flash_cli.auth import AuthError
 
-        err = AuthError("not logged in", provider="nous", relogin_required=True)
+        err = AuthError("not logged in", provider="flash", relogin_required=True)
         with patch.object(dr, "cmd_dashboard_register", dr.cmd_dashboard_register):
             with patch(
-                "flash_cli.auth.resolve_nous_access_token", side_effect=err
+                "flash_cli.auth.resolve_flash_access_token", side_effect=err
             ), patch("flash_cli.config.is_managed", return_value=False):
                 with pytest.raises(SystemExit) as exc:
                     dr.cmd_dashboard_register(_ns())
@@ -108,7 +108,7 @@ class TestHappyPath:
             return None
 
         with patch(
-            "flash_cli.auth.resolve_nous_access_token", return_value=account_token
+            "flash_cli.auth.resolve_flash_access_token", return_value=account_token
         ), patch("flash_cli.config.is_managed", return_value=False), patch.object(
             dr, "_resolve_portal_base_url", return_value=portal
         ), patch(
@@ -158,11 +158,11 @@ class TestHappyPath:
     def test_non_default_portal_is_persisted(self, capsys):
         saved = self._run(
             args=_ns(),
-            portal="https://nous-account-service-git-feat-x.vercel.app",
+            portal="https://flash-account-service-git-feat-x.vercel.app",
         )
         assert (
             saved["HERMES_DASHBOARD_PORTAL_URL"]
-            == "https://nous-account-service-git-feat-x.vercel.app"
+            == "https://flash-account-service-git-feat-x.vercel.app"
         )
 
 
@@ -315,7 +315,7 @@ class TestCustomPortalPersistence:
             return None
 
         with patch(
-            "flash_cli.auth.resolve_nous_access_token", return_value="tok"
+            "flash_cli.auth.resolve_flash_access_token", return_value="tok"
         ), patch("flash_cli.config.is_managed", return_value=False), patch.dict(
             dr.os.environ, {}, clear=False
         ), patch.object(
@@ -437,7 +437,7 @@ class TestPublicUrlPersistence:
             return None
 
         with patch(
-            "flash_cli.auth.resolve_nous_access_token", return_value="tok"
+            "flash_cli.auth.resolve_flash_access_token", return_value="tok"
         ), patch("flash_cli.config.is_managed", return_value=False), patch.dict(
             dr.os.environ, {}, clear=False
         ), patch.object(
@@ -531,7 +531,7 @@ class TestPublicUrlPersistence:
             saved[key] = value
 
         with patch(
-            "flash_cli.auth.resolve_nous_access_token", return_value="tok"
+            "flash_cli.auth.resolve_flash_access_token", return_value="tok"
         ), patch("flash_cli.config.is_managed", return_value=False), patch.dict(
             dr.os.environ, {}, clear=False
         ), patch.object(
@@ -593,7 +593,7 @@ class TestPortalErrors:
         )
 
         with patch(
-            "flash_cli.auth.resolve_nous_access_token", return_value="tok"
+            "flash_cli.auth.resolve_flash_access_token", return_value="tok"
         ), patch("flash_cli.config.is_managed", return_value=False), patch.object(
             dr, "_resolve_portal_base_url", return_value="https://portal.flashorg.com"
         ), patch.object(dr.urllib.request, "urlopen", side_effect=err):

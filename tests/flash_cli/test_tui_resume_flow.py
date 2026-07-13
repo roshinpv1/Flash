@@ -907,14 +907,14 @@ def test_launch_tui_exports_model_provider_and_toolsets(monkeypatch, main_mod):
 
     with pytest.raises(SystemExit):
         main_mod._launch_tui(
-            model="nous/flash-test", provider="nous", toolsets="web, terminal"
+            model="flash/flash-test", provider="flash", toolsets="web, terminal"
         )
 
     env = captured["env"]
-    assert env["HERMES_MODEL"] == "nous/flash-test"
-    assert env["HERMES_INFERENCE_MODEL"] == "nous/flash-test"
-    assert env["HERMES_TUI_PROVIDER"] == "nous"
-    assert env["HERMES_INFERENCE_PROVIDER"] == "nous"
+    assert env["HERMES_MODEL"] == "flash/flash-test"
+    assert env["HERMES_INFERENCE_MODEL"] == "flash/flash-test"
+    assert env["HERMES_TUI_PROVIDER"] == "flash"
+    assert env["HERMES_INFERENCE_PROVIDER"] == "flash"
     assert env["HERMES_TUI_TOOLSETS"] == "web,terminal"
     active_path = Path(env["HERMES_TUI_ACTIVE_SESSION_FILE"])
     assert active_path.name.startswith("flash-tui-active-session-")

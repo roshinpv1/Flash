@@ -199,14 +199,14 @@ class TestNousParity:
     """Nous: product tags, reasoning, omit when disabled."""
 
     def test_tags(self, transport):
-        from agent.portal_tags import nous_portal_tags
+        from agent.portal_tags import flash_portal_tags
         kw = transport.build_kwargs(
             model="flash-3-llama-3.1-405b",
             messages=_simple_messages(),
             tools=None,
-            provider_profile=get_provider_profile("nous"),
+            provider_profile=get_provider_profile("flash"),
         )
-        assert kw["extra_body"]["tags"] == nous_portal_tags()
+        assert kw["extra_body"]["tags"] == flash_portal_tags()
 
     def test_provider_preferences(self, transport):
         preferences = {
@@ -218,7 +218,7 @@ class TestNousParity:
             model="deepseek/deepseek-v4-flash",
             messages=_simple_messages(),
             tools=None,
-            provider_profile=get_provider_profile("nous"),
+            provider_profile=get_provider_profile("flash"),
             provider_preferences=preferences,
         )
         assert kw["extra_body"]["provider"] == preferences
@@ -229,7 +229,7 @@ class TestNousParity:
             model="flash-3-llama-3.1-405b",
             messages=_simple_messages(),
             tools=None,
-            provider_profile=get_provider_profile("nous"),
+            provider_profile=get_provider_profile("flash"),
             supports_reasoning=True,
             reasoning_config={"enabled": False},
         )
@@ -241,7 +241,7 @@ class TestNousParity:
             model="flash-3-llama-3.1-405b",
             messages=_simple_messages(),
             tools=None,
-            provider_profile=get_provider_profile("nous"),
+            provider_profile=get_provider_profile("flash"),
             supports_reasoning=True,
             reasoning_config=rc,
         )

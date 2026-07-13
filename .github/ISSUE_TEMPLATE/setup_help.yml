@@ -13,7 +13,7 @@ body:
         - If you're in a chat session, you can use `/debug` instead — it does the same thing
         - Try `flash update` to get the latest version
         - Check the [README troubleshooting section](https://github.com/FlashOrg/flash-agent#troubleshooting)
-        - For general questions, consider the [Nous Research Discord](https://discord.gg/FlashOrg) for faster help
+        - For general questions, consider the [Flash Org Discord](https://discord.gg/FlashOrg) for faster help
 
   - type: textarea
     id: description

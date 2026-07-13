@@ -303,7 +303,7 @@ export default function UserStoriesCollage(): JSX.Element {
         </a>{' '}
         by editing <code>userStories.json</code>, or post it in the{' '}
         <a href="https://discord.gg/FlashOrg" target="_blank" rel="noopener noreferrer">
-          Nous Research Discord
+          Flash Org Discord
         </a>{' '}
         and we&apos;ll pick it up.
       </div>

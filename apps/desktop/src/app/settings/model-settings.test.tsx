@@ -40,12 +40,12 @@ vi.mock('@/store/onboarding', () => ({
 }))
 
 beforeEach(() => {
-  getGlobalModelInfo.mockResolvedValue({ provider: 'nous', model: 'flash-4' })
+  getGlobalModelInfo.mockResolvedValue({ provider: 'flash', model: 'flash-4' })
   getGlobalModelOptions.mockResolvedValue({
     providers: [
       {
         name: 'Nous',
-        slug: 'nous',
+        slug: 'flash',
         models: ['flash-4', 'flash-4-mini'],
         authenticated: true,
         capabilities: { 'flash-4': { reasoning: true, fast: true } }
@@ -53,12 +53,12 @@ beforeEach(() => {
     ]
   })
   getAuxiliaryModels.mockResolvedValue({
-    main: { provider: 'nous', model: 'flash-4' },
+    main: { provider: 'flash', model: 'flash-4' },
     tasks: [{ task: 'vision', provider: 'auto', model: '', base_url: '' }]
   })
   getMoaModels.mockResolvedValue(null)
-  setModelAssignment.mockResolvedValue({ provider: 'nous', model: 'flash-4', gateway_tools: [] })
-  getRecommendedDefaultModel.mockResolvedValue({ provider: 'nous', model: 'flash-4', free_tier: null })
+  setModelAssignment.mockResolvedValue({ provider: 'flash', model: 'flash-4', gateway_tools: [] })
+  getRecommendedDefaultModel.mockResolvedValue({ provider: 'flash', model: 'flash-4', free_tier: null })
   setEnvVar.mockResolvedValue({ ok: true })
   getFlashConfigRecord.mockResolvedValue({ agent: { reasoning_effort: 'medium', service_tier: 'normal' } })
   saveFlashConfig.mockResolvedValue({ ok: true })
@@ -110,7 +110,7 @@ describe('ModelSettings', () => {
       providers: [
         {
           name: 'Nous',
-          slug: 'nous',
+          slug: 'flash',
           models: ['flash-4'],
           authenticated: true,
           capabilities: { 'flash-4': { reasoning: false, fast: false } }
@@ -141,7 +141,7 @@ describe('ModelSettings', () => {
     await waitFor(() =>
       expect(setModelAssignment).toHaveBeenCalledWith({
         model: 'flash-4',
-        provider: 'nous',
+        provider: 'flash',
         scope: 'auxiliary',
         task: 'vision'
       })
@@ -153,7 +153,7 @@ describe('ModelSettings', () => {
       provider: 'openrouter',
       model: 'anthropic/claude-opus-4.7',
       gateway_tools: [],
-      stale_aux: [{ task: 'compression', provider: 'nous', model: 'flash-4' }]
+      stale_aux: [{ task: 'compression', provider: 'flash', model: 'flash-4' }]
     })
 
     await renderModelSettings()
@@ -164,12 +164,12 @@ describe('ModelSettings', () => {
 
     // The switch-time notice names the pinned provider and offers a reset.
     expect(await screen.findByText(/still run on/)).toBeTruthy()
-    expect(screen.getByText('nous')).toBeTruthy()
+    expect(screen.getByText('flash')).toBeTruthy()
   })
 
   it('shows a persistent banner when a loaded aux slot mismatches the main provider', async () => {
     getAuxiliaryModels.mockResolvedValueOnce({
-      main: { provider: 'nous', model: 'flash-4' },
+      main: { provider: 'flash', model: 'flash-4' },
       tasks: [{ task: 'curator', provider: 'openrouter', model: 'anthropic/claude-opus-4.7', base_url: '' }]
     })
 

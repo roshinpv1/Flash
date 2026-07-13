@@ -95,7 +95,7 @@ class TestUnsupportedOAuthDedup:
         from flash_cli.auth import ProviderConfig
 
         # A registered oauth_* provider that is not one of the directly-handled
-        # names (nous / openai-codex / xai-oauth) → the OAuth dead-end branch.
+        # names (flash / openai-codex / xai-oauth) → the OAuth dead-end branch.
         bogus = ProviderConfig(
             id="bogus_oauth",
             name="BogusOAuth",

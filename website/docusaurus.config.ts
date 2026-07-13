@@ -187,11 +187,11 @@ const config: Config = {
           items: [
             { label: 'Desktop Download', href: 'https://flash-agent.flashorg.com/' },
             { label: 'GitHub', href: 'https://github.com/FlashOrg/flash-agent' },
-            { label: 'Nous Research', href: 'https://flashorg.com' },
+            { label: 'Flash Org', href: 'https://flashorg.com' },
           ],
         },
       ],
-      copyright: `Built by <a href="https://flashorg.com">Nous Research</a> · MIT License · ${new Date().getFullYear()}`,
+      copyright: `Built by <a href="https://flashorg.com">Flash Org</a> · MIT License · ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,

@@ -5,7 +5,7 @@ Prior to this check, the warning fired on any model whose name contained
 local Modelfiles such as ``flash-brain:qwen3-14b-ctx16k`` — a tool-capable
 Qwen3 wrapper that happens to live under the "flash" tag namespace.
 
-``is_nous_flash_non_agentic`` should only match the actual Nous Research
+``is_flash_flash_non_agentic`` should only match the actual Flash Org
 Flash-3 / Flash-4 chat family.
 """
 
@@ -16,7 +16,7 @@ import pytest
 from flash_cli.model_switch import (
     _HERMES_MODEL_WARNING,
     _check_flash_model_warning,
-    is_nous_flash_non_agentic,
+    is_flash_flash_non_agentic,
 )
 
 
@@ -36,8 +36,8 @@ from flash_cli.model_switch import (
         "flash-3.1",
     ],
 )
-def test_matches_real_nous_flash_chat_models(model_name: str) -> None:
-    assert is_nous_flash_non_agentic(model_name), (
+def test_matches_real_flash_flash_chat_models(model_name: str) -> None:
+    assert is_flash_flash_non_agentic(model_name), (
         f"expected {model_name!r} to be flagged as Nous Flash 3/4"
     )
     assert _check_flash_model_warning(model_name) == _HERMES_MODEL_WARNING
@@ -63,7 +63,7 @@ def test_matches_real_nous_flash_chat_models(model_name: str) -> None:
         # Non-chat Flash models we don't warn about
         "flash-llm-2",
         "flash2-pro",
-        "nous-flash-2-mistral",
+        "flash-flash-2-mistral",
         # Edge cases
         "",
         "flash",  # bare "flash" isn't the 3/4 family
@@ -72,13 +72,13 @@ def test_matches_real_nous_flash_chat_models(model_name: str) -> None:
     ],
 )
 def test_does_not_match_unrelated_models(model_name: str) -> None:
-    assert not is_nous_flash_non_agentic(model_name), (
+    assert not is_flash_flash_non_agentic(model_name), (
         f"expected {model_name!r} NOT to be flagged as Nous Flash 3/4"
     )
     assert _check_flash_model_warning(model_name) == ""
 
 
 def test_none_like_inputs_are_safe() -> None:
-    assert is_nous_flash_non_agentic("") is False
+    assert is_flash_flash_non_agentic("") is False
     # Defensive: the helper shouldn't crash on None-ish falsy input either.
     assert _check_flash_model_warning("") == ""

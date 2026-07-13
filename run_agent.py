@@ -161,7 +161,7 @@ from agent.prompt_builder import (  # noqa: F401  # re-exported via _ra() / mock
     build_skills_system_prompt,
     build_context_files_prompt,
     build_environment_hints,
-    build_nous_subscription_prompt,
+    build_flash_subscription_prompt,
     load_soul_md,
 )
 from agent.process_bootstrap import _get_proxy_from_env  # noqa: F401
@@ -1394,7 +1394,7 @@ class AIAgent:
         normalized_provider = (provider or "").strip().lower()
         # Nous serves GPT-5.x models via its OpenAI-compatible chat
         # completions endpoint; its /v1/responses endpoint returns 404.
-        if normalized_provider == "nous":
+        if normalized_provider == "flash":
             return False
         if normalized_provider == "custom":
             # Generic custom endpoints are conservative by default. They may
@@ -3122,7 +3122,7 @@ class AIAgent:
         return self._rate_limit_state
 
     def _capture_credits(self, http_response: Any) -> None:
-        """Parse x-nous-credits-* headers, cache CreditsState, fire threshold notices.
+        """Parse x-flash-credits-* headers, cache CreditsState, fire threshold notices.
 
         Fail-open throughout — header issues never break the agent loop. The PARSE is
         swallowed (any error → treated as a miss → keep last-known). The notice
@@ -3171,7 +3171,7 @@ class AIAgent:
         if state is None:
             if _dev:
                 logger.info(
-                    "credits ▸ response had no valid x-nous-credits-* headers "
+                    "credits ▸ response had no valid x-flash-credits-* headers "
                     "(miss — producer off / non-Nous path / >TTL stale)"
                 )
             return
@@ -4261,18 +4261,18 @@ class AIAgent:
 
         return True
 
-    def _try_refresh_nous_client_credentials(
+    def _try_refresh_flash_client_credentials(
         self,
         *,
         force: bool = True,
     ) -> bool:
-        if self.api_mode != "chat_completions" or self.provider != "nous":
+        if self.api_mode != "chat_completions" or self.provider != "flash":
             return False
 
         try:
-            from flash_cli.auth import resolve_nous_runtime_credentials
+            from flash_cli.auth import resolve_flash_runtime_credentials
 
-            creds = resolve_nous_runtime_credentials(
+            creds = resolve_flash_runtime_credentials(
                 timeout_seconds=env_float("HERMES_NOUS_TIMEOUT_SECONDS", 15),
                 force_refresh=force,
             )
@@ -4294,7 +4294,7 @@ class AIAgent:
         # Nous requests should not inherit OpenRouter-only attribution headers.
         self._client_kwargs.pop("default_headers", None)
 
-        if not self._replace_primary_openai_client(reason="nous_credential_refresh"):
+        if not self._replace_primary_openai_client(reason="flash_credential_refresh"):
             return False
 
         return True
@@ -5710,7 +5710,7 @@ class AIAgent:
         # a single task and a fan-out batch (each task becomes its own
         # independent background subagent). The one exception:
         #   - A delegation from an ORCHESTRATOR SUBAGENT (depth > 0) stays
-        #     synchronous: the orchestrator needs its workers' results within
+        #     synchroflash: the orchestrator needs its workers' results within
         #     its own turn to compose a summary, and a subagent doesn't own the
         #     gateway session the async result would route back to.
         # The schema-level `background` param is intentionally ignored here.

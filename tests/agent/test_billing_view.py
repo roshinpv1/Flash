@@ -31,8 +31,8 @@ from agent.billing_view import (
     parse_money,
     validate_charge_amount,
 )
-import flash_cli.nous_billing as nb
-from flash_cli.nous_billing import (
+import flash_cli.flash_billing as nb
+from flash_cli.flash_billing import (
     BillingAuthError,
     BillingError,
     BillingRateLimited,

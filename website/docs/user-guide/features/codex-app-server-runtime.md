@@ -10,7 +10,7 @@ Flash can optionally hand `openai/*` and `openai-codex/*` turns to the [Codex CL
 This is **opt-in only**. Default Flash behavior is unchanged unless you flip the flag. Flash never auto-routes you onto this runtime.
 
 :::tip
-Not using OpenAI Codex? `flash setup --portal` configures a non-Codex backend with Claude/Gemini/etc. in one step. See [Nous Portal](/integrations/nous-portal).
+Not using OpenAI Codex? `flash setup --portal` configures a non-Codex backend with Claude/Gemini/etc. in one step. See [Nous Portal](/integrations/flash-portal).
 :::
 
 ## Why

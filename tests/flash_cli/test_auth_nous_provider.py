@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from flash_cli.auth import AuthError, get_provider_auth_state, resolve_nous_runtime_credentials
+from flash_cli.auth import AuthError, get_provider_auth_state, resolve_flash_runtime_credentials
 
 
 # =============================================================================
@@ -123,7 +123,7 @@ class TestResolveVerifyFallback:
         )
 
 
-def _setup_nous_auth(
+def _setup_flash_auth(
     flash_home: Path,
     *,
     access_token: str = "",
@@ -138,9 +138,9 @@ def _setup_nous_auth(
     flash_home.mkdir(parents=True, exist_ok=True)
     auth_store = {
         "version": 1,
-        "active_provider": "nous",
+        "active_provider": "flash",
         "providers": {
-            "nous": {
+            "flash": {
                 "portal_base_url": "https://portal.example.com",
                 "inference_base_url": "https://inference.example.com/v1",
                 "client_id": "flash-cli",
@@ -183,7 +183,7 @@ def _invoke_jwt(*, seconds: int = 3600, scope: object = "inference:invoke") -> s
     })
 
 
-def test_resolve_nous_runtime_credentials_prefers_invoke_jwt_and_mirrors(
+def test_resolve_flash_runtime_credentials_prefers_invoke_jwt_and_mirrors(
     tmp_path,
     monkeypatch,
 ):
@@ -191,7 +191,7 @@ def test_resolve_nous_runtime_credentials_prefers_invoke_jwt_and_mirrors(
 
     flash_home = tmp_path / "flash"
     token = _invoke_jwt(seconds=3600)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         scope=auth_mod.DEFAULT_NOUS_SCOPE,
@@ -200,24 +200,24 @@ def test_resolve_nous_runtime_credentials_prefers_invoke_jwt_and_mirrors(
     )
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == token
     assert creds["source"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
     assert creds["auth_path"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
 
     payload = json.loads((flash_home / "auth.json").read_text())
-    singleton = payload["providers"]["nous"]
+    singleton = payload["providers"]["flash"]
     assert singleton["agent_key"] == token
     assert datetime.fromisoformat(singleton["agent_key_expires_at"]).timestamp() > time.time() + 300
 
-    pool_entries = payload["credential_pool"]["nous"]
+    pool_entries = payload["credential_pool"]["flash"]
     assert len(pool_entries) == 1
     assert pool_entries[0]["agent_key"] == token
     assert pool_entries[0]["source"] == auth_mod.NOUS_DEVICE_CODE_SOURCE
 
 
-def test_resolve_nous_runtime_credentials_env_override_wins_live_not_persisted(
+def test_resolve_flash_runtime_credentials_env_override_wins_live_not_persisted(
     tmp_path,
     monkeypatch,
     shared_store_env,
@@ -236,7 +236,7 @@ def test_resolve_nous_runtime_credentials_env_override_wins_live_not_persisted(
     override_url = "https://ai.wildebeest-newton.ts.net/v1"
     network_url = "https://inference-api.flashorg.com/v1"
     refreshed_token = _invoke_jwt(seconds=3600)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=_invoke_jwt(seconds=-60),
         refresh_token="refresh-old",
@@ -258,7 +258,7 @@ def test_resolve_nous_runtime_credentials_env_override_wins_live_not_persisted(
 
     monkeypatch.setattr("flash_cli.auth._refresh_access_token", _fake_refresh_access_token)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     # The env override wins for the LIVE returned base_url...
     assert creds["base_url"] == override_url
@@ -266,15 +266,15 @@ def test_resolve_nous_runtime_credentials_env_override_wins_live_not_persisted(
     # ...but it is deliberately NOT persisted: every durable store keeps the
     # network-validated URL, so the ephemeral override can't poison auth.json.
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload["providers"]["nous"]["inference_base_url"] == network_url
-    assert payload["providers"]["nous"]["inference_base_url"] != override_url
-    assert payload["credential_pool"]["nous"][0]["inference_base_url"] == network_url
+    assert payload["providers"]["flash"]["inference_base_url"] == network_url
+    assert payload["providers"]["flash"]["inference_base_url"] != override_url
+    assert payload["credential_pool"]["flash"][0]["inference_base_url"] == network_url
 
-    shared_payload = json.loads((shared_store_env / "nous_auth.json").read_text())
+    shared_payload = json.loads((shared_store_env / "flash_auth.json").read_text())
     assert shared_payload["inference_base_url"] == network_url
 
 
-def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
+def test_resolve_flash_runtime_credentials_invoke_jwt_is_idempotent(
     tmp_path,
     monkeypatch,
 ):
@@ -292,9 +292,9 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
     original_obtained_at = "2026-04-17T22:00:10+00:00"
     auth_store = {
         "version": 1,
-        "active_provider": "nous",
+        "active_provider": "flash",
         "providers": {
-            "nous": {
+            "flash": {
                 "portal_base_url": "https://portal.flashorg.com",
                 "inference_base_url": "https://inference-api.flashorg.com/v1",
                 "client_id": "flash-cli",
@@ -326,14 +326,14 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
 
     sync_calls = []
 
-    monkeypatch.setattr(auth_mod, "_write_shared_nous_state", _unexpected_shared_write)
+    monkeypatch.setattr(auth_mod, "_write_shared_flash_state", _unexpected_shared_write)
     monkeypatch.setattr(
         auth_mod,
-        "_sync_nous_pool_from_auth_store",
+        "_sync_flash_pool_from_auth_store",
         lambda: sync_calls.append(True),
     )
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == token
     assert creds["source"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
@@ -342,12 +342,12 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
     assert sync_calls == []
     payload = json.loads(auth_path.read_text())
     assert (
-        payload["providers"]["nous"]["agent_key_obtained_at"]
+        payload["providers"]["flash"]["agent_key_obtained_at"]
         == original_obtained_at
     )
 
 
-def test_resolve_nous_runtime_credentials_trusts_invoke_jwt_exp_over_stale_metadata(
+def test_resolve_flash_runtime_credentials_trusts_invoke_jwt_exp_over_stale_metadata(
     tmp_path,
     monkeypatch,
 ):
@@ -355,7 +355,7 @@ def test_resolve_nous_runtime_credentials_trusts_invoke_jwt_exp_over_stale_metad
 
     flash_home = tmp_path / "flash"
     token = _invoke_jwt(seconds=3600)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         scope=auth_mod.DEFAULT_NOUS_SCOPE,
@@ -371,18 +371,18 @@ def test_resolve_nous_runtime_credentials_trusts_invoke_jwt_exp_over_stale_metad
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _unexpected_refresh)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == token
     assert creds["source"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
     payload = json.loads((flash_home / "auth.json").read_text())
-    singleton = payload["providers"]["nous"]
+    singleton = payload["providers"]["flash"]
     assert singleton["agent_key"] == token
     assert datetime.fromisoformat(singleton["expires_at"]).timestamp() > time.time() + 300
     assert datetime.fromisoformat(singleton["agent_key_expires_at"]).timestamp() > time.time() + 300
 
 
-def test_resolve_nous_runtime_credentials_does_not_apply_agent_key_ttl_to_invoke_jwt(
+def test_resolve_flash_runtime_credentials_does_not_apply_agent_key_ttl_to_invoke_jwt(
     tmp_path,
     monkeypatch,
 ):
@@ -390,7 +390,7 @@ def test_resolve_nous_runtime_credentials_does_not_apply_agent_key_ttl_to_invoke
 
     flash_home = tmp_path / "flash"
     token = _invoke_jwt(seconds=900)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         scope=auth_mod.DEFAULT_NOUS_SCOPE,
@@ -399,16 +399,16 @@ def test_resolve_nous_runtime_credentials_does_not_apply_agent_key_ttl_to_invoke
     )
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == token
     assert creds["source"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload["providers"]["nous"]["agent_key"] == token
-    assert payload["credential_pool"]["nous"][0]["agent_key"] == token
+    assert payload["providers"]["flash"]["agent_key"] == token
+    assert payload["credential_pool"]["flash"][0]["agent_key"] == token
 
 
-def test_resolve_nous_runtime_credentials_refreshes_legacy_agent_key_to_invoke_jwt(
+def test_resolve_flash_runtime_credentials_refreshes_legacy_agent_key_to_invoke_jwt(
     tmp_path,
     monkeypatch,
 ):
@@ -416,7 +416,7 @@ def test_resolve_nous_runtime_credentials_refreshes_legacy_agent_key_to_invoke_j
 
     flash_home = tmp_path / "flash"
     refreshed_token = _invoke_jwt(seconds=3600)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token="legacy-access-token",
         refresh_token="refresh-old",
@@ -443,21 +443,21 @@ def test_resolve_nous_runtime_credentials_refreshes_legacy_agent_key_to_invoke_j
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert refresh_calls == ["refresh-old"]
     assert creds["api_key"] == refreshed_token
     assert creds["source"] == auth_mod.NOUS_AUTH_PATH_INVOKE_JWT
     payload = json.loads((flash_home / "auth.json").read_text())
-    singleton = payload["providers"]["nous"]
+    singleton = payload["providers"]["flash"]
     assert singleton["access_token"] == refreshed_token
     assert singleton["refresh_token"] == "refresh-new"
     assert singleton["agent_key"] == refreshed_token
     assert singleton["agent_key_id"] is None
-    assert payload["credential_pool"]["nous"][0]["agent_key"] == refreshed_token
+    assert payload["credential_pool"]["flash"][0]["agent_key"] == refreshed_token
 
 
-def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
+def test_resolve_flash_runtime_credentials_reauths_when_invoke_scope_missing(
     tmp_path,
     monkeypatch,
 ):
@@ -469,7 +469,7 @@ def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
         "scope": "inference:mint_agent_key",
         "exp": int(time.time() + 3600),
     })
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         refresh_token="",
@@ -480,16 +480,16 @@ def test_resolve_nous_runtime_credentials_reauths_when_invoke_scope_missing(
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     with pytest.raises(AuthError) as exc:
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
 
     assert exc.value.code == "missing_inference_invoke_scope"
     assert exc.value.relogin_required is True
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload["providers"]["nous"]["agent_key"] is None
-    assert "credential_pool" not in payload or not payload["credential_pool"].get("nous")
+    assert payload["providers"]["flash"]["agent_key"] is None
+    assert "credential_pool" not in payload or not payload["credential_pool"].get("flash")
 
 
-def test_nous_device_code_login_does_not_retry_legacy_scope_when_invoke_refused(monkeypatch):
+def test_flash_device_code_login_does_not_retry_legacy_scope_when_invoke_refused(monkeypatch):
     import flash_cli.auth as auth_mod
 
     scopes = []
@@ -511,7 +511,7 @@ def test_nous_device_code_login_does_not_retry_legacy_scope_when_invoke_refused(
     monkeypatch.setattr(auth_mod, "_request_device_code", _fake_request_device_code)
 
     with pytest.raises(httpx.HTTPStatusError):
-        auth_mod._nous_device_code_login(
+        auth_mod._flash_device_code_login(
             portal_base_url="https://portal.example.com",
             inference_base_url="https://inference.example.com/v1",
             open_browser=False,
@@ -526,7 +526,7 @@ def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monke
 
     flash_home = tmp_path / "flash"
     token = _invoke_jwt(seconds=3600)
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         scope=auth_mod.DEFAULT_NOUS_SCOPE,
@@ -536,11 +536,11 @@ def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monke
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setenv("HERMES_AGENT_USE_LEGACY_SESSION_KEYS", "true")
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == token
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload["providers"]["nous"]["agent_key"] == token
+    assert payload["providers"]["flash"]["agent_key"] == token
 
     requested_scopes = []
     login_token = _invoke_jwt(seconds=3600)
@@ -569,7 +569,7 @@ def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monke
     monkeypatch.setattr(auth_mod, "_request_device_code", _fake_request_device_code)
     monkeypatch.setattr(auth_mod, "_poll_for_token", _fake_poll_for_token)
 
-    result = auth_mod._nous_device_code_login(
+    result = auth_mod._flash_device_code_login(
         portal_base_url="https://portal.example.com",
         inference_base_url="https://inference.example.com/v1",
         open_browser=False,
@@ -580,7 +580,7 @@ def test_removed_legacy_session_env_var_does_not_change_jwt_auth(tmp_path, monke
     assert result["agent_key"] == login_token
 
 
-def test_nous_inference_auth_logs_do_not_include_secret_values(
+def test_flash_inference_auth_logs_do_not_include_secret_values(
     tmp_path,
     monkeypatch,
     caplog,
@@ -591,7 +591,7 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
     token = _invoke_jwt(seconds=3600)
     refreshed_token = _invoke_jwt(seconds=7200)
     refresh_token = "refresh-secret-token"
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token=token,
         refresh_token=refresh_token,
@@ -614,7 +614,7 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
     caplog.set_level(logging.INFO, logger="flash_cli.auth")
-    auth_mod.resolve_nous_runtime_credentials(
+    auth_mod.resolve_flash_runtime_credentials(
         force_refresh=True,
     )
 
@@ -625,13 +625,13 @@ def test_nous_inference_auth_logs_do_not_include_secret_values(
     assert refresh_token not in logged
 
 
-def test_get_nous_auth_status_checks_credential_pool(tmp_path, monkeypatch):
-    """get_nous_auth_status() should find Nous credentials in the pool
+def test_get_flash_auth_status_checks_credential_pool(tmp_path, monkeypatch):
+    """get_flash_auth_status() should find Nous credentials in the pool
     even when the auth store has no Nous provider entry — this is the
     case when login happened via the dashboard device-code flow which
     saves to the pool only.
     """
-    from flash_cli.auth import get_nous_auth_status
+    from flash_cli.auth import get_flash_auth_status
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -643,10 +643,10 @@ def test_get_nous_auth_status_checks_credential_pool(tmp_path, monkeypatch):
 
     # Seed the credential pool with a Nous entry
     from agent.credential_pool import PooledCredential, load_pool
-    pool = load_pool("nous")
+    pool = load_pool("flash")
     token = _invoke_jwt(seconds=3600)
     expires_at = _future_iso(3600)
-    entry = PooledCredential.from_dict("nous", {
+    entry = PooledCredential.from_dict("flash", {
         "access_token": token,
         "refresh_token": "test-refresh-token",
         "portal_base_url": "https://portal.example.com",
@@ -661,13 +661,13 @@ def test_get_nous_auth_status_checks_credential_pool(tmp_path, monkeypatch):
     })
     pool.add_entry(entry)
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
     assert status["logged_in"] is True
     assert "example.com" in str(status.get("portal_base_url", ""))
 
 
-def test_get_nous_auth_status_pool_opaque_key_is_not_inference_credential(tmp_path, monkeypatch):
-    from flash_cli.auth import get_nous_auth_status, invalidate_nous_auth_status_cache
+def test_get_flash_auth_status_pool_opaque_key_is_not_inference_credential(tmp_path, monkeypatch):
+    from flash_cli.auth import get_flash_auth_status, invalidate_flash_auth_status_cache
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -675,11 +675,11 @@ def test_get_nous_auth_status_pool_opaque_key_is_not_inference_credential(tmp_pa
         "version": 1, "providers": {},
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
-    invalidate_nous_auth_status_cache()
+    invalidate_flash_auth_status_cache()
 
     from agent.credential_pool import PooledCredential, load_pool
-    pool = load_pool("nous")
-    entry = PooledCredential.from_dict("nous", {
+    pool = load_pool("flash")
+    entry = PooledCredential.from_dict("flash", {
         "access_token": "",
         "agent_key": "opaque-agent-key",
         "agent_key_expires_at": "2099-01-01T00:00:00+00:00",
@@ -691,7 +691,7 @@ def test_get_nous_auth_status_pool_opaque_key_is_not_inference_credential(tmp_pa
     })
     pool.add_entry(entry)
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
 
     assert status["logged_in"] is False
     assert status["inference_credential_present"] is False
@@ -699,20 +699,20 @@ def test_get_nous_auth_status_pool_opaque_key_is_not_inference_credential(tmp_pa
     assert status.get("access_token") is None
     assert status.get("portal_base_url") is None
     assert status.get("inference_base_url") is None
-    invalidate_nous_auth_status_cache()
+    invalidate_flash_auth_status_cache()
 
 
-def test_get_nous_auth_status_auth_store_fallback(tmp_path, monkeypatch):
-    """get_nous_auth_status() falls back to auth store when credential
+def test_get_flash_auth_status_auth_store_fallback(tmp_path, monkeypatch):
+    """get_flash_auth_status() falls back to auth store when credential
     pool is empty.
     """
-    from flash_cli.auth import get_nous_auth_status
+    from flash_cli.auth import get_flash_auth_status
 
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(flash_home, access_token="at-123")
+    _setup_flash_auth(flash_home, access_token="at-123")
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
     monkeypatch.setattr(
-        "flash_cli.auth.resolve_nous_runtime_credentials",
+        "flash_cli.auth.resolve_flash_runtime_credentials",
         lambda **kwargs: {
             "base_url": "https://inference.example.com/v1",
             "expires_at": "2099-01-01T00:00:00+00:00",
@@ -721,21 +721,21 @@ def test_get_nous_auth_status_auth_store_fallback(tmp_path, monkeypatch):
         },
     )
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
     assert status["logged_in"] is True
     assert status["portal_base_url"] == "https://portal.example.com"
 
 
-def test_get_nous_auth_status_prefers_runtime_auth_store_over_stale_pool(tmp_path, monkeypatch):
-    from flash_cli.auth import get_nous_auth_status
+def test_get_flash_auth_status_prefers_runtime_auth_store_over_stale_pool(tmp_path, monkeypatch):
+    from flash_cli.auth import get_flash_auth_status
     from agent.credential_pool import PooledCredential, load_pool
 
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(flash_home, access_token="at-fresh")
+    _setup_flash_auth(flash_home, access_token="at-fresh")
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    pool = load_pool("nous")
-    stale = PooledCredential.from_dict("nous", {
+    pool = load_pool("flash")
+    stale = PooledCredential.from_dict("flash", {
         "access_token": "at-stale",
         "refresh_token": "rt-stale",
         "portal_base_url": "https://portal.stale.example.com",
@@ -752,7 +752,7 @@ def test_get_nous_auth_status_prefers_runtime_auth_store_over_stale_pool(tmp_pat
     pool.add_entry(stale)
 
     monkeypatch.setattr(
-        "flash_cli.auth.resolve_nous_runtime_credentials",
+        "flash_cli.auth.resolve_flash_runtime_credentials",
         lambda **kwargs: {
             "base_url": "https://inference.example.com/v1",
             "expires_at": "2099-01-01T00:00:00+00:00",
@@ -761,37 +761,37 @@ def test_get_nous_auth_status_prefers_runtime_auth_store_over_stale_pool(tmp_pat
         },
     )
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
     assert status["logged_in"] is True
     assert status["portal_base_url"] == "https://portal.example.com"
     assert status["inference_base_url"] == "https://inference.example.com/v1"
     assert status["source"] == "runtime:portal"
 
 
-def test_get_nous_auth_status_reports_revoked_refresh_session(tmp_path, monkeypatch):
-    from flash_cli.auth import get_nous_auth_status
+def test_get_flash_auth_status_reports_revoked_refresh_session(tmp_path, monkeypatch):
+    from flash_cli.auth import get_flash_auth_status
 
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(flash_home, access_token="at-123")
+    _setup_flash_auth(flash_home, access_token="at-123")
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     def _boom(**kwargs):
-        raise AuthError("Refresh session has been revoked", provider="nous", relogin_required=True)
+        raise AuthError("Refresh session has been revoked", provider="flash", relogin_required=True)
 
-    monkeypatch.setattr("flash_cli.auth.resolve_nous_runtime_credentials", _boom)
+    monkeypatch.setattr("flash_cli.auth.resolve_flash_runtime_credentials", _boom)
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
     assert status["logged_in"] is False
     assert status["relogin_required"] is True
     assert "revoked" in status["error"].lower()
     assert status["portal_base_url"] == "https://portal.example.com"
 
 
-def test_get_nous_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch):
-    """get_nous_auth_status() returns logged_in=False when both pool
+def test_get_flash_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch):
+    """get_flash_auth_status() returns logged_in=False when both pool
     and auth store are empty.
     """
-    from flash_cli.auth import get_nous_auth_status
+    from flash_cli.auth import get_flash_auth_status
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -800,13 +800,13 @@ def test_get_nous_auth_status_empty_returns_not_logged_in(tmp_path, monkeypatch)
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    status = get_nous_auth_status()
+    status = get_flash_auth_status()
     assert status["logged_in"] is False
 
 
 def test_refresh_token_persisted_when_refreshed_jwt_lacks_invoke_scope(tmp_path, monkeypatch):
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token="access-old",
         refresh_token="refresh-old",
@@ -838,22 +838,22 @@ def test_refresh_token_persisted_when_refreshed_jwt_lacks_invoke_scope(tmp_path,
     monkeypatch.setattr("flash_cli.auth._refresh_access_token", _fake_refresh_access_token)
 
     with pytest.raises(AuthError) as exc:
-        resolve_nous_runtime_credentials()
+        resolve_flash_runtime_credentials()
     assert exc.value.code == "missing_inference_invoke_scope"
 
-    state_after_failure = get_provider_auth_state("nous")
+    state_after_failure = get_provider_auth_state("flash")
     assert state_after_failure is not None
     assert state_after_failure["refresh_token"] == "refresh-1"
     assert state_after_failure["access_token"] == bad_jwt
 
-    creds = resolve_nous_runtime_credentials()
+    creds = resolve_flash_runtime_credentials()
     assert creds["api_key"] == good_jwt
     assert refresh_calls == ["refresh-old", "refresh-1"]
 
 
 def test_refresh_token_persisted_when_refreshed_token_is_not_jwt(tmp_path, monkeypatch):
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token="access-old",
         refresh_token="refresh-old",
@@ -871,10 +871,10 @@ def test_refresh_token_persisted_when_refreshed_token_is_not_jwt(tmp_path, monke
     monkeypatch.setattr("flash_cli.auth._refresh_access_token", _fake_refresh_access_token)
 
     with pytest.raises(AuthError) as exc:
-        resolve_nous_runtime_credentials()
+        resolve_flash_runtime_credentials()
     assert exc.value.code == "access_token_not_jwt"
 
-    state_after_failure = get_provider_auth_state("nous")
+    state_after_failure = get_provider_auth_state("flash")
     assert state_after_failure is not None
     assert state_after_failure["refresh_token"] == "refresh-1"
     assert state_after_failure["access_token"] == "access-1"
@@ -887,7 +887,7 @@ def test_terminal_refresh_failure_quarantines_tokens(
     from flash_cli import auth as auth_mod
 
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token="access-old",
         refresh_token="refresh-old",
@@ -895,13 +895,13 @@ def test_terminal_refresh_failure_quarantines_tokens(
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
     from agent.credential_pool import load_pool
 
-    assert load_pool("nous").select() is not None
+    assert load_pool("flash").select() is not None
 
     shared_state = _full_state_fixture()
     shared_state["access_token"] = "access-old"
     shared_state["refresh_token"] = "refresh-old"
     shared_state["expires_at"] = "2026-02-01T00:00:00+00:00"
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     refresh_calls: list[str] = []
 
@@ -909,7 +909,7 @@ def test_terminal_refresh_failure_quarantines_tokens(
         refresh_calls.append(refresh_token)
         raise AuthError(
             "Refresh session has been revoked",
-            provider="nous",
+            provider="flash",
             code="invalid_grant",
             relogin_required=True,
         )
@@ -917,20 +917,20 @@ def test_terminal_refresh_failure_quarantines_tokens(
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _terminal_refresh_failure)
 
     with pytest.raises(AuthError, match="Refresh session has been revoked"):
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
 
-    state_after_failure = auth_mod.get_provider_auth_state("nous")
+    state_after_failure = auth_mod.get_provider_auth_state("flash")
     assert state_after_failure is not None
     assert not state_after_failure.get("refresh_token")
     assert not state_after_failure.get("access_token")
     assert not state_after_failure.get("agent_key")
     assert state_after_failure["last_auth_error"]["code"] == "invalid_grant"
-    assert auth_mod._read_shared_nous_state() is None
+    assert auth_mod._read_shared_flash_state() is None
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload.get("credential_pool", {}).get("nous") == []
+    assert payload.get("credential_pool", {}).get("flash") == []
 
     with pytest.raises(AuthError, match="No access token found"):
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
 
     assert refresh_calls == ["refresh-old"]
 
@@ -941,11 +941,11 @@ def test_managed_access_token_refresh_failure_quarantines_tokens(
     from flash_cli import auth as auth_mod
 
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(flash_home, refresh_token="refresh-old")
+    _setup_flash_auth(flash_home, refresh_token="refresh-old")
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
     from agent.credential_pool import load_pool
 
-    assert load_pool("nous").select() is not None
+    assert load_pool("flash").select() is not None
 
     refresh_calls: list[str] = []
 
@@ -953,7 +953,7 @@ def test_managed_access_token_refresh_failure_quarantines_tokens(
         refresh_calls.append(refresh_token)
         raise AuthError(
             "Invalid refresh token",
-            provider="nous",
+            provider="flash",
             code="invalid_grant",
             relogin_required=True,
         )
@@ -961,25 +961,25 @@ def test_managed_access_token_refresh_failure_quarantines_tokens(
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _terminal_refresh_failure)
 
     with pytest.raises(AuthError, match="Invalid refresh token"):
-        auth_mod.resolve_nous_access_token()
+        auth_mod.resolve_flash_access_token()
 
-    state_after_failure = auth_mod.get_provider_auth_state("nous")
+    state_after_failure = auth_mod.get_provider_auth_state("flash")
     assert state_after_failure is not None
     assert not state_after_failure.get("refresh_token")
     assert not state_after_failure.get("access_token")
     assert state_after_failure["last_auth_error"]["message"] == "Invalid refresh token"
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload.get("credential_pool", {}).get("nous") == []
+    assert payload.get("credential_pool", {}).get("flash") == []
 
     with pytest.raises(AuthError, match="No access token found"):
-        auth_mod.resolve_nous_access_token()
+        auth_mod.resolve_flash_access_token()
 
     assert refresh_calls == ["refresh-old"]
 
 
 def test_unusable_access_token_refresh_uses_latest_rotated_refresh_token(tmp_path, monkeypatch):
     flash_home = tmp_path / "flash"
-    _setup_nous_auth(
+    _setup_flash_auth(
         flash_home,
         access_token="access-old",
         refresh_token="refresh-old",
@@ -1003,15 +1003,15 @@ def test_unusable_access_token_refresh_uses_latest_rotated_refresh_token(tmp_pat
     monkeypatch.setattr("flash_cli.auth._refresh_access_token", _fake_refresh_access_token)
 
     with pytest.raises(AuthError) as exc:
-        resolve_nous_runtime_credentials()
+        resolve_flash_runtime_credentials()
     assert exc.value.code == "access_token_not_jwt"
-    creds = resolve_nous_runtime_credentials()
+    creds = resolve_flash_runtime_credentials()
     assert creds["api_key"] == good_jwt
     assert refresh_calls == ["refresh-old", "refresh-1"]
 
 
 # =============================================================================
-# _login_nous: "Skip (keep current)" must preserve prior provider + model
+# _login_flash: "Skip (keep current)" must preserve prior provider + model
 # =============================================================================
 
 
@@ -1020,7 +1020,7 @@ class TestLoginNousSkipKeepsCurrent:
     a successful OAuth login, the prior provider and model MUST be preserved.
 
     Regression: previously, _update_config_for_provider was called
-    unconditionally after login, which flipped model.provider to "nous" while
+    unconditionally after login, which flipped model.provider to "flash" while
     keeping the old model.default (e.g. anthropic/claude-opus-4.6 from
     OpenRouter), leaving the user with a mismatched provider/model pair.
     """
@@ -1048,13 +1048,13 @@ class TestLoginNousSkipKeepsCurrent:
         return flash_home, config_path, auth_path
 
     def _patch_login_internals(self, monkeypatch, *, prompt_returns):
-        """Patch OAuth + model-list + prompt so _login_nous doesn't hit network."""
+        """Patch OAuth + model-list + prompt so _login_flash doesn't hit network."""
         import flash_cli.auth as auth_mod
         import flash_cli.models as models_mod
-        import flash_cli.nous_subscription as ns
+        import flash_cli.flash_subscription as ns
 
         fake_auth_state = {
-            "access_token": "fake-nous-token",
+            "access_token": "fake-flash-token",
             "agent_key": "fake-agent-key",
             "inference_base_url": "https://inference-api.flashorg.com",
             "portal_base_url": "https://portal.flashorg.com",
@@ -1062,7 +1062,7 @@ class TestLoginNousSkipKeepsCurrent:
             "token_expires_at": 9999999999,
         }
         monkeypatch.setattr(
-            auth_mod, "_nous_device_code_login",
+            auth_mod, "_flash_device_code_login",
             lambda **kwargs: dict(fake_auth_state),
         )
         monkeypatch.setattr(
@@ -1072,13 +1072,13 @@ class TestLoginNousSkipKeepsCurrent:
         monkeypatch.setattr(models_mod, "get_pricing_for_provider", lambda p: {})
         free_tier_calls = []
 
-        def _check_nous_free_tier(**kwargs):
+        def _check_flash_free_tier(**kwargs):
             free_tier_calls.append(kwargs)
             return None
 
-        monkeypatch.setattr(models_mod, "check_nous_free_tier", _check_nous_free_tier)
+        monkeypatch.setattr(models_mod, "check_flash_free_tier", _check_flash_free_tier)
         monkeypatch.setattr(
-            models_mod, "partition_nous_models_by_tier",
+            models_mod, "partition_flash_models_by_tier",
             lambda ids, p, free_tier=False: (ids, []),
         )
         monkeypatch.setattr(ns, "prompt_enable_tool_gateway", lambda cfg: None)
@@ -1088,7 +1088,7 @@ class TestLoginNousSkipKeepsCurrent:
         """User picks Skip → config.yaml untouched, Nous creds still saved."""
         import argparse
         import yaml
-        from flash_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from flash_cli.auth import PROVIDER_REGISTRY, _login_flash
 
         flash_home, config_path, auth_path = self._setup_home_with_openrouter(
             tmp_path, monkeypatch,
@@ -1099,7 +1099,7 @@ class TestLoginNousSkipKeepsCurrent:
             portal_url=None, inference_url=None, client_id=None, scope=None,
             no_browser=True, timeout=15.0, ca_bundle=None, insecure=False,
         )
-        _login_nous(args, PROVIDER_REGISTRY["nous"])
+        _login_flash(args, PROVIDER_REGISTRY["flash"])
 
         # config.yaml model section must be unchanged
         cfg_after = yaml.safe_load(config_path.read_text())
@@ -1110,16 +1110,16 @@ class TestLoginNousSkipKeepsCurrent:
         # auth.json: active_provider restored to openrouter, but Nous creds saved
         auth_after = json.loads(auth_path.read_text())
         assert auth_after["active_provider"] == "openrouter"
-        assert "nous" in auth_after["providers"]
-        assert auth_after["providers"]["nous"]["access_token"] == "fake-nous-token"
+        assert "flash" in auth_after["providers"]
+        assert auth_after["providers"]["flash"]["access_token"] == "fake-flash-token"
         # Existing openrouter creds still intact
         assert auth_after["providers"]["openrouter"]["api_key"] == "sk-or-fake"
 
-    def test_picking_model_switches_to_nous(self, tmp_path, monkeypatch):
-        """User picks a Nous model → provider flips to nous with that model."""
+    def test_picking_model_switches_to_flash(self, tmp_path, monkeypatch):
+        """User picks a Nous model → provider flips to flash with that model."""
         import argparse
         import yaml
-        from flash_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from flash_cli.auth import PROVIDER_REGISTRY, _login_flash
 
         flash_home, config_path, auth_path = self._setup_home_with_openrouter(
             tmp_path, monkeypatch,
@@ -1132,22 +1132,22 @@ class TestLoginNousSkipKeepsCurrent:
             portal_url=None, inference_url=None, client_id=None, scope=None,
             no_browser=True, timeout=15.0, ca_bundle=None, insecure=False,
         )
-        _login_nous(args, PROVIDER_REGISTRY["nous"])
+        _login_flash(args, PROVIDER_REGISTRY["flash"])
 
         cfg_after = yaml.safe_load(config_path.read_text())
-        assert cfg_after["model"]["provider"] == "nous"
+        assert cfg_after["model"]["provider"] == "flash"
         assert cfg_after["model"]["default"] == "xiaomi/mimo-v2-pro"
         assert free_tier_calls == [{"force_fresh": True}]
 
         auth_after = json.loads(auth_path.read_text())
-        assert auth_after["active_provider"] == "nous"
+        assert auth_after["active_provider"] == "flash"
 
     def test_skip_with_no_prior_active_provider_clears_it(self, tmp_path, monkeypatch):
         """Fresh install (no prior active_provider) → Skip clears active_provider
-        instead of leaving it as nous."""
+        instead of leaving it as flash."""
         import argparse
         import yaml
-        from flash_cli.auth import PROVIDER_REGISTRY, _login_nous
+        from flash_cli.auth import PROVIDER_REGISTRY, _login_flash
 
         flash_home = tmp_path / "flash"
         flash_home.mkdir(parents=True, exist_ok=True)
@@ -1163,24 +1163,24 @@ class TestLoginNousSkipKeepsCurrent:
             portal_url=None, inference_url=None, client_id=None, scope=None,
             no_browser=True, timeout=15.0, ca_bundle=None, insecure=False,
         )
-        _login_nous(args, PROVIDER_REGISTRY["nous"])
+        _login_flash(args, PROVIDER_REGISTRY["flash"])
 
         auth_path = flash_home / "auth.json"
         auth_after = json.loads(auth_path.read_text())
-        # active_provider should NOT be set to "nous" after Skip
+        # active_provider should NOT be set to "flash" after Skip
         assert auth_after.get("active_provider") in {None, ""}
         # But Nous creds are still saved
-        assert "nous" in auth_after.get("providers", {})
+        assert "flash" in auth_after.get("providers", {})
 
 
 # =============================================================================
-# persist_nous_credentials: shared helper for CLI + web dashboard login paths
+# persist_flash_credentials: shared helper for CLI + web dashboard login paths
 # =============================================================================
 
 
 def _full_state_fixture() -> dict:
-    """Shape of the dict returned by _nous_device_code_login /
-    refresh_nous_oauth_from_state. Used as helper input."""
+    """Shape of the dict returned by _flash_device_code_login /
+    refresh_flash_oauth_from_state. Used as helper input."""
     token = _invoke_jwt(seconds=3600)
     expires_at = _future_iso(3600)
     return {
@@ -1204,17 +1204,17 @@ def _full_state_fixture() -> dict:
     }
 
 
-def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monkeypatch):
-    """Helper must populate BOTH credential_pool.nous AND providers.nous.
+def test_persist_flash_credentials_writes_both_pool_and_providers(tmp_path, monkeypatch):
+    """Helper must populate BOTH credential_pool.flash AND providers.flash.
 
-    Regression guard: before this helper existed, `flash auth add nous`
+    Regression guard: before this helper existed, `flash auth add flash`
     wrote only the pool. After the Nous agent_key's 24h TTL expired, the
-    401-recovery path in run_agent.py called resolve_nous_runtime_credentials
-    which reads providers.nous, found it empty, raised AuthError, and the
+    401-recovery path in run_agent.py called resolve_flash_runtime_credentials
+    which reads providers.flash, found it empty, raised AuthError, and the
     agent failed with "Non-retryable client error". Both stores must stay
     in sync at write time.
     """
-    from flash_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from flash_cli.auth import persist_flash_credentials, NOUS_DEVICE_CODE_SOURCE
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -1224,23 +1224,23 @@ def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monke
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     state = _full_state_fixture()
-    entry = persist_nous_credentials(state)
+    entry = persist_flash_credentials(state)
 
     assert entry is not None
-    assert entry.provider == "nous"
+    assert entry.provider == "flash"
     assert entry.source == NOUS_DEVICE_CODE_SOURCE
 
     payload = json.loads((flash_home / "auth.json").read_text())
 
-    # providers.nous populated with the full state (new behaviour)
-    singleton = payload["providers"]["nous"]
+    # providers.flash populated with the full state (new behaviour)
+    singleton = payload["providers"]["flash"]
     assert singleton["access_token"] == state["access_token"]
     assert singleton["refresh_token"] == "refresh-tok"
     assert singleton["agent_key"] == state["agent_key"]
     assert singleton["agent_key_expires_at"] == state["agent_key_expires_at"]
 
-    # credential_pool.nous has exactly one canonical device_code entry
-    pool_entries = payload["credential_pool"]["nous"]
+    # credential_pool.flash has exactly one canonical device_code entry
+    pool_entries = payload["credential_pool"]["flash"]
     assert len(pool_entries) == 1, pool_entries
     pool_entry = pool_entries[0]
     assert pool_entry["source"] == NOUS_DEVICE_CODE_SOURCE
@@ -1248,17 +1248,17 @@ def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monke
     assert pool_entry["inference_base_url"] == "https://inference.example.com/v1"
 
 
-def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch):
-    """End-to-end: after persisting via the helper, resolve_nous_runtime_credentials
+def test_persist_flash_credentials_allows_recovery_from_401(tmp_path, monkeypatch):
+    """End-to-end: after persisting via the helper, resolve_flash_runtime_credentials
     must succeed (not raise "Flash is not logged into Nous Portal").
 
-    This is the exact path that run_agent.py's `_try_refresh_nous_client_credentials`
+    This is the exact path that run_agent.py's `_try_refresh_flash_client_credentials`
     calls after a Nous 401 — before the fix it would raise AuthError because
-    providers.nous was empty.
+    providers.flash was empty.
     """
     from flash_cli.auth import (
-        persist_nous_credentials,
-        resolve_nous_runtime_credentials,
+        persist_flash_credentials,
+        resolve_flash_runtime_credentials,
     )
 
     flash_home = tmp_path / "flash"
@@ -1268,7 +1268,7 @@ def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    persist_nous_credentials(_full_state_fixture())
+    persist_flash_credentials(_full_state_fixture())
     new_jwt = _invoke_jwt(seconds=3600)
 
     # Stub the network-touching steps so we don't actually contact the
@@ -1285,23 +1285,23 @@ def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch
 
     monkeypatch.setattr("flash_cli.auth._refresh_access_token", _fake_refresh_access_token)
 
-    creds = resolve_nous_runtime_credentials(
+    creds = resolve_flash_runtime_credentials(
         force_refresh=True,
     )
     assert creds["api_key"] == new_jwt
 
 
-def test_persist_nous_credentials_idempotent_no_duplicate_pool_entries(tmp_path, monkeypatch):
+def test_persist_flash_credentials_idempotent_no_duplicate_pool_entries(tmp_path, monkeypatch):
     """Re-running persist must upsert — not accumulate duplicate device_code rows.
 
     Regression guard for the review comment on PR #11858: before normalisation,
     the helper wrote `manual:device_code` while `_seed_from_singletons` wrote
     `device_code`, so the pool grew a second duplicate entry on every
-    ``load_pool()``. The helper now writes providers.nous and lets seeding
+    ``load_pool()``. The helper now writes providers.flash and lets seeding
     materialise the pool entry under the canonical ``device_code`` source, so
     two persists still leave the pool with exactly one row.
     """
-    from flash_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from flash_cli.auth import persist_flash_credentials, NOUS_DEVICE_CODE_SOURCE
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -1311,23 +1311,23 @@ def test_persist_nous_credentials_idempotent_no_duplicate_pool_entries(tmp_path,
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     first = _full_state_fixture()
-    persist_nous_credentials(first)
+    persist_flash_credentials(first)
 
     second = _full_state_fixture()
     second_token = _invoke_jwt(seconds=7200)
     second["access_token"] = second_token
     second["agent_key"] = second_token
     second["agent_key_expires_at"] = _future_iso(7200)
-    persist_nous_credentials(second)
+    persist_flash_credentials(second)
 
     payload = json.loads((flash_home / "auth.json").read_text())
 
-    # providers.nous reflects the latest write (singleton semantics)
-    assert payload["providers"]["nous"]["access_token"] == second_token
-    assert payload["providers"]["nous"]["agent_key"] == second_token
+    # providers.flash reflects the latest write (singleton semantics)
+    assert payload["providers"]["flash"]["access_token"] == second_token
+    assert payload["providers"]["flash"]["agent_key"] == second_token
 
-    # credential_pool.nous has exactly one entry, carrying the latest agent_key
-    pool_entries = payload["credential_pool"]["nous"]
+    # credential_pool.flash has exactly one entry, carrying the latest agent_key
+    pool_entries = payload["credential_pool"]["flash"]
     assert len(pool_entries) == 1, pool_entries
     assert pool_entries[0]["source"] == NOUS_DEVICE_CODE_SOURCE
     assert pool_entries[0]["agent_key"] == second_token
@@ -1337,12 +1337,12 @@ def test_persist_nous_credentials_idempotent_no_duplicate_pool_entries(tmp_path,
     )
 
 
-def test_persist_nous_credentials_reloads_pool_after_singleton_write(tmp_path, monkeypatch):
+def test_persist_flash_credentials_reloads_pool_after_singleton_write(tmp_path, monkeypatch):
     """The entry returned by the helper must come from a fresh ``load_pool`` so
     callers observe the canonical seeded state, including any legacy entries
     that ``_seed_from_singletons`` pruned or upserted.
     """
-    from flash_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from flash_cli.auth import persist_flash_credentials, NOUS_DEVICE_CODE_SOURCE
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -1352,7 +1352,7 @@ def test_persist_nous_credentials_reloads_pool_after_singleton_write(tmp_path, m
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
     state = _full_state_fixture()
-    entry = persist_nous_credentials(state)
+    entry = persist_flash_credentials(state)
     assert entry is not None
     assert entry.source == NOUS_DEVICE_CODE_SOURCE
     # Label derived by _seed_from_singletons via label_from_token; we don't
@@ -1361,15 +1361,15 @@ def test_persist_nous_credentials_reloads_pool_after_singleton_write(tmp_path, m
     assert entry.agent_key == state["agent_key"]
 
 
-def test_persist_nous_credentials_embeds_custom_label(tmp_path, monkeypatch):
-    """User-supplied ``--label`` round-trips through providers.nous and the pool.
+def test_persist_flash_credentials_embeds_custom_label(tmp_path, monkeypatch):
+    """User-supplied ``--label`` round-trips through providers.flash and the pool.
 
-    Previously `flash auth add nous --type oauth --label <name>` silently
-    dropped the label because persist_nous_credentials() ignored it and
+    Previously `flash auth add flash --type oauth --label <name>` silently
+    dropped the label because persist_flash_credentials() ignored it and
     _seed_from_singletons always auto-derived via label_from_token().  The
-    fix stashes the label inside providers.nous so seeding prefers it.
+    fix stashes the label inside providers.flash so seeding prefers it.
     """
-    from flash_cli.auth import persist_nous_credentials, NOUS_DEVICE_CODE_SOURCE
+    from flash_cli.auth import persist_flash_credentials, NOUS_DEVICE_CODE_SOURCE
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -1378,22 +1378,22 @@ def test_persist_nous_credentials_embeds_custom_label(tmp_path, monkeypatch):
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    entry = persist_nous_credentials(_full_state_fixture(), label="my-personal")
+    entry = persist_flash_credentials(_full_state_fixture(), label="my-personal")
     assert entry is not None
     assert entry.source == NOUS_DEVICE_CODE_SOURCE
     assert entry.label == "my-personal"
 
-    # providers.nous carries the label so re-seeding on the next load_pool
+    # providers.flash carries the label so re-seeding on the next load_pool
     # doesn't overwrite it with the auto-derived fingerprint.
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert payload["providers"]["nous"]["label"] == "my-personal"
+    assert payload["providers"]["flash"]["label"] == "my-personal"
 
 
-def test_persist_nous_credentials_custom_label_survives_reseed(tmp_path, monkeypatch):
+def test_persist_flash_credentials_custom_label_survives_reseed(tmp_path, monkeypatch):
     """Reopening the pool (which re-runs _seed_from_singletons) must keep the
     user-chosen label instead of clobbering it with label_from_token output.
     """
-    from flash_cli.auth import persist_nous_credentials
+    from flash_cli.auth import persist_flash_credentials
     from agent.credential_pool import load_pool
 
     flash_home = tmp_path / "flash"
@@ -1403,21 +1403,21 @@ def test_persist_nous_credentials_custom_label_survives_reseed(tmp_path, monkeyp
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    persist_nous_credentials(_full_state_fixture(), label="work-acct")
+    persist_flash_credentials(_full_state_fixture(), label="work-acct")
 
     # Second load_pool triggers _seed_from_singletons again.  Without the
     # fix, this call overwrote the label with label_from_token(access_token).
-    pool = load_pool("nous")
+    pool = load_pool("flash")
     entries = pool.entries()
     assert len(entries) == 1
     assert entries[0].label == "work-acct"
 
 
-def test_persist_nous_credentials_no_label_uses_auto_derived(tmp_path, monkeypatch):
+def test_persist_flash_credentials_no_label_uses_auto_derived(tmp_path, monkeypatch):
     """When the caller doesn't pass ``label``, the auto-derived fingerprint
     is used (unchanged default behaviour — regression guard).
     """
-    from flash_cli.auth import persist_nous_credentials
+    from flash_cli.auth import persist_flash_credentials
 
     flash_home = tmp_path / "flash"
     flash_home.mkdir(parents=True, exist_ok=True)
@@ -1426,7 +1426,7 @@ def test_persist_nous_credentials_no_label_uses_auto_derived(tmp_path, monkeypat
     }))
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    entry = persist_nous_credentials(_full_state_fixture())
+    entry = persist_flash_credentials(_full_state_fixture())
     assert entry is not None
     # label_from_token derives from the access_token; exact value depends on
     # the fingerprinter but it must not be empty and must not equal an
@@ -1434,9 +1434,9 @@ def test_persist_nous_credentials_no_label_uses_auto_derived(tmp_path, monkeypat
     assert entry.label
     assert entry.label != "my-personal"
 
-    # No "label" key embedded in providers.nous when the caller didn't supply one.
+    # No "label" key embedded in providers.flash when the caller didn't supply one.
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert "label" not in payload["providers"]["nous"]
+    assert "label" not in payload["providers"]["flash"]
 
 
 def test_refresh_token_reuse_detection_surfaces_actionable_message():
@@ -1477,7 +1477,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     assert "refresh-token reuse" in message.lower() or "refresh token reuse" in message.lower()
     # The message must mention the external-process cause and give next steps.
     assert "external process" in message.lower() or "monitoring script" in message.lower()
-    assert "flash auth add nous" in message.lower()
+    assert "flash auth add flash" in message.lower()
     # Must still be classified as invalid_grant + relogin_required.
     assert exc_info.value.code == "invalid_grant"
     assert exc_info.value.relogin_required is True
@@ -1510,7 +1510,7 @@ def test_refresh_token_reuse_error_code_is_terminal():
 
     assert exc_info.value.code == "refresh_token_reused"
     assert exc_info.value.relogin_required is True
-    assert auth_mod._is_terminal_nous_refresh_error(exc_info.value) is True
+    assert auth_mod._is_terminal_flash_refresh_error(exc_info.value) is True
 
 
 def test_refresh_token_exchange_sends_refresh_token_header():
@@ -1546,7 +1546,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
     assert payload["access_token"] == "access-2"
     assert payload["refresh_token"] == "refresh-2"
     assert client.kwargs is not None
-    assert client.kwargs["headers"]["x-nous-refresh-token"] == "refresh-1"
+    assert client.kwargs["headers"]["x-flash-refresh-token"] == "refresh-1"
     assert client.kwargs["data"] == {
         "grant_type": "refresh_token",
         "client_id": "flash-cli",
@@ -1615,73 +1615,73 @@ def test_shared_store_seat_belt_refuses_real_home_under_pytest(monkeypatch):
     redirect this store in a test must fail loudly instead of silently
     writing to the user's real ``~/.flash/shared/`` across CI runs.
     """
-    from flash_cli.auth import _nous_shared_store_path
+    from flash_cli.auth import _flash_shared_store_path
 
     monkeypatch.delenv("HERMES_SHARED_AUTH_DIR", raising=False)
 
     with pytest.raises(RuntimeError, match="shared Nous auth store"):
-        _nous_shared_store_path()
+        _flash_shared_store_path()
 
 
 def test_shared_store_honors_env_override(tmp_path, monkeypatch):
     """HERMES_SHARED_AUTH_DIR must redirect the path."""
-    from flash_cli.auth import _nous_shared_store_path, NOUS_SHARED_STORE_FILENAME
+    from flash_cli.auth import _flash_shared_store_path, NOUS_SHARED_STORE_FILENAME
 
     custom_dir = tmp_path / "custom_shared"
     monkeypatch.setenv("HERMES_SHARED_AUTH_DIR", str(custom_dir))
 
-    path = _nous_shared_store_path()
+    path = _flash_shared_store_path()
     assert path == custom_dir / NOUS_SHARED_STORE_FILENAME
 
 
 def test_shared_store_read_missing_returns_none(shared_store_env):
-    """Missing file → ``_read_shared_nous_state()`` returns None."""
-    from flash_cli.auth import _read_shared_nous_state
+    """Missing file → ``_read_shared_flash_state()`` returns None."""
+    from flash_cli.auth import _read_shared_flash_state
 
-    assert _read_shared_nous_state() is None
+    assert _read_shared_flash_state() is None
 
 
 def test_shared_store_read_malformed_returns_none(shared_store_env):
     """Unreadable / non-JSON file → None, not an exception."""
-    from flash_cli.auth import _nous_shared_store_path, _read_shared_nous_state
+    from flash_cli.auth import _flash_shared_store_path, _read_shared_flash_state
 
-    path = _nous_shared_store_path()
+    path = _flash_shared_store_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("{ not json")
 
-    assert _read_shared_nous_state() is None
+    assert _read_shared_flash_state() is None
 
 
 def test_shared_store_read_missing_required_fields_returns_none(shared_store_env):
     """Payload without refresh_token → None (nothing worth importing)."""
-    from flash_cli.auth import _nous_shared_store_path, _read_shared_nous_state
+    from flash_cli.auth import _flash_shared_store_path, _read_shared_flash_state
 
-    path = _nous_shared_store_path()
+    path = _flash_shared_store_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"_schema": 1, "access_token": "abc"}))
 
-    assert _read_shared_nous_state() is None
+    assert _read_shared_flash_state() is None
 
 
 def test_shared_store_write_and_read_roundtrip(shared_store_env):
     """Write → read must preserve refresh_token + OAuth URLs."""
     from flash_cli.auth import (
-        _nous_shared_store_path,
-        _read_shared_nous_state,
-        _write_shared_nous_state,
+        _flash_shared_store_path,
+        _read_shared_flash_state,
+        _write_shared_flash_state,
     )
 
     state = _full_state_fixture()
-    _write_shared_nous_state(state)
+    _write_shared_flash_state(state)
 
-    path = _nous_shared_store_path()
+    path = _flash_shared_store_path()
     assert path.is_file()
 
     # Permissions should be 0600 where the platform supports it.
     mode = path.stat().st_mode & 0o777
     assert mode == 0o600 or mode == 0o644  # 0o644 on platforms without chmod
 
-    loaded = _read_shared_nous_state()
+    loaded = _read_shared_flash_state()
     assert loaded is not None
     assert loaded["refresh_token"] == "refresh-tok"
     assert loaded["access_token"] == state["access_token"]
@@ -1695,27 +1695,27 @@ def test_shared_store_write_and_read_roundtrip(shared_store_env):
 
 def test_shared_store_write_skips_when_refresh_token_missing(shared_store_env):
     """Write is a no-op when refresh_token is absent (nothing to share)."""
-    from flash_cli.auth import _nous_shared_store_path, _write_shared_nous_state
+    from flash_cli.auth import _flash_shared_store_path, _write_shared_flash_state
 
     state = dict(_full_state_fixture())
     state["refresh_token"] = ""
 
-    _write_shared_nous_state(state)
+    _write_shared_flash_state(state)
 
-    assert not _nous_shared_store_path().is_file()
+    assert not _flash_shared_store_path().is_file()
 
 
-def test_persist_nous_credentials_mirrors_to_shared_store(
+def test_persist_flash_credentials_mirrors_to_shared_store(
     tmp_path, monkeypatch, shared_store_env,
 ):
-    """persist_nous_credentials must populate BOTH per-profile auth.json
-    AND the shared store, so a future profile's `flash auth add nous
+    """persist_flash_credentials must populate BOTH per-profile auth.json
+    AND the shared store, so a future profile's `flash auth add flash
     --type oauth` can one-tap import instead of redoing device-code.
     """
     from flash_cli.auth import (
-        _nous_shared_store_path,
-        _read_shared_nous_state,
-        persist_nous_credentials,
+        _flash_shared_store_path,
+        _read_shared_flash_state,
+        persist_flash_credentials,
     )
 
     flash_home = tmp_path / "flash"
@@ -1725,53 +1725,53 @@ def test_persist_nous_credentials_mirrors_to_shared_store(
     )
     monkeypatch.setenv("HERMES_HOME", str(flash_home))
 
-    persist_nous_credentials(_full_state_fixture())
+    persist_flash_credentials(_full_state_fixture())
 
     # Per-profile auth.json populated
     payload = json.loads((flash_home / "auth.json").read_text())
-    assert "nous" in payload.get("providers", {})
+    assert "flash" in payload.get("providers", {})
 
     # Shared store populated with the same refresh_token
-    shared = _read_shared_nous_state()
+    shared = _read_shared_flash_state()
     assert shared is not None
     assert shared["refresh_token"] == "refresh-tok"
 
     # Shared file path lives under the tmp override, NOT the real home
-    assert str(_nous_shared_store_path()).startswith(str(shared_store_env))
+    assert str(_flash_shared_store_path()).startswith(str(shared_store_env))
 
 
 def test_try_import_shared_returns_none_when_store_missing(shared_store_env):
     """No shared store → no rehydrate (fall through to device-code)."""
-    from flash_cli.auth import _try_import_shared_nous_state
+    from flash_cli.auth import _try_import_shared_flash_state
 
-    assert _try_import_shared_nous_state() is None
+    assert _try_import_shared_flash_state() is None
 
 
 def test_try_import_shared_returns_none_on_refresh_failure(
     shared_store_env, monkeypatch,
 ):
     """If the portal rejects the stored refresh_token (revoked, expired,
-    portal down), _try_import_shared_nous_state must return None so the
+    portal down), _try_import_shared_flash_state must return None so the
     login flow falls back to a fresh device-code run.
     """
     from flash_cli import auth as auth_mod
 
     # Seed the shared store
-    auth_mod._write_shared_nous_state(_full_state_fixture())
+    auth_mod._write_shared_flash_state(_full_state_fixture())
 
     # Make refresh fail
     def _boom(*_args, **_kwargs):
         raise AuthError(
             "Refresh session has been revoked",
-            provider="nous",
+            provider="flash",
             code="invalid_grant",
             relogin_required=True,
         )
 
-    monkeypatch.setattr(auth_mod, "refresh_nous_oauth_from_state", _boom)
+    monkeypatch.setattr(auth_mod, "refresh_flash_oauth_from_state", _boom)
 
-    assert auth_mod._try_import_shared_nous_state() is None
-    assert auth_mod._read_shared_nous_state() is None
+    assert auth_mod._try_import_shared_flash_state() is None
+    assert auth_mod._read_shared_flash_state() is None
 
 
 def test_try_import_shared_persists_rotated_token_when_jwt_validation_fails(
@@ -1788,7 +1788,7 @@ def test_try_import_shared_persists_rotated_token_when_jwt_validation_fails(
     shared_state = _full_state_fixture()
     shared_state["refresh_token"] = "refresh-old"
     shared_state["access_token"] = "access-old"
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
         assert refresh_token == "refresh-old"
@@ -1801,9 +1801,9 @@ def test_try_import_shared_persists_rotated_token_when_jwt_validation_fails(
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-    assert auth_mod._try_import_shared_nous_state() is None
+    assert auth_mod._try_import_shared_flash_state() is None
 
-    shared_after = auth_mod._read_shared_nous_state()
+    shared_after = auth_mod._read_shared_flash_state()
     assert shared_after is not None
     assert shared_after["refresh_token"] == "refresh-new"
     assert shared_after["access_token"] == "access-new"
@@ -1812,11 +1812,11 @@ def test_try_import_shared_persists_rotated_token_when_jwt_validation_fails(
 def test_try_import_shared_rehydrates_on_success(shared_store_env, monkeypatch):
     """Happy path: stored refresh_token is accepted, forced refresh
     returns a fresh access_token JWT, and the returned dict has
-    every field persist_nous_credentials() needs.
+    every field persist_flash_credentials() needs.
     """
     from flash_cli import auth as auth_mod
 
-    auth_mod._write_shared_nous_state(_full_state_fixture())
+    auth_mod._write_shared_flash_state(_full_state_fixture())
     fresh_jwt = _invoke_jwt(seconds=7200)
 
     def _fake_refresh(state, **kwargs):
@@ -1830,9 +1830,9 @@ def test_try_import_shared_rehydrates_on_success(shared_store_env, monkeypatch):
             "agent_key_expires_at": _future_iso(7200),
         }
 
-    monkeypatch.setattr(auth_mod, "refresh_nous_oauth_from_state", _fake_refresh)
+    monkeypatch.setattr(auth_mod, "refresh_flash_oauth_from_state", _fake_refresh)
 
-    result = auth_mod._try_import_shared_nous_state()
+    result = auth_mod._try_import_shared_flash_state()
 
     assert result is not None
     assert result["access_token"] == fresh_jwt
@@ -1859,14 +1859,14 @@ def test_shared_store_survives_across_profile_switch(
         json.dumps({"version": 1, "providers": {}})
     )
     monkeypatch.setenv("HERMES_HOME", str(profile_a))
-    auth_mod.persist_nous_credentials(_full_state_fixture())
+    auth_mod.persist_flash_credentials(_full_state_fixture())
 
-    # Profile A's auth.json has nous
+    # Profile A's auth.json has flash
     a_payload = json.loads((profile_a / "auth.json").read_text())
-    assert "nous" in a_payload.get("providers", {})
+    assert "flash" in a_payload.get("providers", {})
 
     # Profile B: fresh HERMES_HOME, no auth yet, but the shared store
-    # persists — _read_shared_nous_state() must still return the tokens.
+    # persists — _read_shared_flash_state() must still return the tokens.
     profile_b = tmp_path / "profile_b"
     profile_b.mkdir(parents=True, exist_ok=True)
     (profile_b / "auth.json").write_text(
@@ -1874,16 +1874,16 @@ def test_shared_store_survives_across_profile_switch(
     )
     monkeypatch.setenv("HERMES_HOME", str(profile_b))
 
-    # B's own auth.json has no nous
+    # B's own auth.json has no flash
     b_payload = json.loads((profile_b / "auth.json").read_text())
-    assert "nous" not in b_payload.get("providers", {})
+    assert "flash" not in b_payload.get("providers", {})
 
     # But the shared store is visible
-    shared = auth_mod._read_shared_nous_state()
+    shared = auth_mod._read_shared_flash_state()
     assert shared is not None
     assert shared["refresh_token"] == "refresh-tok"
 
-    # And a successful rehydrate + persist lands nous into profile B
+    # And a successful rehydrate + persist lands flash into profile B
     b_jwt = _invoke_jwt(seconds=7200)
 
     def _fake_refresh(state, **kwargs):
@@ -1895,18 +1895,18 @@ def test_shared_store_survives_across_profile_switch(
             "agent_key_expires_at": _future_iso(7200),
         }
 
-    monkeypatch.setattr(auth_mod, "refresh_nous_oauth_from_state", _fake_refresh)
-    result = auth_mod._try_import_shared_nous_state()
+    monkeypatch.setattr(auth_mod, "refresh_flash_oauth_from_state", _fake_refresh)
+    result = auth_mod._try_import_shared_flash_state()
     assert result is not None
 
-    auth_mod.persist_nous_credentials(result)
+    auth_mod.persist_flash_credentials(result)
 
     b_payload = json.loads((profile_b / "auth.json").read_text())
-    assert "nous" in b_payload.get("providers", {})
-    assert b_payload["providers"]["nous"]["refresh_token"] == "b-refresh-tok"
+    assert "flash" in b_payload.get("providers", {})
+    assert b_payload["providers"]["flash"]["refresh_token"] == "b-refresh-tok"
 
     # Shared store was updated with the rotated refresh_token too
-    shared_after = auth_mod._read_shared_nous_state()
+    shared_after = auth_mod._read_shared_flash_state()
     assert shared_after is not None
     assert shared_after["refresh_token"] == "b-refresh-tok"
 
@@ -1924,7 +1924,7 @@ def test_runtime_refresh_uses_newer_shared_token_before_local_stale_token(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-expired-access",
         refresh_token="local-stale-refresh",
@@ -1937,18 +1937,18 @@ def test_runtime_refresh_uses_newer_shared_token_before_local_stale_token(
     shared_state["refresh_token"] = "shared-fresh-refresh"
     shared_state["expires_at"] = "2099-01-01T00:00:00+00:00"
     shared_state["scope"] = "inference:invoke"
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     def _refresh_should_not_happen(**_kwargs):
         raise AssertionError("stale profile-local refresh token was used")
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _refresh_should_not_happen)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == shared_token
 
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["refresh_token"] == "shared-fresh-refresh"
     assert profile_state["access_token"] == shared_token
@@ -1959,14 +1959,14 @@ def test_runtime_credentials_merges_shared_token_before_empty_local_access_token
 ):
     """A profile with access_token=None must recover from the shared store.
 
-    ``resolve_nous_access_token()`` already merges shared OAuth state before
+    ``resolve_flash_access_token()`` already merges shared OAuth state before
     giving up. The runtime path must do the same so sibling profiles that
     share a valid Nous login do not dead-end on an empty local auth.json.
     """
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-placeholder",
         refresh_token="local-stale-refresh",
@@ -1975,7 +1975,7 @@ def test_runtime_credentials_merges_shared_token_before_empty_local_access_token
     )
     auth_path = profile_b / "auth.json"
     auth_payload = json.loads(auth_path.read_text())
-    auth_payload["providers"]["nous"]["access_token"] = None
+    auth_payload["providers"]["flash"]["access_token"] = None
     auth_path.write_text(json.dumps(auth_payload, indent=2))
     monkeypatch.setenv("HERMES_HOME", str(profile_b))
 
@@ -1986,19 +1986,19 @@ def test_runtime_credentials_merges_shared_token_before_empty_local_access_token
     shared_state["expires_at"] = _future_iso(3600)
     shared_state["scope"] = auth_mod.DEFAULT_NOUS_SCOPE
     shared_state["inference_base_url"] = auth_mod.DEFAULT_NOUS_INFERENCE_URL
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     def _refresh_should_not_happen(**_kwargs):
         raise AssertionError("empty local access token should recover from shared store")
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _refresh_should_not_happen)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["api_key"] == shared_token
     assert creds["base_url"] == auth_mod.DEFAULT_NOUS_INFERENCE_URL
 
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["access_token"] == shared_token
     assert profile_state["refresh_token"] == "shared-fresh-refresh"
@@ -2012,7 +2012,7 @@ def test_runtime_shared_recovery_recomputes_routing_before_force_refresh(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-placeholder",
         refresh_token="local-stale-refresh",
@@ -2021,7 +2021,7 @@ def test_runtime_shared_recovery_recomputes_routing_before_force_refresh(
     )
     auth_path = profile_b / "auth.json"
     auth_payload = json.loads(auth_path.read_text())
-    local_state = auth_payload["providers"]["nous"]
+    local_state = auth_payload["providers"]["flash"]
     local_state["access_token"] = None
     local_state["portal_base_url"] = "http://127.0.0.1:8001"
     local_state["client_id"] = "local-client"
@@ -2036,7 +2036,7 @@ def test_runtime_shared_recovery_recomputes_routing_before_force_refresh(
     shared_state["portal_base_url"] = "http://localhost:8002"
     shared_state["client_id"] = "shared-client"
     shared_state["inference_base_url"] = auth_mod.DEFAULT_NOUS_INFERENCE_URL
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     captured = {}
     refreshed_token = _invoke_jwt(seconds=7200)
@@ -2053,14 +2053,14 @@ def test_runtime_shared_recovery_recomputes_routing_before_force_refresh(
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _refresh)
 
-    creds = auth_mod.resolve_nous_runtime_credentials(force_refresh=True)
+    creds = auth_mod.resolve_flash_runtime_credentials(force_refresh=True)
 
     assert captured["portal_base_url"] == "http://localhost:8002"
     assert captured["client_id"] == "shared-client"
     assert captured["refresh_token"] == "shared-refresh"
     assert creds["api_key"] == refreshed_token
 
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["portal_base_url"] == "http://localhost:8002"
     assert profile_state["client_id"] == "shared-client"
@@ -2074,7 +2074,7 @@ def test_runtime_unusable_local_token_recomputes_shared_routing(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-not-an-invoke-jwt",
         refresh_token="local-stale-refresh",
@@ -2083,7 +2083,7 @@ def test_runtime_unusable_local_token_recomputes_shared_routing(
     )
     auth_path = profile_b / "auth.json"
     auth_payload = json.loads(auth_path.read_text())
-    local_state = auth_payload["providers"]["nous"]
+    local_state = auth_payload["providers"]["flash"]
     local_state["portal_base_url"] = "http://127.0.0.1:8001"
     local_state["client_id"] = "local-client"
     auth_path.write_text(json.dumps(auth_payload, indent=2))
@@ -2095,7 +2095,7 @@ def test_runtime_unusable_local_token_recomputes_shared_routing(
     shared_state["expires_at"] = _future_iso(3600)
     shared_state["portal_base_url"] = "http://localhost:8002"
     shared_state["client_id"] = "shared-client"
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     captured = {}
     refreshed_token = _invoke_jwt(seconds=7200)
@@ -2111,7 +2111,7 @@ def test_runtime_unusable_local_token_recomputes_shared_routing(
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _refresh)
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert captured["portal_base_url"] == "http://localhost:8002"
     assert captured["client_id"] == "shared-client"
@@ -2126,7 +2126,7 @@ def test_runtime_refresh_persists_routing_before_jwt_validation_failure(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-unusable",
         refresh_token="local-refresh",
@@ -2150,14 +2150,14 @@ def test_runtime_refresh_persists_routing_before_jwt_validation_failure(
     )
 
     with pytest.raises(AuthError):
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
 
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["refresh_token"] == rotated_refresh
     assert profile_state["inference_base_url"] == refreshed_url
 
-    shared_state = auth_mod._read_shared_nous_state()
+    shared_state = auth_mod._read_shared_flash_state()
     assert shared_state is not None
     assert shared_state["refresh_token"] == rotated_refresh
     assert shared_state["inference_base_url"] == refreshed_url
@@ -2170,7 +2170,7 @@ def test_runtime_shared_recovery_honors_inference_env_override(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-placeholder",
         refresh_token="local-stale-refresh",
@@ -2179,7 +2179,7 @@ def test_runtime_shared_recovery_honors_inference_env_override(
     )
     auth_path = profile_b / "auth.json"
     auth_payload = json.loads(auth_path.read_text())
-    auth_payload["providers"]["nous"]["access_token"] = None
+    auth_payload["providers"]["flash"]["access_token"] = None
     auth_path.write_text(json.dumps(auth_payload, indent=2))
     monkeypatch.setenv("HERMES_HOME", str(profile_b))
     override_url = "https://operator.example/v1"
@@ -2192,7 +2192,7 @@ def test_runtime_shared_recovery_honors_inference_env_override(
     shared_state["expires_at"] = _future_iso(3600)
     shared_state["scope"] = auth_mod.DEFAULT_NOUS_SCOPE
     shared_state["inference_base_url"] = auth_mod.DEFAULT_NOUS_INFERENCE_URL
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     monkeypatch.setattr(
         auth_mod,
@@ -2200,10 +2200,10 @@ def test_runtime_shared_recovery_honors_inference_env_override(
         lambda **_kwargs: (_ for _ in ()).throw(AssertionError("unexpected refresh")),
     )
 
-    creds = auth_mod.resolve_nous_runtime_credentials()
+    creds = auth_mod.resolve_flash_runtime_credentials()
 
     assert creds["base_url"] == override_url
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["inference_base_url"] == auth_mod.DEFAULT_NOUS_INFERENCE_URL
 
@@ -2215,7 +2215,7 @@ def test_managed_gateway_access_token_uses_newer_shared_token(
     from flash_cli import auth as auth_mod
 
     profile_b = tmp_path / "profile_b"
-    _setup_nous_auth(
+    _setup_flash_auth(
         profile_b,
         access_token="local-expired-access",
         refresh_token="local-stale-refresh",
@@ -2226,21 +2226,21 @@ def test_managed_gateway_access_token_uses_newer_shared_token(
     shared_state["access_token"] = "shared-fresh-access"
     shared_state["refresh_token"] = "shared-fresh-refresh"
     shared_state["expires_at"] = "2099-01-01T00:00:00+00:00"
-    auth_mod._write_shared_nous_state(shared_state)
+    auth_mod._write_shared_flash_state(shared_state)
 
     def _refresh_should_not_happen(**_kwargs):
         raise AssertionError("stale profile-local refresh token was used")
 
     monkeypatch.setattr(auth_mod, "_refresh_access_token", _refresh_should_not_happen)
 
-    assert auth_mod.resolve_nous_access_token() == "shared-fresh-access"
+    assert auth_mod.resolve_flash_access_token() == "shared-fresh-access"
 
-    profile_state = auth_mod.get_provider_auth_state("nous")
+    profile_state = auth_mod.get_provider_auth_state("flash")
     assert profile_state is not None
     assert profile_state["refresh_token"] == "shared-fresh-refresh"
 
 class TestStalePortalBaseUrlMigration:
-    """_migrate_stale_nous_portal_url auto-corrects stale portal_base_url on load."""
+    """_migrate_stale_flash_portal_url auto-corrects stale portal_base_url on load."""
 
     def test_migrates_stale_portal_url_on_load(self, tmp_path, monkeypatch):
         from flash_cli.auth import _load_auth_store, DEFAULT_NOUS_PORTAL_URL
@@ -2249,9 +2249,9 @@ class TestStalePortalBaseUrlMigration:
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({
             "version": 1,
-            "active_provider": "nous",
+            "active_provider": "flash",
             "providers": {
-                "nous": {
+                "flash": {
                     "portal_base_url": "https://api.flashorg.com",
                     "access_token": "test-token",
                     "refresh_token": "test-refresh",
@@ -2260,8 +2260,8 @@ class TestStalePortalBaseUrlMigration:
         }))
 
         store = _load_auth_store(auth_file)
-        nous = store["providers"]["nous"]
-        assert nous["portal_base_url"] == DEFAULT_NOUS_PORTAL_URL
+        flash = store["providers"]["flash"]
+        assert flash["portal_base_url"] == DEFAULT_NOUS_PORTAL_URL
 
     def test_preserves_correct_portal_url(self, tmp_path, monkeypatch):
         from flash_cli.auth import _load_auth_store, DEFAULT_NOUS_PORTAL_URL
@@ -2270,9 +2270,9 @@ class TestStalePortalBaseUrlMigration:
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({
             "version": 1,
-            "active_provider": "nous",
+            "active_provider": "flash",
             "providers": {
-                "nous": {
+                "flash": {
                     "portal_base_url": DEFAULT_NOUS_PORTAL_URL,
                     "access_token": "test-token",
                     "refresh_token": "test-refresh",
@@ -2281,8 +2281,8 @@ class TestStalePortalBaseUrlMigration:
         }))
 
         store = _load_auth_store(auth_file)
-        nous = store["providers"]["nous"]
-        assert nous["portal_base_url"] == DEFAULT_NOUS_PORTAL_URL
+        flash = store["providers"]["flash"]
+        assert flash["portal_base_url"] == DEFAULT_NOUS_PORTAL_URL
 
     def test_ignores_other_providers(self, tmp_path, monkeypatch):
         from flash_cli.auth import _load_auth_store, DEFAULT_NOUS_PORTAL_URL
@@ -2296,27 +2296,27 @@ class TestStalePortalBaseUrlMigration:
         }))
 
         store = _load_auth_store(auth_file)
-        assert "nous" not in store.get("providers", {})
+        assert "flash" not in store.get("providers", {})
 
-    def test_noop_when_nous_state_not_dict(self, tmp_path, monkeypatch):
+    def test_noop_when_flash_state_not_dict(self, tmp_path, monkeypatch):
         from flash_cli.auth import _load_auth_store
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         auth_file = tmp_path / "auth.json"
         auth_file.write_text(json.dumps({
             "version": 1,
-            "active_provider": "nous",
-            "providers": {"nous": None},
+            "active_provider": "flash",
+            "providers": {"flash": None},
         }))
 
         store = _load_auth_store(auth_file)
-        assert store["providers"]["nous"] is None
+        assert store["providers"]["flash"] is None
 
     def test_runtime_fallback_for_invalid_portal_url(self, tmp_path, monkeypatch):
         from flash_cli import auth as auth_mod
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        _setup_nous_auth(
+        _setup_flash_auth(
             tmp_path,
             access_token="expired-access",
             refresh_token="valid-refresh",
@@ -2324,7 +2324,7 @@ class TestStalePortalBaseUrlMigration:
         )
         auth_file = tmp_path / "auth.json"
         store = json.loads(auth_file.read_text())
-        store["providers"]["nous"]["portal_base_url"] = "https://api.flashorg.com"
+        store["providers"]["flash"]["portal_base_url"] = "https://api.flashorg.com"
         auth_file.write_text(json.dumps(store, indent=2))
 
         refresh_calls = []
@@ -2340,7 +2340,7 @@ class TestStalePortalBaseUrlMigration:
 
         monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-        token = auth_mod.resolve_nous_access_token()
+        token = auth_mod.resolve_flash_access_token()
         assert token == "refreshed-access"
         assert len(refresh_calls) == 1
         assert refresh_calls[0] == auth_mod.DEFAULT_NOUS_PORTAL_URL
@@ -2349,7 +2349,7 @@ class TestStalePortalBaseUrlMigration:
         from flash_cli import auth as auth_mod
 
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        _setup_nous_auth(
+        _setup_flash_auth(
             tmp_path,
             access_token="expired-access",
             refresh_token="valid-refresh",
@@ -2357,7 +2357,7 @@ class TestStalePortalBaseUrlMigration:
         )
         auth_file = tmp_path / "auth.json"
         store = json.loads(auth_file.read_text())
-        store["providers"]["nous"]["portal_base_url"] = "http://localhost:8080/"
+        store["providers"]["flash"]["portal_base_url"] = "http://localhost:8080/"
         auth_file.write_text(json.dumps(store, indent=2))
 
         refresh_calls = []
@@ -2373,24 +2373,24 @@ class TestStalePortalBaseUrlMigration:
 
         monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-        token = auth_mod.resolve_nous_access_token()
+        token = auth_mod.resolve_flash_access_token()
         assert token == "refreshed-access"
         assert len(refresh_calls) == 1
         assert "localhost" in refresh_calls[0]
 
     def test_runtime_credentials_fallback_for_invalid_portal_url(self, tmp_path, monkeypatch):
-        """resolve_nous_runtime_credentials also rejects an off-allowlist portal host.
+        """resolve_flash_runtime_credentials also rejects an off-allowlist portal host.
 
         The refresh token is POSTed to portal_base_url on refresh; a poisoned
         value must never receive the bearer. This mirrors the guard on
-        resolve_nous_access_token so the whole class is covered, not just the
+        resolve_flash_access_token so the whole class is covered, not just the
         managed-gateway path.
         """
         from flash_cli import auth as auth_mod
 
         flash_home = tmp_path / "flash"
         monkeypatch.setenv("HERMES_HOME", str(flash_home))
-        _setup_nous_auth(
+        _setup_flash_auth(
             flash_home,
             access_token=_invoke_jwt(seconds=-60),
             refresh_token="valid-refresh",
@@ -2399,7 +2399,7 @@ class TestStalePortalBaseUrlMigration:
         )
         auth_file = flash_home / "auth.json"
         store = json.loads(auth_file.read_text())
-        store["providers"]["nous"]["portal_base_url"] = "https://evil.example.com"
+        store["providers"]["flash"]["portal_base_url"] = "https://evil.example.com"
         auth_file.write_text(json.dumps(store, indent=2))
 
         refresh_calls = []
@@ -2418,7 +2418,7 @@ class TestStalePortalBaseUrlMigration:
 
         monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
 
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
         assert len(refresh_calls) == 1
         assert refresh_calls[0] == auth_mod.DEFAULT_NOUS_PORTAL_URL
 
@@ -2430,7 +2430,7 @@ class TestStalePortalBaseUrlMigration:
 
         flash_home = tmp_path / "flash"
         monkeypatch.setenv("HERMES_HOME", str(flash_home))
-        _setup_nous_auth(
+        _setup_flash_auth(
             flash_home,
             access_token=_invoke_jwt(seconds=-60),
             refresh_token="valid-refresh",
@@ -2439,7 +2439,7 @@ class TestStalePortalBaseUrlMigration:
         )
         auth_file = flash_home / "auth.json"
         store = json.loads(auth_file.read_text())
-        store["providers"]["nous"]["portal_base_url"] = (
+        store["providers"]["flash"]["portal_base_url"] = (
             "http://portal.flashorg.com"
         )
         auth_file.write_text(json.dumps(store, indent=2))
@@ -2462,5 +2462,5 @@ class TestStalePortalBaseUrlMigration:
             auth_mod, "_refresh_access_token", _fake_refresh_access_token
         )
 
-        auth_mod.resolve_nous_runtime_credentials()
+        auth_mod.resolve_flash_runtime_credentials()
         assert refresh_calls == [auth_mod.DEFAULT_NOUS_PORTAL_URL]

@@ -1733,7 +1733,7 @@ class MCPServerTask:
                             # Some servers (notably mongodb-mcp-server) emit
                             # tools/list_changed immediately after initialize,
                             # while the client may already be executing another
-                            # request. Refreshing synchronously inside the SDK
+                            # request. Refreshing synchroflashly inside the SDK
                             # notification handler can race with that request
                             # and wedge the stdio JSON-RPC stream, making all
                             # subsequent tool calls time out. Do the refresh in
@@ -1759,7 +1759,7 @@ class MCPServerTask:
 
         Called when the server sends ``notifications/tools/list_changed``.
         The lock prevents overlapping refreshes from rapid-fire notifications.
-        After the initial ``await`` (list_tools), all mutations are synchronous
+        After the initial ``await`` (list_tools), all mutations are synchroflash
         — atomic from the event loop's perspective.
         """
         from tools.registry import registry
@@ -3023,7 +3023,7 @@ def _signal_reconnect(server: Any) -> bool:
     asyncio.Event from another thread must go through
     ``loop.call_soon_threadsafe``; only fall back to a direct ``.set()``
     when the loop isn't running (e.g. unit tests that drive the handler
-    synchronously).
+    synchroflashly).
 
     Returns True if a reconnect signal was delivered, False if the server
     has no reconnect machinery (nothing to revive).
@@ -3453,7 +3453,7 @@ _stdio_pids: Dict[int, str] = {}  # pid -> server_name
 
 # PIDs that survived their session context exit (SDK teardown failed to
 # terminate them).  These are detected in _run_stdio's finally block and
-# can be cleaned up asynchronously by _kill_orphaned_mcp_children().
+# can be cleaned up asynchroflashly by _kill_orphaned_mcp_children().
 # Separate from _stdio_pids so cleanup sweeps never race with active
 # sessions (e.g. concurrent cron jobs or live user chats).
 _orphan_stdio_pids: set = set()
@@ -3899,7 +3899,7 @@ def _make_tool_handler(server_name: str, tool_name: str, tool_timeout: float):
 
         if not server.session:
             # No live session. A reconnect may already be completing (the
-            # transport swaps in a fresh session object asynchronously) —
+            # transport swaps in a fresh session object asynchroflashly) —
             # wait briefly before treating this as a failure, so a
             # transient reconnect window doesn't burn a circuit-breaker
             # strike (#26892).

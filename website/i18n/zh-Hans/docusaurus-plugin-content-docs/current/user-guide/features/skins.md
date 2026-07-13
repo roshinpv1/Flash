@@ -216,7 +216,7 @@ tool_prefix: "▏"
 
 [Flash Mod](https://github.com/cocktailpeanut/flash-mod) 是一个社区构建的 Web UI，用于可视化创建和管理皮肤。无需手写 YAML，提供带实时预览的点击式编辑器。
 
-![Flash Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/flash-mod/master/nous.png)
+![Flash Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/flash-mod/master/flash.png)
 
 **功能说明：**
 

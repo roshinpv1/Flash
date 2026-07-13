@@ -27,12 +27,12 @@ one-off at the call site.
 1. **Flat, not boxed.** No card-in-card, no divider borders inside a panel.
    Group with whitespace and a single hairline, never nested rounded boxes.
 2. **Borderless elevation for floating panels.** Overlays float on
-   `shadow-nous` + a `--stroke-nous` hairline, not thick framed boxes. In-panel
+   `shadow-flash` + a `--stroke-flash` hairline, not thick framed boxes. In-panel
    structure may use token hairlines sparingly.
 3. **One primitive per concern.** One `Button`, one set of control variants,
    one `SearchField`, one `Loader`, one `ErrorState`. Migrate onto them; don't
    fork.
-4. **Tokens, not literals.** Reference CSS vars (`--ui-*`, `--shadow-nous`,
+4. **Tokens, not literals.** Reference CSS vars (`--ui-*`, `--shadow-flash`,
    `--theme-*`), never raw hex / ad-hoc rgba in components.
 5. **Style lives in the primitive.** Variants and sizes own padding, radius,
    color, chrome. Call sites pass a `variant`/`size`, not `className` overrides
@@ -73,8 +73,8 @@ Floating panels (base `Dialog`, route overlays, boot/install/update surfaces,
 model-picker, onboarding, prompt overlays, notifications) use:
 
 ```
-shadow-nous           /* downward-weighted, layered contact→ambient falloff */
-border-(--stroke-nous) /* currentColor hairline, theme-adaptive */
+shadow-flash           /* downward-weighted, layered contact→ambient falloff */
+border-(--stroke-flash) /* currentColor hairline, theme-adaptive */
 ```
 
 Both are CSS vars in `src/styles.css` — tune in one place, everything inherits.
@@ -92,7 +92,7 @@ for call-site shadow or border inventions.
 | --- | --- |
 | `--ui-stroke-primary…quaternary` | hairlines, in descending strength |
 | `--ui-stroke-tertiary` | the default in-panel divider / list hairline |
-| `--stroke-nous` | the overlay hairline (pairs with `shadow-nous`) |
+| `--stroke-flash` | the overlay hairline (pairs with `shadow-flash`) |
 | `--ui-text-primary / -secondary / -tertiary` | text hierarchy |
 | `--ui-bg-quaternary` | soft control fill (secondary button) |
 | `--chrome-action-hover` | hover fill for quiet controls |
@@ -190,7 +190,7 @@ Notes:
   action. Do not introduce a third icon set or mix styles within one control
   group.
 - **`BrandMark`** (`src/components/brand-mark.tsx`) is the brand glyph — the
-  `nous-girl` mark on a white tile, softly rounded, identical in light/dark.
+  `flash-girl` mark on a white tile, softly rounded, identical in light/dark.
   It replaced scattered Sparkles glyphs in updates / onboarding / about. Use it
   for hero/brand moments; don't reintroduce decorative star/sparkle icons.
 
@@ -234,7 +234,7 @@ long transcript or a busy terminal.
 - Register global shortcuts through the shared layer, not ad-hoc listeners.
 - One cancel gesture does one thing: cancel the active interaction, or close the
   topmost dismissable surface — never both, never the control underneath.
-- Cancellation is synchronous in the UI even if cleanup is async: overlays,
+- Cancellation is synchroflash in the UI even if cleanup is async: overlays,
   cursors, and pending gesture state clear at once.
 - Flows that deliberately cannot be dismissed (install/onboarding, destructive
   confirmation) must make that explicit.
@@ -275,10 +275,10 @@ The detailed state contract lives in the scoped
 
 - [ ] Reuse a primitive (`Button`, `SearchField`, `SegmentedControl`,
       `ListRow`, `Loader`, `ErrorState`, `LogView`) instead of forking one?
-- [ ] Tokens (`--ui-*`, `shadow-nous`, `--stroke-nous`) — zero raw colors /
+- [ ] Tokens (`--ui-*`, `shadow-flash`, `--stroke-flash`) — zero raw colors /
       one-off shadows?
 - [ ] No `className` overriding a primitive's padding / size / radius / chrome?
-- [ ] Overlay uses `shadow-nous` + `border-(--stroke-nous)`, no hard border?
+- [ ] Overlay uses `shadow-flash` + `border-(--stroke-flash)`, no hard border?
 - [ ] Flat — no card-in-card, no gratuitous row dividers?
 - [ ] No automatic navigation, focus steal, or pane opening from background
       events?

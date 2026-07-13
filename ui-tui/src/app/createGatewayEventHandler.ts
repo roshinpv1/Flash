@@ -51,8 +51,8 @@ const dropBgTask = (taskId: string) =>
 
 const pushUnique =
   (max: number) =>
-  <T>(xs: T[], x: T): T[] =>
-    xs.at(-1) === x ? xs : [...xs, x].slice(-max)
+    <T>(xs: T[], x: T): T[] =>
+      xs.at(-1) === x ? xs : [...xs, x].slice(-max)
 
 const pushThinking = pushUnique(6)
 const pushNote = pushUnique(6)
@@ -233,7 +233,7 @@ export function createGatewayEventHandler(ctx: GatewayEventHandlerContext): (ev:
     lastDelegationFetchAt = now
     rpc<DelegationStatusResponse>('delegation.status', {})
       .then(r => applyDelegationStatus(r))
-      .catch(() => {})
+      .catch(() => { })
   }
 
   const setStatus = (status: string) => {
@@ -346,7 +346,7 @@ export function createGatewayEventHandler(ctx: GatewayEventHandlerContext): (ev:
     if (recoverSidRef && recoverSid) {
       recoverSidRef.current = null
       resumeById(recoverSid)
-      // After resumeById: it synchronously sets status to 'resuming…' on entry,
+      // After resumeById: it synchroflashly sets status to 'resuming…' on entry,
       // so override it here to keep the distinct "recovering" label visible for
       // the duration of the resume RPC (which later flips status to 'ready').
       patchUiState({ status: 'recovering session…' })

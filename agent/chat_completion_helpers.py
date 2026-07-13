@@ -891,7 +891,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
         base_url_host_matches(agent._base_url_lower, "models.github.ai")
         or base_url_host_matches(agent._base_url_lower, "githubcopilot.com")
     )
-    _is_nous = "flashorg" in agent._base_url_lower
+    _is_flash = "flashorg" in agent._base_url_lower
     _is_nvidia = "integrate.api.nvidia.com" in agent._base_url_lower
     _is_kimi = (
         base_url_host_matches(agent.base_url, "api.kimi.com")
@@ -1009,7 +1009,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
         session_id=getattr(agent, "session_id", None),
         model_lower=(agent.model or "").lower(),
         is_openrouter=_is_or,
-        is_nous=_is_nous,
+        is_flash=_is_flash,
         is_qwen_portal=_is_qwen,
         is_github_models=_is_gh,
         is_nvidia_nim=_is_nvidia,
@@ -1309,20 +1309,20 @@ def _fallback_entry_key(fb: dict) -> tuple[str, str, str]:
 def _fallback_entry_unavailable_without_network(agent, fb: dict) -> Optional[str]:
     """Return a skip reason for fallback entries known to be unusable locally."""
     fb_provider = (fb.get("provider") or "").strip().lower()
-    if fb_provider != "nous":
+    if fb_provider != "flash":
         return None
     try:
         from flash_cli.auth import get_provider_auth_state
 
-        state = get_provider_auth_state("nous") or {}
+        state = get_provider_auth_state("flash") or {}
     except Exception as exc:
-        return f"nous_auth_unreadable:{type(exc).__name__}"
+        return f"flash_auth_unreadable:{type(exc).__name__}"
     access_value = state.get("access_token")
     refresh_value = state.get("refresh_token")
     has_access = isinstance(access_value, str) and bool(access_value.strip())
     has_refresh = isinstance(refresh_value, str) and bool(refresh_value.strip())
     if not (has_access or has_refresh):
-        return "nous_token_missing"
+        return "flash_token_missing"
     return None
 
 
@@ -1664,7 +1664,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         _reset_stale_streak(agent)
         return True
     except Exception as e:
-        if fb_provider == "nous":
+        if fb_provider == "flash":
             unavailable.add(fb_key)
         logger.error("Failed to activate fallback %s: %s", fb_model, e)
         return agent._try_activate_fallback(reason)  # try next in chain
@@ -1744,7 +1744,7 @@ def handle_max_iterations(agent, messages: list, api_call_count: int) -> str:
         )
         _omit_summary_temperature = _raw_summary_temp is _OMIT_TEMP
         _summary_temperature = None if _omit_summary_temperature else _raw_summary_temp
-        _is_nous = "flashorg" in agent._base_url_lower
+        _is_flash = "flashorg" in agent._base_url_lower
         # LM Studio uses top-level `reasoning_effort` (not extra_body.reasoning).
         # Mirror ChatCompletionsTransport.build_kwargs() so the summary path
         # — which calls chat.completions.create() directly without going
@@ -1765,8 +1765,8 @@ def handle_max_iterations(agent, messages: list, api_call_count: int) -> str:
                     "enabled": True,
                     "effort": "medium"
                 }
-        if _is_nous:
-            from agent.portal_tags import nous_portal_tags as _portal_tags
+        if _is_flash:
+            from agent.portal_tags import flash_portal_tags as _portal_tags
             summary_extra_body["tags"] = _portal_tags()
 
         if agent.api_mode == "codex_responses":

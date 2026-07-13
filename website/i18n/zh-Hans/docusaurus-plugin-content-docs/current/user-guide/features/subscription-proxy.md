@@ -62,7 +62,7 @@ Model:      Flash-4-70B    # 或 Flash-4.3-36B、Flash-4-405B
 flash proxy providers
 ```
 
-当前已内置：`nous`（Nous Portal）。更多 OAuth 提供商可通过在 `flash_cli/proxy/adapters/` 中实现 `UpstreamAdapter` 接口来添加。
+当前已内置：`flash`（Nous Portal）。更多 OAuth 提供商可通过在 `flash_cli/proxy/adapters/` 中实现 `UpstreamAdapter` 接口来添加。
 
 ## 检查状态
 
@@ -73,7 +73,7 @@ flash proxy status
 ```
 Flash proxy upstream adapters
 
-  [nous    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
+  [flash    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
 ```
 
 如果显示 `not logged in`，请运行 `flash portal`。如果显示 `credentials need attention`，说明你的刷新令牌已被撤销（较少见——通常发生在你从 Portal Web UI 退出登录时）——重新运行 `flash portal` 即可。

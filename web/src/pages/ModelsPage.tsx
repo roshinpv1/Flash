@@ -23,11 +23,11 @@ import type {
 } from "@/lib/api";
 import { timeAgo, cn, themedBody } from "@/lib/utils";
 import { formatTokenCount } from "@/lib/format";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Stats } from "@nous-research/ui/ui/components/stats";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
-import { Badge } from "@nous-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { Stats } from "@flash-research/ui/ui/components/stats";
+import { Card, CardContent, CardHeader, CardTitle } from "@flash-research/ui/ui/components/card";
+import { Badge } from "@flash-research/ui/ui/components/badge";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -660,10 +660,9 @@ function AuxiliaryTasksModal({
             key={`picker-${refreshKey}`}
             loader={api.getModelOptions}
             alwaysGlobal
-            title={`Set Auxiliary: ${
-              AUX_TASKS.find((t) => t.key === picker.task)?.label ??
+            title={`Set Auxiliary: ${AUX_TASKS.find((t) => t.key === picker.task)?.label ??
               picker.task
-            }`}
+              }`}
             onApply={async ({ provider, model, confirmExpensiveModel }) => {
               const result = await api.setModelAssignment({
                 confirm_expensive_model: confirmExpensiveModel,
@@ -1108,7 +1107,7 @@ export default function ModelsPage() {
     api
       .getAuxiliaryModels()
       .then(setAux)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const onAssigned = useCallback(() => {
@@ -1196,8 +1195,8 @@ export default function ModelsPage() {
                 <Stats
                   className="min-w-0"
                   items={
-                  showTokens
-                    ? [
+                    showTokens
+                      ? [
                         {
                           label: t.models.modelsUsed,
                           value: String(data.totals.distinct_models),
@@ -1225,7 +1224,7 @@ export default function ModelsPage() {
                           value: String(data.totals.total_sessions),
                         },
                       ]
-                    : [
+                      : [
                         {
                           label: t.models.modelsUsed,
                           value: String(data.totals.distinct_models),
@@ -1235,8 +1234,8 @@ export default function ModelsPage() {
                           value: String(data.totals.total_sessions),
                         },
                       ]
-                }
-              />
+                  }
+                />
               </div>
               {!showTokens && (
                 <p className="mt-4 text-xs text-text-tertiary leading-relaxed">

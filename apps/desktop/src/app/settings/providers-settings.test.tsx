@@ -28,7 +28,7 @@ function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> =
     docs_url: '',
     flow: 'device_code',
     id,
-    name: id === 'nous' ? 'Nous Portal' : 'MiniMax',
+    name: id === 'flash' ? 'Nous Portal' : 'MiniMax',
     status: {
       logged_in: loggedIn
     },
@@ -58,9 +58,9 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
 beforeEach(() => {
   onboarding.set({ manual: false })
   getEnvVars.mockResolvedValue({})
-  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'nous' })
+  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'flash' })
   listOAuthProviders.mockResolvedValue({
-    providers: [provider('nous', true), provider('minimax-oauth', false)]
+    providers: [provider('flash', true), provider('minimax-oauth', false)]
   })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -84,7 +84,7 @@ describe('ProvidersSettings', () => {
     const remove = await screen.findByRole('button', { name: 'Remove Nous Portal' })
     fireEvent.click(remove)
 
-    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('nous'))
+    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('flash'))
     expect(listOAuthProviders).toHaveBeenCalledTimes(2)
   })
 
@@ -93,7 +93,7 @@ describe('ProvidersSettings', () => {
 
     fireEvent.click(await screen.findByText('Nous Portal'))
 
-    expect(startManualProviderOAuth).toHaveBeenCalledWith('nous')
+    expect(startManualProviderOAuth).toHaveBeenCalledWith('flash')
     expect(disconnectOAuthProvider).not.toHaveBeenCalled()
   })
 

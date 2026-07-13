@@ -324,7 +324,7 @@ def _on_disk_journal_mode(conn: sqlite3.Connection) -> Optional[str]:
 def _apply_macos_checkpoint_barrier(conn: sqlite3.Connection) -> None:
     """Enable ``PRAGMA checkpoint_fullfsync`` on macOS (no-op elsewhere).
 
-    On Darwin, ``synchronous=FULL`` (the WAL default) issues a plain
+    On Darwin, ``synchroflash=FULL`` (the WAL default) issues a plain
     ``fsync()``, which Apple documents does *not* guarantee that data
     has reached stable storage or that writes are not reordered — see
     the ``fsync(2)`` man page.  SQLite's WAL corruption-safety guarantee

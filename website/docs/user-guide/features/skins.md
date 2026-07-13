@@ -216,7 +216,7 @@ tool_prefix: "▏"
 
 [Flash Mod](https://github.com/cocktailpeanut/flash-mod) is a community-built web UI for creating and managing skins visually. Instead of writing YAML by hand, you get a point-and-click editor with live preview.
 
-![Flash Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/flash-mod/master/nous.png)
+![Flash Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/flash-mod/master/flash.png)
 
 **What it does:**
 

@@ -14,7 +14,7 @@ metadata:
 
 # Flash Agent
 
-Flash Agent is an open-source AI agent framework by Nous Research that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Flash works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
+Flash Agent is an open-source AI agent framework by Flash Org that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Flash works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
 What makes Flash different:
 
@@ -96,7 +96,7 @@ flash chat [flags]
   -q, --query TEXT          Single query, non-interactive
   -m, --model MODEL         Model (e.g. anthropic/claude-sonnet-4)
   -t, --toolsets LIST       Comma-separated toolsets
-  --provider PROVIDER       Force provider (openrouter, anthropic, nous, etc.)
+  --provider PROVIDER       Force provider (openrouter, anthropic, flash, etc.)
   -v, --verbose             Verbose output
   -Q, --quiet               Suppress banner, spinner, tool previews
   --checkpoints             Enable filesystem checkpoints (/rollback)
@@ -227,7 +227,7 @@ flash profile import FILE  Import from archive
 ```
 flash auth                 Interactive credential manager
 flash auth add [PROVIDER]  Add OAuth or API-key credential
-                            (e.g. nous, openai-codex, qwen-oauth, anthropic)
+                            (e.g. flash, openai-codex, qwen-oauth, anthropic)
 flash auth list [PROVIDER] List pooled credentials
 flash auth remove P INDEX  Remove by provider + index
 flash auth reset PROVIDER  Clear exhaustion status

@@ -46,7 +46,7 @@ def _resolve_requests_verify() -> bool | str:
 # Only these are stripped — Ollama-style "model:tag" colons (e.g. "qwen3.5:27b")
 # are preserved so the full model name reaches cache lookups and server queries.
 _PROVIDER_PREFIXES: frozenset[str] = frozenset({
-    "openrouter", "nous", "openai-codex", "copilot", "copilot-acp",
+    "openrouter", "flash", "openai-codex", "copilot", "copilot-acp",
     "gemini", "ollama-cloud", "zai", "kimi-coding", "kimi-coding-cn", "stepfun", "minimax", "minimax-oauth", "minimax-cn", "anthropic", "deepseek",
     "opencode-zen", "opencode-go", "kilocode", "alibaba", "novita",
     "qwen-oauth",
@@ -459,7 +459,7 @@ _URL_TO_PROVIDER: Dict[str, str] = {
     "portal.qwen.ai": "qwen-oauth",
     "openrouter.ai": "openrouter",
     "generativelanguage.googleapis.com": "gemini",
-    "inference-api.flashorg.com": "nous",
+    "inference-api.flashorg.com": "flash",
     "api.deepseek.com": "deepseek",
     "api.githubcopilot.com": "copilot",
     # Enterprise Copilot endpoints look like api.enterprise.githubcopilot.com,
@@ -1660,7 +1660,7 @@ def _query_local_context_length(model: str, base_url: str, api_key: str = "") ->
     pre-defaults step-7 probe) can fire this function several times in quick
     succession during one startup — banner display, ``/model`` switch,
     compressor ``update_model`` all resolve the same model. Each raw probe
-    issues synchronous ``detect_local_server_type`` + query HTTP calls (bounded
+    issues synchroflash ``detect_local_server_type`` + query HTTP calls (bounded
     by the 3s httpx timeout), so an unreachable/slow local server would pay
     that cost repeatedly. A tiny in-process TTL cache collapses back-to-back
     probes for the same (model, base_url) into one network round-trip without
@@ -1942,7 +1942,7 @@ def _resolve_codex_oauth_context_length(
     return None
 
 
-def _resolve_nous_context_length(
+def _resolve_flash_context_length(
     model: str,
     base_url: str = "",
     api_key: str = "",
@@ -2164,7 +2164,7 @@ def get_model_context_length(
             # touching the on-disk file when the portal is unreachable.
             # The in-memory 300s endpoint metadata cache makes the per-call
             # cost amortise to ~0 within a process.
-            elif _infer_provider_from_url(base_url) == "nous":
+            elif _infer_provider_from_url(base_url) == "flash":
                 logger.debug(
                     "Bypassing persistent cache for %s@%s (Nous portal authoritative)",
                     model, base_url,
@@ -2292,8 +2292,8 @@ def get_model_context_length(
         except Exception:
             pass  # Fall through to models.dev
 
-    if effective_provider == "nous":
-        ctx, source = _resolve_nous_context_length(
+    if effective_provider == "flash":
+        ctx, source = _resolve_flash_context_length(
             model, base_url=base_url or "", api_key=api_key or ""
         )
         if ctx:
@@ -2436,7 +2436,7 @@ async def get_model_context_length_async(
 ) -> int:
     """Async variant of get_model_context_length.
 
-    Offloads the entire synchronous resolution chain (which contains
+    Offloads the entire synchroflash resolution chain (which contains
     blocking HTTP calls via ``requests``) to a background thread so it
     does not freeze the asyncio event loop and cause Discord heartbeat
     timeouts.

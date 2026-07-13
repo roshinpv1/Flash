@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { ExternalLink, X, Check, Copy } from "lucide-react";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { H2 } from "@flash-research/ui/ui/components/typography/h2";
 import { api, type OAuthProvider, type OAuthStartResponse } from "@/lib/api";
 import { copyTextToClipboard } from "@/lib/clipboard";
-import { Input } from "@nous-research/ui/ui/components/input";
+import { Input } from "@flash-research/ui/ui/components/input";
 import { useI18n } from "@/i18n";
 import { cn, themedBody } from "@/lib/utils";
 
@@ -345,7 +345,7 @@ export function OAuthLoginModal({ provider, onClose, onSuccess }: Props) {
                 <Button
                   onClick={() => {
                     if (start?.session_id) {
-                      api.cancelOAuthSession(start.session_id).catch(() => {});
+                      api.cancelOAuthSession(start.session_id).catch(() => { });
                     }
                     setErrorMsg(null);
                     setStart(null);

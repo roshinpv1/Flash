@@ -47,7 +47,7 @@ Flash 刻意将以下内容分离：
 
 ```
 # Layer 1: Agent Identity (from ~/.flash/SOUL.md)
-You are Flash, an AI assistant created by Nous Research.
+You are Flash, an AI assistant created by Flash Org.
 You are an expert software engineer and researcher.
 You value correctness, clarity, and efficiency.
 ...
@@ -137,7 +137,7 @@ def load_soul_md() -> Optional[str]:
 若 `SOUL.md` 不存在，系统将回退到：
 
 ```
-You are Flash Agent, an intelligent AI assistant created by Nous Research.
+You are Flash Agent, an intelligent AI assistant created by Flash Org.
 You are helpful, knowledgeable, and direct. You assist users with a wide
 range of tasks including answering questions, writing and editing code,
 analyzing information, creative work, and executing actions via your tools.

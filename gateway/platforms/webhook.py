@@ -871,7 +871,7 @@ class WebhookAdapter(BasePlatformAdapter):
                 )
                 return
             # AsyncSessionDB forwards end_session via asyncio.to_thread; a
-            # plain SessionDB exposes it synchronously.  Handle both.
+            # plain SessionDB exposes it synchroflashly.  Handle both.
             _end = session_db.end_session
             result = _end(session_id, "webhook_complete")
             if asyncio.iscoroutine(result):

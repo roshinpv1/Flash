@@ -41,7 +41,7 @@ def _make_profile_home(tmp_path, monkeypatch, profile="coder"):
     return profile_home
 
 
-def _fake_nous_device_data():
+def _fake_flash_device_data():
     return {
         "device_code": "device-code",
         "user_code": "NOUS-1234",
@@ -107,7 +107,7 @@ def test_minimax_login_does_not_launch_anthropic_flow():
     assert body["expires_in"] == 600
 
 
-def test_nous_dashboard_device_flow_ignores_legacy_scope_override(monkeypatch):
+def test_flash_dashboard_device_flow_ignores_legacy_scope_override(monkeypatch):
     from flash_cli import auth as auth_mod
     from flash_cli import web_server as ws
 
@@ -115,13 +115,13 @@ def test_nous_dashboard_device_flow_ignores_legacy_scope_override(monkeypatch):
 
     def fake_request_device_code(**kwargs):
         requested_scopes.append(kwargs["scope"])
-        return _fake_nous_device_data()
+        return _fake_flash_device_data()
 
     monkeypatch.setenv("HERMES_AGENT_USE_LEGACY_SESSION_KEYS", "true")
     monkeypatch.setattr(auth_mod, "_request_device_code", fake_request_device_code)
-    monkeypatch.setattr(ws, "_nous_poller", lambda sid: None)
+    monkeypatch.setattr(ws, "_flash_poller", lambda sid: None)
 
-    result = asyncio.run(ws._start_device_code_flow("nous"))
+    result = asyncio.run(ws._start_device_code_flow("flash"))
     try:
         assert requested_scopes == [auth_mod.DEFAULT_NOUS_SCOPE]
         assert result["flow"] == "device_code"
@@ -195,7 +195,7 @@ def test_oauth_start_stores_profile_for_background_completion(tmp_path, monkeypa
         ws._oauth_sessions.pop(session_id, None)
 
 
-def test_nous_dashboard_device_flow_does_not_retry_legacy_scope_on_invoke_refusal(monkeypatch):
+def test_flash_dashboard_device_flow_does_not_retry_legacy_scope_on_invoke_refusal(monkeypatch):
     from flash_cli import auth as auth_mod
     from flash_cli import web_server as ws
 
@@ -207,10 +207,10 @@ def test_nous_dashboard_device_flow_does_not_retry_legacy_scope_on_invoke_refusa
 
     monkeypatch.delenv("HERMES_AGENT_USE_LEGACY_SESSION_KEYS", raising=False)
     monkeypatch.setattr(auth_mod, "_request_device_code", fake_request_device_code)
-    monkeypatch.setattr(ws, "_nous_poller", lambda sid: None)
+    monkeypatch.setattr(ws, "_flash_poller", lambda sid: None)
 
     with pytest.raises(httpx.HTTPStatusError):
-        asyncio.run(ws._start_device_code_flow("nous"))
+        asyncio.run(ws._start_device_code_flow("flash"))
     assert requested_scopes == [auth_mod.DEFAULT_NOUS_SCOPE]
 
 
@@ -390,14 +390,14 @@ def test_codex_dashboard_start_rewords_device_authorization_error(monkeypatch):
             ws._oauth_sessions.pop(sid, None)
 
 
-def test_nous_dashboard_poller_preserves_effective_scope_when_token_omits_scope(monkeypatch):
+def test_flash_dashboard_poller_preserves_effective_scope_when_token_omits_scope(monkeypatch):
     from flash_cli import auth as auth_mod
     from flash_cli import web_server as ws
 
-    session_id = "nous-effective-scope-test"
+    session_id = "flash-effective-scope-test"
     ws._oauth_sessions[session_id] = {
         "session_id": session_id,
-        "provider": "nous",
+        "provider": "flash",
         "flow": "device_code",
         "created_at": time.time(),
         "status": "pending",
@@ -411,7 +411,7 @@ def test_nous_dashboard_poller_preserves_effective_scope_when_token_omits_scope(
     }
     captured_state = {}
 
-    def fake_refresh_nous_oauth_from_state(state, **kwargs):
+    def fake_refresh_flash_oauth_from_state(state, **kwargs):
         captured_state.update(state)
         return {**state, "agent_key": "jwt-agent-key"}
 
@@ -427,13 +427,13 @@ def test_nous_dashboard_poller_preserves_effective_scope_when_token_omits_scope(
     )
     monkeypatch.setattr(
         auth_mod,
-        "refresh_nous_oauth_from_state",
-        fake_refresh_nous_oauth_from_state,
+        "refresh_flash_oauth_from_state",
+        fake_refresh_flash_oauth_from_state,
     )
-    monkeypatch.setattr(auth_mod, "persist_nous_credentials", lambda state: None)
+    monkeypatch.setattr(auth_mod, "persist_flash_credentials", lambda state: None)
 
     try:
-        ws._nous_poller(session_id)
+        ws._flash_poller(session_id)
         assert captured_state["scope"] == auth_mod.DEFAULT_NOUS_SCOPE
         assert ws._oauth_sessions[session_id]["status"] == "approved"
     finally:
@@ -790,15 +790,15 @@ def test_status_falls_through_to_generic_dispatcher_for_catalog_only_provider():
 
 
 def test_status_hardcoded_branch_wins_over_generic_fallback():
-    """An existing hardcoded branch (nous) is unaffected by the fallthrough."""
+    """An existing hardcoded branch (flash) is unaffected by the fallthrough."""
     import flash_cli.web_server as ws
 
     with patch(
-        "flash_cli.auth.get_nous_auth_status",
+        "flash_cli.auth.get_flash_auth_status",
         return_value={"logged_in": True, "portal_base_url": "https://portal.test"},
     ):
-        out = ws._resolve_provider_status("nous", None)
-    assert out["source"] == "nous_portal"
+        out = ws._resolve_provider_status("flash", None)
+    assert out["source"] == "flash_portal"
     assert out["source_label"] == "https://portal.test"
 
 

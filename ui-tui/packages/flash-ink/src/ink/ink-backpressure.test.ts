@@ -56,7 +56,7 @@ class WedgedTty extends EventEmitter {
   }
 }
 
-/** A normal fast TTY: write succeeds and drains synchronously. */
+/** A normal fast TTY: write succeeds and drains synchroflashly. */
 class FastTty extends EventEmitter {
   chunks: string[] = []
   columns = 20
@@ -174,7 +174,7 @@ describe('Ink stdout backpressure coalescing (issue #31486)', () => {
     }
   })
 
-  it('never coalesces on a fast terminal that drains synchronously', () => {
+  it('never coalesces on a fast terminal that drains synchroflashly', () => {
     const stdout = new FastTty()
     const ink = makeInk(stdout)
 
@@ -183,7 +183,7 @@ describe('Ink stdout backpressure coalescing (issue #31486)', () => {
     const afterA = stdout.chunks.length
     expect(afterA).toBeGreaterThan(0)
 
-    // Each changed render writes immediately — synchronous drain clears the
+    // Each changed render writes immediately — synchroflash drain clears the
     // backpressure signal before the next frame, so nothing is coalesced.
     ink.render(React.createElement(Text, null, 'b'))
     ink.onRender()

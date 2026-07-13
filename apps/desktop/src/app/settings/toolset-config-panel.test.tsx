@@ -46,7 +46,7 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
         tag: 'No API key needed',
         env_vars: [],
         post_setup: null,
-        requires_nous_auth: false,
+        requires_flash_auth: false,
         is_active: false
       },
       {
@@ -57,7 +57,7 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
           { key: 'ELEVENLABS_API_KEY', prompt: 'ElevenLabs API key', url: 'https://x', default: null, is_set: false }
         ],
         post_setup: null,
-        requires_nous_auth: false,
+        requires_flash_auth: false,
         is_active: false
       }
     ],
@@ -123,7 +123,7 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Multi-model image generation',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: true
           }
         ]
@@ -199,7 +199,7 @@ describe('ToolsetConfigPanel', () => {
             tag: 'No API key needed',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: false
           },
           {
@@ -216,7 +216,7 @@ describe('ToolsetConfigPanel', () => {
               }
             ],
             post_setup: null,
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: true
           }
         ]
@@ -246,7 +246,7 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: true
           }
         ]
@@ -295,7 +295,7 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: true
           }
         ]
@@ -327,7 +327,7 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
+            requires_flash_auth: false,
             is_active: true
           }
         ]

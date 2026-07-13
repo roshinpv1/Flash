@@ -15,14 +15,14 @@ from nyxo_cli.auth import AuthError, resolve_provider
 from nyxo_cli.colors import Colors, color
 from nyxo_cli.config import get_env_path, get_env_value, get_nyxo_home, load_config
 from nyxo_cli.models import provider_label
-from nyxo_cli.nous_account import (
-    format_nous_portal_entitlement_message,
-    get_nous_portal_account_info,
+from nyxo_cli.flash_account import (
+    format_flash_portal_entitlement_message,
+    get_flash_portal_account_info,
 )
-from nyxo_cli.nous_subscription import get_nous_subscription_features
+from nyxo_cli.flash_subscription import get_flash_subscription_features
 from nyxo_cli.runtime_provider import resolve_requested_provider
 from nyxo_constants import OPENROUTER_MODELS_URL
-from tools.tool_backend_helpers import managed_nous_tools_enabled
+from tools.tool_backend_helpers import managed_flash_tools_enabled
 
 def check_mark(ok: bool) -> str:
     if ok:
@@ -181,73 +181,73 @@ def show_status(args):
 
     try:
         from nyxo_cli.auth import (
-            get_nous_auth_status,
+            get_flash_auth_status,
             get_codex_auth_status,
             get_qwen_auth_status,
             get_minimax_oauth_auth_status,
         )
-        nous_status = get_nous_auth_status()
+        flash_status = get_flash_auth_status()
         codex_status = get_codex_auth_status()
         qwen_status = get_qwen_auth_status()
         minimax_status = get_minimax_oauth_auth_status()
     except Exception:
-        nous_status = {}
+        flash_status = {}
         codex_status = {}
         qwen_status = {}
         minimax_status = {}
 
-    nous_account_info = None
+    flash_account_info = None
     if (
-        nous_status.get("logged_in")
-        or nous_status.get("access_token")
-        or nous_status.get("portal_base_url")
-        or nous_status.get("inference_credential_present")
-        or nous_status.get("error_code")
+        flash_status.get("logged_in")
+        or flash_status.get("access_token")
+        or flash_status.get("portal_base_url")
+        or flash_status.get("inference_credential_present")
+        or flash_status.get("error_code")
     ):
         try:
-            nous_account_info = get_nous_portal_account_info()
+            flash_account_info = get_flash_portal_account_info()
         except Exception:
-            nous_account_info = None
+            flash_account_info = None
 
-    nous_logged_in = bool(
-        nous_status.get("logged_in")
-        or (nous_account_info and nous_account_info.logged_in)
+    flash_logged_in = bool(
+        flash_status.get("logged_in")
+        or (flash_account_info and flash_account_info.logged_in)
     )
-    nous_inference_present = bool(
-        nous_status.get("inference_credential_present")
-        or (nous_account_info and nous_account_info.inference_credential_present)
+    flash_inference_present = bool(
+        flash_status.get("inference_credential_present")
+        or (flash_account_info and flash_account_info.inference_credential_present)
     )
-    nous_error = nous_status.get("error")
-    if nous_logged_in:
-        nous_label = "logged in"
-    elif nous_inference_present:
-        nous_label = "not logged in (Nous inference key configured)"
+    flash_error = flash_status.get("error")
+    if flash_logged_in:
+        flash_label = "logged in"
+    elif flash_inference_present:
+        flash_label = "not logged in (Nous inference key configured)"
     else:
-        nous_label = "not logged in (run: nyxo portal)"
+        flash_label = "not logged in (run: nyxo portal)"
     print(
-        f"  {'Nous Portal':<12}  {check_mark(nous_logged_in)} "
-        f"{nous_label}"
+        f"  {'Nous Portal':<12}  {check_mark(flash_logged_in)} "
+        f"{flash_label}"
     )
-    portal_url = nous_status.get("portal_base_url") or "(unknown)"
+    portal_url = flash_status.get("portal_base_url") or "(unknown)"
     inference_url = (
-        nous_status.get("inference_base_url")
-        or (nous_account_info.inference_base_url if nous_account_info else None)
+        flash_status.get("inference_base_url")
+        or (flash_account_info.inference_base_url if flash_account_info else None)
     )
-    access_exp = _format_iso_timestamp(nous_status.get("access_expires_at"))
-    key_exp = _format_iso_timestamp(nous_status.get("agent_key_expires_at"))
-    refresh_label = "yes" if nous_status.get("has_refresh_token") else "no"
-    if nous_logged_in or portal_url != "(unknown)" or nous_error:
+    access_exp = _format_iso_timestamp(flash_status.get("access_expires_at"))
+    key_exp = _format_iso_timestamp(flash_status.get("agent_key_expires_at"))
+    refresh_label = "yes" if flash_status.get("has_refresh_token") else "no"
+    if flash_logged_in or portal_url != "(unknown)" or flash_error:
         print(f"    Portal URL: {portal_url}")
-    if nous_inference_present and inference_url:
+    if flash_inference_present and inference_url:
         print(f"    Inference:  {inference_url}")
-    if nous_logged_in or nous_status.get("access_expires_at"):
+    if flash_logged_in or flash_status.get("access_expires_at"):
         print(f"    Access exp: {access_exp}")
-    if nous_logged_in or nous_inference_present or nous_status.get("agent_key_expires_at"):
+    if flash_logged_in or flash_inference_present or flash_status.get("agent_key_expires_at"):
         print(f"    Key exp:    {key_exp}")
-    if nous_logged_in or nous_status.get("has_refresh_token"):
+    if flash_logged_in or flash_status.get("has_refresh_token"):
         print(f"    Refresh:    {refresh_label}")
-    if nous_error:
-        print(f"    Error:      {nous_error}")
+    if flash_error:
+        print(f"    Error:      {flash_error}")
 
     codex_logged_in = bool(codex_status.get("logged_in"))
     print(
@@ -316,34 +316,34 @@ def show_status(args):
     # =========================================================================
     # Nous Subscription Features
     # =========================================================================
-    if managed_nous_tools_enabled():
-        features = get_nous_subscription_features(config)
+    if managed_flash_tools_enabled():
+        features = get_flash_subscription_features(config)
         print()
         print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
-        if not features.nous_auth_present:
+        if not features.flash_auth_present:
             print("  Nous Portal   ✗ not logged in")
         else:
             print("  Nous Portal   ✓ managed tools available")
         for feature in features.items():
-            if feature.managed_by_nous:
+            if feature.managed_by_flash:
                 state = "active via Nous subscription"
             elif feature.active:
                 current = feature.current_provider or "configured provider"
                 state = f"active via {current}"
-            elif feature.included_by_default and features.nous_auth_present:
+            elif feature.included_by_default and features.flash_auth_present:
                 state = "included by subscription, not currently selected"
-            elif feature.key == "modal" and features.nous_auth_present:
+            elif feature.key == "modal" and features.flash_auth_present:
                 state = "available via subscription (optional)"
             else:
                 state = "not configured"
-            print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_nous)} {state}")
-    elif nous_logged_in or nous_inference_present:
+            print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_flash)} {state}")
+    elif flash_logged_in or flash_inference_present:
         # Nous OAuth without entitlement, or an opaque inference key without
         # Portal account information, cannot enable the Tool Gateway.
         print()
         print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
-        message = format_nous_portal_entitlement_message(
-            nous_account_info,
+        message = format_flash_portal_entitlement_message(
+            flash_account_info,
             capability="managed web, image, TTS, STT, browser, and Modal tools",
         )
         if message:

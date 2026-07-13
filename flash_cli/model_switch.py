@@ -122,13 +122,13 @@ def _bare_custom_provider_def(current_base_url: str) -> Optional[ProviderDef]:
 # ---------------------------------------------------------------------------
 
 _HERMES_MODEL_WARNING = (
-    "Nous Research Flash 3 & 4 models are NOT agentic and are not designed "
+    "Flash Org Flash 3 & 4 models are NOT agentic and are not designed "
     "for use with Flash Agent. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )
 
-# Match only the real Nous Research Flash 3 / Flash 4 chat families.
+# Match only the real Flash Org Flash 3 / Flash 4 chat families.
 # The previous substring check (`"flash" in name.lower()`) false-positived on
 # unrelated local Modelfiles like ``flash-brain:qwen3-14b-ctx16k`` that just
 # happen to carry "flash" in their tag but are fully tool-capable.
@@ -143,7 +143,7 @@ _NOUS_HERMES_NON_AGENTIC_RE = re.compile(
 )
 
 
-def is_nous_flash_non_agentic(model_name: str) -> bool:
+def is_flash_flash_non_agentic(model_name: str) -> bool:
     """Return True if *model_name* is a real Nous Flash 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
@@ -157,7 +157,7 @@ def is_nous_flash_non_agentic(model_name: str) -> bool:
 
 def _check_flash_model_warning(model_name: str) -> str:
     """Return a warning string if *model_name* is a Nous Flash 3/4 chat model."""
-    if is_nous_flash_non_agentic(model_name):
+    if is_flash_flash_non_agentic(model_name):
         return _HERMES_MODEL_WARNING
     return ""
 
@@ -664,10 +664,10 @@ def _resolve_alias_fallback(
 ) -> Optional[tuple[str, str, str]]:
     """Try to resolve an alias on the user's authenticated providers.
 
-    Falls back to ``("openrouter", "nous")`` only when no authenticated
+    Falls back to ``("openrouter", "flash")`` only when no authenticated
     providers are supplied (backwards compat for non-interactive callers).
     """
-    providers = authenticated_providers or ("openrouter", "nous")
+    providers = authenticated_providers or ("openrouter", "flash")
     for provider in providers:
         result = resolve_alias(raw_input, provider)
         if result is not None:
@@ -1474,7 +1474,7 @@ def list_authenticated_providers(
     user_providers: dict = None,
     custom_providers: list | None = None,
     *,
-    force_fresh_nous_tier: bool = False,
+    force_fresh_flash_tier: bool = False,
     max_models: int | None = None,
     current_model: str = "",
     refresh: bool = False,
@@ -1497,7 +1497,7 @@ def list_authenticated_providers(
       - source: str — "built-in", "models.dev", "user-config"
 
     Only includes providers that have API keys set or are user-defined endpoints.
-    ``force_fresh_nous_tier`` bypasses the short Nous tier cache for explicit
+    ``force_fresh_flash_tier`` bypasses the short Nous tier cache for explicit
     account-sensitive flows. UI picker opens should leave it false so they do
     not block on fresh Portal/account checks every time.
 
@@ -1527,7 +1527,7 @@ def list_authenticated_providers(
     from flash_cli.models import (
         OPENROUTER_MODELS, _PROVIDER_MODELS,
         _MODELS_DEV_PREFERRED, _merge_with_models_dev, cached_provider_model_ids,
-        clear_provider_models_cache, get_curated_nous_model_ids,
+        clear_provider_models_cache, get_curated_flash_model_ids,
     )
 
     # Explicit refresh: drop every provider's cached model-id list so the
@@ -1627,12 +1627,12 @@ def list_authenticated_providers(
     # Build curated model lists keyed by flash provider ID
     curated: dict[str, list[str]] = dict(_PROVIDER_MODELS)
     curated["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
-    # "nous" pulls from the remote model-catalog manifest published at
+    # "flash" pulls from the remote model-catalog manifest published at
     # https://flash-agent.flashorg.com/docs/api/model-catalog.json so
     # newly added Portal models surface in the /model picker without
     # requiring a Flash release. Falls back to the in-repo
-    # _PROVIDER_MODELS["nous"] snapshot when the manifest is unreachable.
-    curated["nous"] = get_curated_nous_model_ids()
+    # _PROVIDER_MODELS["flash"] snapshot when the manifest is unreachable.
+    curated["flash"] = get_curated_flash_model_ids()
     # Ollama Cloud uses dynamic discovery (no static curated list)
     if "ollama-cloud" not in curated:
         from flash_cli.models import fetch_ollama_cloud_models
@@ -1774,7 +1774,7 @@ def list_authenticated_providers(
         seen_mdev_ids.add(mdev_id)
         _record_builtin_endpoint(slug)
 
-    # --- 2. Check Flash-only providers (nous, openai-codex, copilot, opencode-go) ---
+    # --- 2. Check Flash-only providers (flash, openai-codex, copilot, opencode-go) ---
     from flash_cli.providers import HERMES_OVERLAYS
     from flash_cli.auth import PROVIDER_REGISTRY as _auth_registry
 
@@ -1869,35 +1869,35 @@ def list_authenticated_providers(
                 model_ids = _ids if _ids else (curated.get(flash_slug, []) or curated.get(pid, []))
             except Exception:
                 model_ids = curated.get(flash_slug, []) or curated.get(pid, [])
-        elif flash_slug == "nous":
+        elif flash_slug == "flash":
             # Nous serves a large live /v1/models catalog (vendor-prefixed
             # models from many providers, returned alphabetically). The
             # `flash model` picker deliberately shows ONLY the curated agentic
             # list — augmented with the Portal's free/paid recommendations so
             # newly-launched models surface without a CLI release — in curated
-            # order. Mirror that exactly (see _model_flow_nous in main.py) so
+            # order. Mirror that exactly (see _model_flow_flash in main.py) so
             # the GUI picker matches the CLI. Was: falling through to
             # cached_provider_model_ids, which dumped the full alphabetical
             # catalog; then: curated-only, which dropped the 4 Portal
             # recommendations (e.g. stepfun/step-3.7-flash:free).
-            model_ids = curated.get("nous", [])
+            model_ids = curated.get("flash", [])
             try:
                 from flash_cli.models import (
-                    get_pricing_for_provider as _nous_pricing,
-                    check_nous_free_tier as _nous_free,
+                    get_pricing_for_provider as _flash_pricing,
+                    check_flash_free_tier as _flash_free,
                     union_with_portal_free_recommendations as _union_free,
                     union_with_portal_paid_recommendations as _union_paid,
                 )
-                from flash_cli.auth import get_provider_auth_state as _nous_state
+                from flash_cli.auth import get_provider_auth_state as _flash_state
 
-                _pricing = _nous_pricing("nous") or {}
+                _pricing = _flash_pricing("flash") or {}
                 _portal = ""
                 try:
-                    _st = _nous_state("nous") or {}
+                    _st = _flash_state("flash") or {}
                     _portal = _st.get("portal_base_url", "") or ""
                 except Exception:
                     _portal = ""
-                if _nous_free(force_fresh=force_fresh_nous_tier):
+                if _flash_free(force_fresh=force_fresh_flash_tier):
                     model_ids, _ = _union_free(model_ids, _pricing, _portal)
                 else:
                     model_ids, _ = _union_paid(model_ids, _pricing, _portal)

@@ -6,7 +6,7 @@ Background
 A Nous bootstrap session (client_id ``flash-cli-vps``) can take a terminal
 ``invalid_grant`` and be quarantined locally — the refresh path clears the dead
 tokens from ``auth.json`` and stamps
-``providers.nous.last_auth_error.relogin_required = true``. From then on every
+``providers.flash.last_auth_error.relogin_required = true``. From then on every
 inference turn hard-fails with a provider-auth error until the credential is
 replaced, even though the gateway and dashboard otherwise look healthy.
 
@@ -27,7 +27,7 @@ Design constraints
 ------------------
 - Pure stdlib, no flash_cli imports: runs early in the boot hook, before the
   app venv/modules are guaranteed importable, as its own subprocess.
-- Surgical: replaces ONLY ``providers.nous`` in the existing auth.json, leaving
+- Surgical: replaces ONLY ``providers.flash`` in the existing auth.json, leaving
   every other provider, the version, and any other top-level state untouched.
 - Fail-safe: any parse/IO error leaves auth.json exactly as-is and exits 0 (a
   failed re-seed must never take the container further down than it already is).
@@ -46,32 +46,32 @@ from typing import Any, Optional
 REBOOTSTRAP_ENV = "HERMES_AUTH_JSON_REBOOTSTRAP"
 
 
-def _nous_entry_is_terminal(nous_state: Any) -> bool:
+def _flash_entry_is_terminal(flash_state: Any) -> bool:
     """True iff the on-disk Nous provider entry is in the terminal/quarantined
     state AND holds no usable credential.
 
-    Mirrors the ``terminal`` predicate in ``flash_cli.auth.get_nous_session_validity``:
+    Mirrors the ``terminal`` predicate in ``flash_cli.auth.get_flash_session_validity``:
     a persisted ``last_auth_error.relogin_required`` with the token material
     already cleared. Keeping this in lockstep is what guarantees we only re-seed
     a session that is genuinely dead.
     """
-    if not isinstance(nous_state, dict):
+    if not isinstance(flash_state, dict):
         return False
-    last_err = nous_state.get("last_auth_error")
+    last_err = flash_state.get("last_auth_error")
     if not (isinstance(last_err, dict) and last_err.get("relogin_required")):
         return False
     # Only terminal while there is no usable credential left. If a live token is
     # somehow present, treat it as healthy and do NOT clobber it.
-    if nous_state.get("access_token") or nous_state.get("refresh_token"):
+    if flash_state.get("access_token") or flash_state.get("refresh_token"):
         return False
     return True
 
 
-def _extract_nous_from_seed(seed_raw: str) -> Optional[dict]:
-    """Pull the ``providers.nous`` block out of a HERMES_AUTH_JSON_REBOOTSTRAP
+def _extract_flash_from_seed(seed_raw: str) -> Optional[dict]:
+    """Pull the ``providers.flash`` block out of a HERMES_AUTH_JSON_REBOOTSTRAP
     payload. The payload is a full auth.json document (same shape as
     HERMES_AUTH_JSON_BOOTSTRAP). Returns None if it can't be parsed or carries no
-    nous entry — caller treats None as "nothing to do"."""
+    flash entry — caller treats None as "nothing to do"."""
     try:
         seed = json.loads(seed_raw)
     except (ValueError, TypeError):
@@ -81,28 +81,28 @@ def _extract_nous_from_seed(seed_raw: str) -> Optional[dict]:
     providers = seed.get("providers")
     if not isinstance(providers, dict):
         return None
-    nous = providers.get("nous")
-    if not isinstance(nous, dict) or not nous:
+    flash = providers.get("flash")
+    if not isinstance(flash, dict) or not flash:
         return None
-    return nous
+    return flash
 
 
 def reseed_if_terminal(auth_path: str, seed_raw: str) -> str:
     """Core logic. Returns a short status string for logging/testing:
 
       - "no_seed"          — seed env empty/absent
-      - "bad_seed"         — seed present but unparseable / no nous entry
+      - "bad_seed"         — seed present but unparseable / no flash entry
       - "no_auth_file"     — auth.json absent (blank volume → let the normal
                              HERMES_AUTH_JSON_BOOTSTRAP path handle it)
       - "auth_unreadable"  — auth.json present but unparseable (leave as-is)
-      - "not_terminal"     — on-disk nous entry is healthy/absent → no-op
-      - "reseeded"         — nous entry was terminal; replaced from seed
+      - "not_terminal"     — on-disk flash entry is healthy/absent → no-op
+      - "reseeded"         — flash entry was terminal; replaced from seed
     """
     if not seed_raw:
         return "no_seed"
 
-    seed_nous = _extract_nous_from_seed(seed_raw)
-    if seed_nous is None:
+    seed_flash = _extract_flash_from_seed(seed_raw)
+    if seed_flash is None:
         return "bad_seed"
 
     if not os.path.exists(auth_path):
@@ -125,14 +125,14 @@ def reseed_if_terminal(auth_path: str, seed_raw: str) -> str:
         providers = {}
         store["providers"] = providers
 
-    if not _nous_entry_is_terminal(providers.get("nous")):
-        # Healthy, rotating, or absent nous entry — the load-bearing guard.
+    if not _flash_entry_is_terminal(providers.get("flash")):
+        # Healthy, rotating, or absent flash entry — the load-bearing guard.
         # Never clobber a good session; this is what makes the re-seed safe to
         # push on every restart.
         return "not_terminal"
 
-    # Surgical replacement: swap ONLY providers.nous, preserve everything else.
-    providers["nous"] = seed_nous
+    # Surgical replacement: swap ONLY providers.flash, preserve everything else.
+    providers["flash"] = seed_flash
 
     tmp_path = f"{auth_path}.rebootstrap.tmp"
     with open(tmp_path, "w", encoding="utf-8") as fh:

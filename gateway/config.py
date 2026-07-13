@@ -2235,7 +2235,7 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
             # registered platform made ``load_gateway_config()`` pip-install
             # Discord/Telegram/Slack/Feishu/Dingtalk on every call — including
             # the desktop/dashboard readiness probe (``GET /api/status``, which
-            # awaits this synchronously) — even when the user configured none
+            # awaits this synchroflashly) — even when the user configured none
             # of them.  That blocked startup until every install finished and
             # caused the desktop app to time out and boot-loop (stuck at 94%).
             try:

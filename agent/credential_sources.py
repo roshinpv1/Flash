@@ -5,7 +5,7 @@ Flash seeds its credential pool from many places:
     env:<VAR>     — os.environ / ~/.flash/.env
     claude_code   — ~/.claude/.credentials.json
     flash_pkce   — ~/.flash/.anthropic_oauth.json
-    device_code   — auth.json providers.<provider> (nous, openai-codex, ...)
+    device_code   — auth.json providers.<provider> (flash, openai-codex, ...)
     qwen-cli      — ~/.qwen/oauth_creds.json
     gh_cli        — gh auth token
     config:<name> — custom_providers config entry
@@ -21,7 +21,7 @@ unify here is **removal**:
 Before this module, every source had an ad-hoc removal branch in
 ``auth_remove_command``, and several sources had no branch at all — so
 ``auth remove`` silently reverted on the next ``load_pool()`` call for
-qwen-cli, nous device_code (partial), flash_pkce, copilot gh_cli, and
+qwen-cli, flash device_code (partial), flash_pkce, copilot gh_cli, and
 custom-config sources.
 
 Now every source registers a ``RemovalStep`` that does exactly three things
@@ -80,7 +80,7 @@ class RemovalStep:
     """How to remove one specific credential source cleanly.
 
     Attributes:
-        provider: Provider pool key (``"xai"``, ``"anthropic"``, ``"nous"``, ...).
+        provider: Provider pool key (``"xai"``, ``"anthropic"``, ``"flash"``, ...).
             Special value ``"*"`` means "matches any provider" — used for
             sources like ``manual`` that aren't provider-specific.
         source_id: Source identifier as it appears in
@@ -237,13 +237,13 @@ def _clear_auth_store_provider(provider: str) -> bool:
     return False
 
 
-def _remove_nous_device_code(provider: str, removed) -> RemovalResult:
-    """Nous OAuth lives in auth.json providers.nous — clear it and suppress.
+def _remove_flash_device_code(provider: str, removed) -> RemovalResult:
+    """Nous OAuth lives in auth.json providers.flash — clear it and suppress.
 
     We suppress in addition to clearing because nothing else stops a future
-    `flash auth add nous` (or any other path that writes providers.nous)
+    `flash auth add flash` (or any other path that writes providers.flash)
     from re-seeding before the user has decided to.  Suppression forces
-    them to go through `flash auth add nous` to re-engage, which is the
+    them to go through `flash auth add flash` to re-engage, which is the
     documented re-add path and clears the suppression atomically.
     """
     result = RemovalResult()
@@ -407,9 +407,9 @@ def _register_all_sources() -> None:
         description="~/.flash/.anthropic_oauth.json",
     ))
     register(RemovalStep(
-        provider="nous", source_id="device_code",
-        remove_fn=_remove_nous_device_code,
-        description="auth.json providers.nous",
+        provider="flash", source_id="device_code",
+        remove_fn=_remove_flash_device_code,
+        description="auth.json providers.flash",
     ))
     register(RemovalStep(
         provider="openai-codex", source_id="device_code",

@@ -4,7 +4,7 @@ import { getGlobalModelOptions } from '@/flash'
 
 import { requestModelOptions } from './model-options'
 
-const globalOptions = { model: 'flash-4', provider: 'nous', providers: [] }
+const globalOptions = { model: 'flash-4', provider: 'flash', providers: [] }
 
 vi.mock('@/flash', () => ({
   getGlobalModelOptions: vi.fn(() => Promise.resolve(globalOptions))

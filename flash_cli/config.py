@@ -1113,7 +1113,7 @@ DEFAULT_CONFIG = {
         # a clarify-tool response from the user.  Hit this and the agent
         # unblocks with "[user did not respond within Xm]" so it can adapt
         # rather than pinning the running-agent guard forever.  CLI clarify
-        # blocks indefinitely (input() is synchronous) and ignores this.
+        # blocks indefinitely (input() is synchroflash) and ignores this.
         # Default 3600 (1h): real users step away (meetings, AFK) and the
         # old 600s default evicted the entry mid-think, so a later button
         # tap landed on a dead entry (#32762).  Tradeoff: a higher value
@@ -1575,7 +1575,7 @@ DEFAULT_CONFIG = {
         # call.
         "transient_retries": 2,
         "vision": {
-            "provider": "auto",    # auto | openrouter | nous | codex | custom
+            "provider": "auto",    # auto | openrouter | flash | codex | custom
             "model": "",           # e.g. "google/gemini-2.5-flash", "gpt-4o"
             "base_url": "",        # direct OpenAI-compatible endpoint (takes precedence over provider)
             "api_key": "",         # API key for base_url (falls back to OPENAI_API_KEY)
@@ -2018,7 +2018,7 @@ DEFAULT_CONFIG = {
         # bundled ``dashboard_auth/drain`` plugin (the first consumer of the
         # generic non-interactive token-auth capability). The SECRET itself
         # is a credential and is NOT configured here: it is provisioned by
-        # nous-account-service at deploy time via the
+        # flash-account-service at deploy time via the
         # ``HERMES_DASHBOARD_DRAIN_SECRET`` env var (the .env-is-for-secrets
         # rule). These are the behavioural knobs only. The plugin is a no-op
         # unless that env var is set to a >=256-bit secret; a weak secret is
@@ -2245,7 +2245,7 @@ DEFAULT_CONFIG = {
         "max_concurrent_children": 3,  # unified concurrency cap: max parallel children per batch
                                        # AND max concurrent background (background=true)
                                        # delegation units. New async dispatches beyond the cap
-                                       # fall back to synchronous execution. Floor of 1, no ceiling.
+                                       # fall back to synchroflash execution. Floor of 1, no ceiling.
                                        # (Replaces the deprecated max_async_children.)
         # Orchestrator role controls (see tools/delegate_tool.py:_get_max_spawn_depth
         # and _get_orchestrator_enabled).  Floored at 1, no upper ceiling —
@@ -7074,7 +7074,7 @@ _FALLBACK_COMMENT = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — flash auth) — OpenAI Codex
-#   nous         (OAuth — flash auth) — Nous Portal
+#   flash         (OAuth — flash auth) — Nous Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
@@ -7106,7 +7106,7 @@ _COMMENTED_SECTIONS = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — flash auth) — OpenAI Codex
-#   nous         (OAuth — flash auth) — Nous Portal
+#   flash         (OAuth — flash auth) — Nous Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)

@@ -185,8 +185,8 @@ export const roseTheme: DashboardTheme = {
 };
 
 /** Light mode — vivid Nous-blue accents on a cream canvas. */
-export const nousBlueTheme: DashboardTheme = {
-  name: "nous-blue",
+export const flashBlueTheme: DashboardTheme = {
+  name: "flash-blue",
   label: "Nous Blue",
   description: "Light mode — vivid Nous-blue accents on cream canvas",
   palette: {
@@ -231,7 +231,7 @@ export const defaultLargeTheme: DashboardTheme = {
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
   default: defaultTheme,
   "default-large": defaultLargeTheme,
-  "nous-blue": nousBlueTheme,
+  "flash-blue": flashBlueTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,

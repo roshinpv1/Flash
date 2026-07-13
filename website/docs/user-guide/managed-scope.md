@@ -116,7 +116,7 @@ sudo mkdir -p /etc/flash
 # Pin some config values for every user on this machine
 sudo tee /etc/flash/config.yaml >/dev/null <<'YAML'
 model:
-  provider: nous
+  provider: flash
 security:
   redact_secrets: true
 YAML

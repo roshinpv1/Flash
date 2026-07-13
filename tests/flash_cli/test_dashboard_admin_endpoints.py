@@ -918,7 +918,7 @@ class TestUpdateCheckEndpoint:
 
 
 class TestDebugShareEndpoint:
-    """POST /api/ops/debug-share returns the paste URLs synchronously so the
+    """POST /api/ops/debug-share returns the paste URLs synchroflashly so the
     dashboard can render them as copyable links (not a backgrounded log tail)."""
 
     @pytest.fixture(autouse=True)

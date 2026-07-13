@@ -1294,8 +1294,8 @@ class TestBuildSystemPrompt:
         else:
             assert False, "Expected a 'Conversation started:' line in the system prompt"
 
-    def test_includes_nous_subscription_prompt(self, agent, monkeypatch):
-        monkeypatch.setattr(run_agent, "build_nous_subscription_prompt", lambda tool_names: "NOUS SUBSCRIPTION BLOCK")
+    def test_includes_flash_subscription_prompt(self, agent, monkeypatch):
+        monkeypatch.setattr(run_agent, "build_flash_subscription_prompt", lambda tool_names: "NOUS SUBSCRIPTION BLOCK")
         prompt = agent._build_system_prompt()
         assert "NOUS SUBSCRIPTION BLOCK" in prompt
 
@@ -1875,8 +1875,8 @@ class TestBuildApiKwargs:
         kwargs = agent._build_api_kwargs(messages)
         assert kwargs["extra_body"]["reasoning"]["effort"] == "medium"
 
-    def test_reasoning_sent_for_nous_route(self, agent):
-        agent.provider = "nous"
+    def test_reasoning_sent_for_flash_route(self, agent):
+        agent.provider = "flash"
         agent.base_url = "https://inference-api.flashorg.com/v1"
         agent.model = "minimax/minimax-m2.5"
         messages = [{"role": "user", "content": "hi"}]
@@ -3789,10 +3789,10 @@ class TestHandleMaxIterations:
         kwargs = agent.client.chat.completions.create.call_args.kwargs
         assert kwargs["extra_body"]["provider"]["only"] == ["Anthropic"]
 
-    def test_summary_keeps_provider_preferences_for_nous(self, agent):
+    def test_summary_keeps_provider_preferences_for_flash(self, agent):
         agent.base_url = "https://proxy.example.com/v1"
         agent._base_url_lower = agent.base_url.lower()
-        agent.provider = "nous"
+        agent.provider = "flash"
         agent.providers_allowed = ["deepseek"]
         agent.providers_ignored = ["deepinfra"]
         agent.provider_sort = "throughput"
@@ -3805,9 +3805,9 @@ class TestHandleMaxIterations:
 
         assert result == "Summary"
         kwargs = agent.client.chat.completions.create.call_args.kwargs
-        from agent.portal_tags import nous_portal_tags
+        from agent.portal_tags import flash_portal_tags
 
-        assert kwargs["extra_body"]["tags"] == nous_portal_tags()
+        assert kwargs["extra_body"]["tags"] == flash_portal_tags()
         assert kwargs["extra_body"]["provider"] == {
             "only": ["deepseek"],
             "ignore": ["deepinfra"],
@@ -3816,10 +3816,10 @@ class TestHandleMaxIterations:
             "data_collection": "deny",
         }
 
-    def test_summary_keeps_nous_profile_body_without_routing_preferences(self, agent):
+    def test_summary_keeps_flash_profile_body_without_routing_preferences(self, agent):
         agent.base_url = "https://proxy.example.com/v1"
         agent._base_url_lower = agent.base_url.lower()
-        agent.provider = "nous"
+        agent.provider = "flash"
         agent.client.chat.completions.create.return_value = _mock_response(content="Summary")
         agent._cached_system_prompt = "You are helpful."
 
@@ -3827,9 +3827,9 @@ class TestHandleMaxIterations:
 
         assert result == "Summary"
         kwargs = agent.client.chat.completions.create.call_args.kwargs
-        from agent.portal_tags import nous_portal_tags
+        from agent.portal_tags import flash_portal_tags
 
-        assert kwargs["extra_body"] == {"tags": nous_portal_tags()}
+        assert kwargs["extra_body"] == {"tags": flash_portal_tags()}
 
     def test_summary_drops_invalid_provider_sort(self, agent):
         agent.base_url = "https://openrouter.ai/api/v1"
@@ -4572,9 +4572,9 @@ class TestRunConversation:
         assert result["final_response"].startswith(INTERRUPT_WAITING_FOR_MODEL_PREFIX)
         assert result["messages"][-1]["role"] == "user"
 
-    def test_nous_401_refreshes_after_remint_and_retries(self, agent):
+    def test_flash_401_refreshes_after_remint_and_retries(self, agent):
         self._setup_agent(agent)
-        agent.provider = "nous"
+        agent.provider = "flash"
         agent.api_mode = "chat_completions"
 
         calls = {"api": 0, "refresh": 0}
@@ -4603,7 +4603,7 @@ class TestRunConversation:
             patch.object(agent, "_cleanup_task_resources"),
             patch.object(agent, "_interruptible_api_call", side_effect=_fake_api_call),
             patch.object(
-                agent, "_try_refresh_nous_client_credentials", side_effect=_fake_refresh
+                agent, "_try_refresh_flash_client_credentials", side_effect=_fake_refresh
             ),
         ):
             result = agent.run_conversation("hello")
@@ -5590,10 +5590,10 @@ class TestConversationHistoryNotMutated:
 class TestNousCredentialRefresh:
     """Verify Nous credential refresh rebuilds the runtime client."""
 
-    def test_try_refresh_nous_client_credentials_rebuilds_client(
+    def test_try_refresh_flash_client_credentials_rebuilds_client(
         self, agent, monkeypatch
     ):
-        agent.provider = "nous"
+        agent.provider = "flash"
         agent.api_mode = "chat_completions"
 
         closed = {"value": False}
@@ -5610,7 +5610,7 @@ class TestNousCredentialRefresh:
         def _fake_resolve(**kwargs):
             captured.update(kwargs)
             return {
-                "api_key": "new-nous-key",
+                "api_key": "new-flash-key",
                 "base_url": "https://inference-api.flashorg.com/v1",
             }
 
@@ -5619,17 +5619,17 @@ class TestNousCredentialRefresh:
             return _RebuiltClient()
 
         monkeypatch.setattr(
-            "flash_cli.auth.resolve_nous_runtime_credentials", _fake_resolve
+            "flash_cli.auth.resolve_flash_runtime_credentials", _fake_resolve
         )
 
         agent.client = _ExistingClient()
         with patch("run_agent.OpenAI", side_effect=_fake_openai):
-            ok = agent._try_refresh_nous_client_credentials(force=True)
+            ok = agent._try_refresh_flash_client_credentials(force=True)
 
         assert ok is True
         assert closed["value"] is True
         assert captured["force_refresh"] is True
-        assert rebuilt["kwargs"]["api_key"] == "new-nous-key"
+        assert rebuilt["kwargs"]["api_key"] == "new-flash-key"
         assert (
             rebuilt["kwargs"]["base_url"] == "https://inference-api.flashorg.com/v1"
         )
@@ -6043,9 +6043,9 @@ class TestGpt5ApiModeRouting:
             agent.api_mode = "codex_responses"
         assert agent.api_mode == "codex_responses"
 
-    def test_nous_gpt5_stays_on_chat_completions(self, agent):
+    def test_flash_gpt5_stays_on_chat_completions(self, agent):
         """Nous serves gpt-5.x on /chat/completions — must not upgrade to codex_responses."""
-        agent.provider = "nous"
+        agent.provider = "flash"
         agent.base_url = "https://inference-api.flashorg.com/v1"
         agent.api_mode = "chat_completions"
         agent.model = "openai/gpt-5.5"

@@ -679,7 +679,7 @@ export interface ToolProvider {
   tag: string
   env_vars: ToolEnvVar[]
   post_setup: string | null
-  requires_nous_auth: boolean
+  requires_flash_auth: boolean
   /** True when this is the provider currently written to config (mirrors the
    *  CLI `flash tools` active-provider detection). */
   is_active: boolean
@@ -1053,7 +1053,7 @@ export interface ModelAssignmentResponse {
   /** Persisted endpoint URL for custom/local providers (echoed back). */
   base_url?: string
   /** Toolset keys auto-routed through the Nous Tool Gateway as a result of
-   *  switching the main provider to Nous. Empty unless provider === 'nous'
+   *  switching the main provider to Nous. Empty unless provider === 'flash'
    *  and the user is a paid subscriber with unconfigured tools. */
   gateway_tools?: string[]
   model?: string

@@ -81,7 +81,7 @@ def _resolve_portal_base_url(override: Optional[str] = None) -> str:
     try:
         from flash_cli.auth import DEFAULT_NOUS_PORTAL_URL, get_provider_auth_state
 
-        state = get_provider_auth_state("nous") or {}
+        state = get_provider_auth_state("flash") or {}
         base = state.get("portal_base_url")
         if isinstance(base, str) and base.strip():
             return base.rstrip("/")
@@ -155,7 +155,7 @@ def _register_self_hosted_client(
         if exc.code == 401:
             raise RuntimeError(
                 "Nous Portal rejected the access token (401). "
-                "Try `flash auth add nous` to re-authenticate."
+                "Try `flash auth add flash` to re-authenticate."
             ) from exc
         if exc.code == 403:
             raise RuntimeError(
@@ -229,7 +229,7 @@ def _print_post_register_hint(
 
 def cmd_dashboard_register(args) -> None:
     """Register a self-hosted dashboard OAuth client with Nous Portal."""
-    from flash_cli.auth import AuthError, resolve_nous_access_token
+    from flash_cli.auth import AuthError, resolve_flash_access_token
     from flash_cli.config import get_env_value, is_managed, save_env_value
 
     # Managed (Docker/hosted) installs get their dashboard OAuth client_id
@@ -247,11 +247,11 @@ def cmd_dashboard_register(args) -> None:
     # 1. Resolve a fresh Nous access token (refreshes if near expiry). Fail fast
     #    with a setup hint when the user isn't logged in.
     try:
-        access_token = resolve_nous_access_token()
+        access_token = resolve_flash_access_token()
     except AuthError as exc:
         if getattr(exc, "relogin_required", False):
             print("✗ You're not logged into Nous Portal.")
-            print("  Run `flash setup` (or `flash auth add nous`) first, then retry.")
+            print("  Run `flash setup` (or `flash auth add flash`) first, then retry.")
         else:
             print(f"✗ Could not resolve a Nous Portal access token: {exc}")
         sys.exit(1)

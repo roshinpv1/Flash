@@ -38,8 +38,8 @@ class TestFirecrawlClientConfig:
         # local web_tools import and the managed_tool_gateway import so the
         # full firecrawl client init path sees True.
         self._managed_patchers = [
-            patch("tools.web_tools.managed_nous_tools_enabled", return_value=True),
-            patch("tools.managed_tool_gateway.managed_nous_tools_enabled", return_value=True),
+            patch("tools.web_tools.managed_flash_tools_enabled", return_value=True),
+            patch("tools.managed_tool_gateway.managed_flash_tools_enabled", return_value=True),
         ]
         for p in self._managed_patchers:
             p.start()
@@ -66,7 +66,7 @@ class TestFirecrawlClientConfig:
     def test_no_config_raises_with_helpful_message(self):
         """Neither key nor URL → ValueError with guidance."""
         with patch("tools.web_tools.Firecrawl"):
-            with patch("tools.web_tools._read_nous_access_token", return_value=None):
+            with patch("tools.web_tools._read_flash_access_token", return_value=None):
                 from tools.web_tools import _get_firecrawl_client
                 with pytest.raises(ValueError, match="FIRECRAWL_API_KEY"):
                     _get_firecrawl_client()
@@ -74,12 +74,12 @@ class TestFirecrawlClientConfig:
     def test_tool_gateway_domain_builds_firecrawl_gateway_origin(self):
         """Shared gateway domain should derive the Firecrawl vendor hostname."""
         with patch.dict(os.environ, {"TOOL_GATEWAY_DOMAIN": "flashorg.com"}):
-            with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
                 with patch("tools.web_tools.Firecrawl") as mock_fc:
                     from tools.web_tools import _get_firecrawl_client
                     result = _get_firecrawl_client()
                     mock_fc.assert_called_once_with(
-                        api_key="nous-token",
+                        api_key="flash-token",
                         api_url="https://firecrawl-gateway.flashorg.com",
                     )
                     assert result is mock_fc.return_value
@@ -90,12 +90,12 @@ class TestFirecrawlClientConfig:
             "TOOL_GATEWAY_DOMAIN": "flashorg.com",
             "TOOL_GATEWAY_SCHEME": "http",
         }):
-            with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
                 with patch("tools.web_tools.Firecrawl") as mock_fc:
                     from tools.web_tools import _get_firecrawl_client
                     result = _get_firecrawl_client()
                     mock_fc.assert_called_once_with(
-                        api_key="nous-token",
+                        api_key="flash-token",
                         api_url="http://firecrawl-gateway.flashorg.com",
                     )
                     assert result is mock_fc.return_value
@@ -106,7 +106,7 @@ class TestFirecrawlClientConfig:
             "TOOL_GATEWAY_DOMAIN": "flashorg.com",
             "TOOL_GATEWAY_SCHEME": "ftp",
         }):
-            with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
                 from tools.web_tools import _get_firecrawl_client
                 with pytest.raises(ValueError, match="TOOL_GATEWAY_SCHEME"):
                     _get_firecrawl_client()
@@ -117,27 +117,27 @@ class TestFirecrawlClientConfig:
             "FIRECRAWL_GATEWAY_URL": "https://firecrawl-gateway.localhost:3009/",
             "TOOL_GATEWAY_DOMAIN": "flashorg.com",
         }):
-            with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
                 with patch("tools.web_tools.Firecrawl") as mock_fc:
                     from tools.web_tools import _get_firecrawl_client
                     _get_firecrawl_client()
                     mock_fc.assert_called_once_with(
-                        api_key="nous-token",
+                        api_key="flash-token",
                         api_url="https://firecrawl-gateway.localhost:3009",
                     )
 
-    def test_default_gateway_domain_targets_nous_production_origin(self):
+    def test_default_gateway_domain_targets_flash_production_origin(self):
         """Default gateway origin should point at the Firecrawl vendor hostname."""
-        with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+        with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
             with patch("tools.web_tools.Firecrawl") as mock_fc:
                 from tools.web_tools import _get_firecrawl_client
                 _get_firecrawl_client()
                 mock_fc.assert_called_once_with(
-                    api_key="nous-token",
+                    api_key="flash-token",
                     api_url="https://firecrawl-gateway.flashorg.com",
                 )
 
-    def test_nous_auth_token_respects_flash_home_override(self, tmp_path):
+    def test_flash_auth_token_respects_flash_home_override(self, tmp_path):
         """Auth lookup should read from HERMES_HOME/auth.json, not ~/.flash/auth.json."""
         real_home = tmp_path / "real-home"
         (real_home / ".flash").mkdir(parents=True)
@@ -146,8 +146,8 @@ class TestFirecrawlClientConfig:
         flash_home.mkdir()
         (flash_home / "auth.json").write_text(json.dumps({
             "providers": {
-                "nous": {
-                    "access_token": "nous-token",
+                "flash": {
+                    "access_token": "flash-token",
                 }
             }
         }))
@@ -158,7 +158,7 @@ class TestFirecrawlClientConfig:
         }, clear=False):
             import tools.web_tools
             importlib.reload(tools.web_tools)
-            assert tools.web_tools._read_nous_access_token() == "nous-token"
+            assert tools.web_tools._read_flash_access_token() == "flash-token"
 
     # ── Singleton caching ────────────────────────────────────────────
 
@@ -194,7 +194,7 @@ class TestFirecrawlClientConfig:
         """FIRECRAWL_API_KEY='' with no URL → should raise."""
         with patch.dict(os.environ, {"FIRECRAWL_API_KEY": ""}):
             with patch("tools.web_tools.Firecrawl"):
-                with patch("tools.web_tools._read_nous_access_token", return_value=None):
+                with patch("tools.web_tools._read_flash_access_token", return_value=None):
                     from tools.web_tools import _get_firecrawl_client
                     with pytest.raises(ValueError):
                         _get_firecrawl_client()
@@ -224,8 +224,8 @@ class TestBackendSelection:
         for key in self._ENV_KEYS:
             os.environ.pop(key, None)
         self._managed_patchers = [
-            patch("tools.web_tools.managed_nous_tools_enabled", return_value=True),
-            patch("tools.managed_tool_gateway.managed_nous_tools_enabled", return_value=True),
+            patch("tools.web_tools.managed_flash_tools_enabled", return_value=True),
+            patch("tools.managed_tool_gateway.managed_flash_tools_enabled", return_value=True),
         ]
         for p in self._managed_patchers:
             p.start()
@@ -546,8 +546,8 @@ class TestCheckWebApiKey:
         for key in self._ENV_KEYS:
             os.environ.pop(key, None)
         self._managed_patchers = [
-            patch("tools.web_tools.managed_nous_tools_enabled", return_value=True),
-            patch("tools.managed_tool_gateway.managed_nous_tools_enabled", return_value=True),
+            patch("tools.web_tools.managed_flash_tools_enabled", return_value=True),
+            patch("tools.managed_tool_gateway.managed_flash_tools_enabled", return_value=True),
             # ddgs availability is package-presence driven and the plugin
             # registry can hold an available ddgs provider. Neutralize both
             # fallback surfaces so this class only exercises env-key/gateway
@@ -630,7 +630,7 @@ class TestCheckWebApiKey:
             assert check_web_api_key() is True
 
     def test_tool_gateway_returns_true(self):
-        with patch("tools.web_tools._peek_nous_access_token", return_value="nous-token"):
+        with patch("tools.web_tools._peek_flash_access_token", return_value="flash-token"):
             from tools.web_tools import check_web_api_key
             assert check_web_api_key() is True
 
@@ -644,7 +644,7 @@ class TestCheckWebApiKey:
         expired_at = "2000-01-01T00:00:00+00:00"
         (tmp_path / "auth.json").write_text(json.dumps({
             "providers": {
-                "nous": {
+                "flash": {
                     "access_token": "expired-token",
                     "refresh_token": "refresh-token",
                     "expires_at": expired_at,
@@ -658,7 +658,7 @@ class TestCheckWebApiKey:
             return "fresh-token"
 
         monkeypatch.setattr(
-            "flash_cli.auth.resolve_nous_access_token",
+            "flash_cli.auth.resolve_flash_access_token",
             _record_refresh,
         )
 
@@ -675,14 +675,14 @@ class TestCheckWebApiKey:
 
     def test_configured_backend_must_match_available_provider(self):
         with patch("tools.web_tools._load_web_config", return_value={"backend": "parallel"}):
-            with patch("tools.web_tools._read_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._read_flash_access_token", return_value="flash-token"):
                 with patch.dict(os.environ, {"FIRECRAWL_GATEWAY_URL": "http://127.0.0.1:3002"}, clear=False):
                     from tools.web_tools import check_web_api_key
                     assert check_web_api_key() is False
 
     def test_configured_firecrawl_backend_accepts_managed_gateway(self):
         with patch("tools.web_tools._load_web_config", return_value={"backend": "firecrawl"}):
-            with patch("tools.web_tools._peek_nous_access_token", return_value="nous-token"):
+            with patch("tools.web_tools._peek_flash_access_token", return_value="flash-token"):
                 with patch.dict(os.environ, {"FIRECRAWL_GATEWAY_URL": "http://127.0.0.1:3002"}, clear=False):
                     from tools.web_tools import check_web_api_key
                     assert check_web_api_key() is True
@@ -769,7 +769,7 @@ class TestNonBuiltinProviderAvailability:
         """With only a custom provider registered (no built-in creds),
         check_web_api_key() must return True."""
         with patch("tools.web_tools._ddgs_package_importable", return_value=False), \
-             patch("tools.web_tools._peek_nous_access_token", return_value=None):
+             patch("tools.web_tools._peek_flash_access_token", return_value=None):
             from tools.web_tools import check_web_api_key
             assert check_web_api_key() is True
 
@@ -777,7 +777,7 @@ class TestNonBuiltinProviderAvailability:
         """_get_backend() must return the custom provider name when it's
         the only available provider."""
         with patch("tools.web_tools._ddgs_package_importable", return_value=False), \
-             patch("tools.web_tools._peek_nous_access_token", return_value=None):
+             patch("tools.web_tools._peek_flash_access_token", return_value=None):
             from tools.web_tools import _get_backend
             assert _get_backend() == "fake-plugin-prov"
 
@@ -793,7 +793,7 @@ class TestNonBuiltinProviderAvailability:
         """Per-capability selection (_get_extract_backend) must resolve the
         custom provider when configured, instead of dead-ending — issue #32698."""
         with patch("tools.web_tools._ddgs_package_importable", return_value=False), \
-             patch("tools.web_tools._peek_nous_access_token", return_value=None), \
+             patch("tools.web_tools._peek_flash_access_token", return_value=None), \
              patch("tools.web_tools._load_web_config",
                    return_value={"extract_backend": "fake-plugin-prov"}):
             from tools.web_tools import _get_extract_backend
@@ -803,7 +803,7 @@ class TestNonBuiltinProviderAvailability:
         """web_search and web_extract tool entries must remain in the
         registry when only a custom provider is available."""
         with patch("tools.web_tools._ddgs_package_importable", return_value=False), \
-             patch("tools.web_tools._peek_nous_access_token", return_value=None):
+             patch("tools.web_tools._peek_flash_access_token", return_value=None):
             import tools.web_tools
             web_search_entry = tools.web_tools.registry.get_entry("web_search")
             web_extract_entry = tools.web_tools.registry.get_entry("web_extract")

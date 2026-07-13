@@ -548,7 +548,7 @@ class _ManagedRotatingFileHandler(RotatingFileHandler):
 
 
 # ---------------------------------------------------------------------------
-# Asynchronous file logging — keep the cross-process rotation lock off the loop
+# Asynchroflash file logging — keep the cross-process rotation lock off the loop
 #
 # The rotating file handlers serialize rollover with a cross-process lock (see
 # the module header): when several Flash processes log to the same file, an
@@ -581,7 +581,7 @@ class _NonFormattingQueueHandler(QueueHandler):
     own ``RedactingFormatter`` and component filters on the listener thread.
 
     We return a **shallow copy** rather than the original record: the same
-    record is still owned by the emitting thread (and any synchronous handler
+    record is still owned by the emitting thread (and any synchroflash handler
     on it, e.g. a ``StreamHandler``), which may format/mutate ``record.message``
     while our listener thread reads it. Copying preserves ``msg``/``args``/
     ``exc_info`` for the deferred format while removing the cross-thread

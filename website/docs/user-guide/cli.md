@@ -9,7 +9,7 @@ description: "Master the Flash Agent terminal interface — commands, keybinding
 Flash Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
 
 :::tip First-time setup
-One command — `flash setup --portal` — and you're ready to `flash chat`. See [Nous Portal](/integrations/nous-portal).
+One command — `flash setup --portal` — and you're ready to `flash chat`. See [Nous Portal](/integrations/flash-portal).
 :::
 
 :::tip
@@ -29,7 +29,7 @@ flash chat -q "Hello"
 flash chat --model "anthropic/claude-sonnet-4"
 
 # With a specific provider
-flash chat --provider nous        # Use Nous Portal
+flash chat --provider flash        # Use Nous Portal
 flash chat --provider openrouter  # Force OpenRouter
 
 # With specific toolsets

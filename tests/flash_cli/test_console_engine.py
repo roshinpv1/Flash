@@ -435,8 +435,8 @@ def test_hosted_console_registry_exposes_only_hosted_safe_surface():
     "line",
     [
         "portal login",
-        "auth add nous --type oauth",
-        "auth logout nous",
+        "auth add flash --type oauth",
+        "auth logout flash",
         "profile create tester",
         "profile use default",
         "plugins list",

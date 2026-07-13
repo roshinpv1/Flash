@@ -141,7 +141,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
   const [cloudOrg, setCloudOrgState] = useState<null | string>(null)
   // Mirror the selected org into a ref so connect reads the CURRENT value, not a
   // value captured in a stale render closure. discoverCloud() resolves the org
-  // asynchronously (from the NAS response) and a user can click Connect in the
+  // asynchroflashly (from the NAS response) and a user can click Connect in the
   // same render tick; without the ref, connectCloudAgent could persist a null
   // org even though discovery just resolved one. Always set both together.
   const cloudOrgRef = useRef<null | string>(null)

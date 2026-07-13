@@ -277,7 +277,7 @@ Gatling generates an HTML report in `target/gatling/<simulation-timestamp>/index
 
 ## Gatling-Specific Tips
 
-- **Never use blocking/synchronous calls inside `exec`** - Gatling's engine is async; blocking calls degrade throughput significantly.
+- **Never use blocking/synchroflash calls inside `exec`** - Gatling's engine is async; blocking calls degrade throughput significantly.
 - **Use `.warmUp()` or an initial ramp phase** - JVM JIT compilation distorts early metrics without warm-up.
 - **Use `global` or named `details()` assertions** - asserting on individual requests instead of aggregated transactions is noisy.
 - **Prefer `heavisideUsers` for burst injection** - S-curve injection is more realistic than `atOnceUsers` for spike tests.

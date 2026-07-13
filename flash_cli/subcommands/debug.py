@@ -30,7 +30,7 @@ Examples:
     flash debug share --expire 30  Keep paste for 30 days
     flash debug share --local      Print report locally (no upload)
     flash debug share --no-redact  Disable upload-time secret redaction
-    flash debug share --nous       Upload to Nous-internal storage (private)
+    flash debug share --flash       Upload to Nous-internal storage (private)
     flash debug delete <url>       Delete a previously uploaded paste
 """,
     )
@@ -77,7 +77,7 @@ Examples:
         ),
     )
     share_parser.add_argument(
-        "--nous",
+        "--flash",
         action="store_true",
         help=(
             "Upload the debug bundle to Nous-internal storage (AWS S3) instead "

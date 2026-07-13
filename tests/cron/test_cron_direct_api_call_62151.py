@@ -4,7 +4,7 @@ Gateway-fired cron jobs hung forever on the 2nd+ non-streaming API call when
 ``interruptible_api_call`` spawned a daemon worker inside nested cron thread
 pools. The worker logged client creation but never opened a TCP connection.
 The same job succeeded via ``flash cron tick``. Cron has no interactive
-interrupt surface, so the fix routes cron through a synchronous direct call on
+interrupt surface, so the fix routes cron through a synchroflash direct call on
 the conversation thread instead of the interrupt worker.
 """
 

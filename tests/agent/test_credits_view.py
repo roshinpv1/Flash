@@ -15,7 +15,7 @@ import pytest
 
 import agent.account_usage as account_usage
 from agent.account_usage import CreditsView, build_credits_view
-from flash_cli.nous_account import NousPortalAccountInfo, NousPaidServiceAccessInfo
+from flash_cli.flash_account import NousPortalAccountInfo, NousPaidServiceAccessInfo
 
 
 def _account(**kwargs) -> NousPortalAccountInfo:
@@ -36,7 +36,7 @@ def _logged_in_account(monkeypatch):
 
     def _install(account):
         monkeypatch.setattr(
-            "flash_cli.nous_account.get_nous_portal_account_info",
+            "flash_cli.flash_account.get_flash_portal_account_info",
             lambda *a, **kw: account,
         )
 
@@ -125,7 +125,7 @@ def test_view_fetch_failure_is_logged_out(monkeypatch):
     def _boom(*a, **kw):
         raise RuntimeError("portal down")
 
-    monkeypatch.setattr("flash_cli.nous_account.get_nous_portal_account_info", _boom)
+    monkeypatch.setattr("flash_cli.flash_account.get_flash_portal_account_info", _boom)
 
     view = build_credits_view()
     assert view.logged_in is False

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Package, Power, Server, Trash2, X, Zap } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
+import { Badge } from "@flash-research/ui/ui/components/badge";
+import { Button } from "@flash-research/ui/ui/components/button";
+import { Select, SelectOption } from "@flash-research/ui/ui/components/select";
+import { Spinner } from "@flash-research/ui/ui/components/spinner";
+import { H2 } from "@flash-research/ui/ui/components/typography/h2";
 import { api } from "@/lib/api";
 import type {
   McpCatalogDiagnostic,
@@ -14,13 +14,13 @@ import type {
   McpTestResult,
 } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
+import { useToast } from "@flash-research/ui/hooks/use-toast";
+import { useConfirmDelete } from "@flash-research/ui/hooks/use-confirm-delete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
+import { Toast } from "@flash-research/ui/ui/components/toast";
+import { Card, CardContent } from "@flash-research/ui/ui/components/card";
+import { Input } from "@flash-research/ui/ui/components/input";
+import { Label } from "@flash-research/ui/ui/components/label";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn, themedBody } from "@/lib/utils";
 
@@ -610,8 +610,8 @@ export default function McpPage() {
                           {result.tools.length === 0
                             ? "Connected — no tools"
                             : `Tools: ${result.tools
-                                .map((tool) => tool.name)
-                                .join(", ")}`}
+                              .map((tool) => tool.name)
+                              .join(", ")}`}
                         </p>
                       ) : (
                         <p className="text-destructive">

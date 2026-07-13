@@ -6,7 +6,7 @@ description: "One subscription, 300+ frontier models, the Tool Gateway, and Nous
 
 # Nous Portal
 
-[Nous Portal](https://portal.flashorg.com) is Nous Research's unified subscription gateway and **the recommended way to run Flash Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
+[Nous Portal](https://portal.flashorg.com) is Flash Org's unified subscription gateway and **the recommended way to run Flash Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
 
 If you only have time to set up one thing, set up this. The fastest path:
 
@@ -62,7 +62,7 @@ You can also enable just specific gateway tools (e.g. web search but not image g
 
 ### Nous Chat
 
-Your Portal account also covers [chat.flashorg.com](https://chat.flashorg.com) — Nous Research's web chat interface with the same model catalog. Useful when you're away from your terminal, or for non-agent conversation work.
+Your Portal account also covers [chat.flashorg.com](https://chat.flashorg.com) — Flash Org's web chat interface with the same model catalog. Useful when you're away from your terminal, or for non-agent conversation work.
 
 ### No credentials in your dotfiles
 
@@ -74,7 +74,7 @@ Because everything routes through one OAuth-authenticated Portal session, you do
 
 ## A note on Flash 4
 
-Nous Research's own **Flash 4** family (Flash-4-70B, Flash-4-405B) is available through the Portal at heavily discounted rates. These are **frontier hybrid-reasoning chat models** — strong at math, science, instruction following, schema adherence, roleplay, and long-form writing.
+Flash Org's own **Flash 4** family (Flash-4-70B, Flash-4-405B) is available through the Portal at heavily discounted rates. These are **frontier hybrid-reasoning chat models** — strong at math, science, instruction following, schema adherence, roleplay, and long-form writing.
 
 They are **not recommended for use inside Flash Agent**, however. Flash 4 is tuned for chat and reasoning, not the rapid-fire tool-calling loop the agent relies on. Use them for [Nous Chat](https://chat.flashorg.com), for research workflows, or via the [subscription proxy](/user-guide/features/subscription-proxy) from other tooling — but for agent work, pick a frontier agentic model from the catalog instead:
 
@@ -85,7 +85,7 @@ They are **not recommended for use inside Flash Agent**, however. Flash 4 is tun
 /model deepseek/deepseek-v4-pro        # cost-effective coder
 ```
 
-The Portal's own [model info page](https://portal.flashorg.com/info) carries the same warning, so this isn't a Flash-side opinion — it's the official guidance from Nous Research.
+The Portal's own [model info page](https://portal.flashorg.com/info) carries the same warning, so this isn't a Flash-side opinion — it's the official guidance from Flash Org.
 
 ## Setup
 
@@ -138,7 +138,7 @@ flash portal tools      # detailed Tool Gateway catalog with per-tool routing
 flash portal open       # open the subscription management page in your browser
 ```
 
-`flash portal` (with no subcommand) is the human-readable alias for `flash auth add nous --type oauth` — it logs you in, lets you pick a Nous model, sets Nous as your inference provider, and offers the Tool Gateway opt-in (identical to `flash setup --portal`, and the same Nous flow as the first-time quick setup).
+`flash portal` (with no subcommand) is the human-readable alias for `flash auth add flash --type oauth` — it logs you in, lets you pick a Nous model, sets Nous as your inference provider, and offers the Tool Gateway opt-in (identical to `flash setup --portal`, and the same Nous flow as the first-time quick setup).
 
 `flash portal info` gives you the high-level overview:
 
@@ -208,7 +208,7 @@ After `flash setup --portal`, `~/.flash/config.yaml` will look like:
 
 ```yaml
 model:
-  provider: nous
+  provider: flash
   default: anthropic/claude-sonnet-4.6     # or whatever model you picked
   base_url: https://inference-api.flashorg.com/v1
 ```
@@ -217,16 +217,16 @@ The Tool Gateway settings live under their respective tool sections:
 
 ```yaml
 web:
-  backend: nous       # web search/extract routes through Tool Gateway
+  backend: flash       # web search/extract routes through Tool Gateway
 
 image_gen:
-  provider: nous
+  provider: flash
 
 tts:
-  provider: nous
+  provider: flash
 
 browser:
-  backend: nous
+  backend: flash
 ```
 
 The OAuth refresh token is stored separately at `~/.flash/auth.json` (not in `config.yaml` — credentials and configuration are kept separate by design).
@@ -235,7 +235,7 @@ The OAuth refresh token is stored separately at `~/.flash/auth.json` (not in `co
 
 Flash mints a short-lived JWT from your stored Portal refresh token on each inference call rather than reusing a long-lived API key. The token lifecycle is fully automatic — refresh, mint, retry on transient 401 — and you never see it.
 
-If the Portal invalidates the refresh token (password change, manual revoke, session expiry), the invalid refresh token is **quarantined locally** so Flash stops replaying it and you don't see a stream of identical 401s. The next call surfaces a clear "re-authentication required" message. Run `flash auth add nous` to log in again; the quarantine clears on the next successful login.
+If the Portal invalidates the refresh token (password change, manual revoke, session expiry), the invalid refresh token is **quarantined locally** so Flash stops replaying it and you don't see a stream of identical 401s. The next call surfaces a clear "re-authentication required" message. Run `flash auth add flash` to log in again; the quarantine clears on the next successful login.
 
 ## Troubleshooting
 
@@ -251,7 +251,7 @@ or use `flash model` and re-select Nous Portal.
 
 ### Got a "re-authentication required" message mid-session
 
-Your Portal refresh token was invalidated (password change, manual revoke, or session expiry). Run `flash auth add nous` and your next request will use the new credentials. Any quarantine on the old token clears automatically on successful re-login.
+Your Portal refresh token was invalidated (password change, manual revoke, or session expiry). Run `flash auth add flash` and your next request will use the new credentials. Any quarantine on the old token clears automatically on successful re-login.
 
 ### Want to use a specific provider model that the Portal doesn't expose
 

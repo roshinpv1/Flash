@@ -474,7 +474,7 @@ def test_review_fork_disables_compression_to_prevent_stale_parent_fork(tmp_path:
 
     This test pins the contract at the source: ``_run_review_in_thread``
     must set ``review_agent.compression_enabled = False`` on the fork it
-    builds. It calls the real worker synchronously with
+    builds. It calls the real worker synchroflashly with
     ``AIAgent.run_conversation`` patched (so no LLM call happens) and
     captures the constructed review agent to assert the flag.
     """

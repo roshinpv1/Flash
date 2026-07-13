@@ -2578,7 +2578,7 @@ def _replay_output_history() -> None:
             rendered_lines.extend(str(line) for line in lines)
         if rendered_lines:
             # Replay after resize can contain hundreds of history lines. A
-            # per-line prompt_toolkit print forces one synchronous terminal I/O
+            # per-line prompt_toolkit print forces one synchroflash terminal I/O
             # and redraw cycle per line, which users perceive as a waterfall of
             # old output. Keep the existing history contents unchanged, but
             # emit the replay as one ANSI payload so resize recovery does a
@@ -2671,7 +2671,7 @@ def _cprint(text: str):
         #     it bare would leave it unawaited and silently drop the output
         #     (fixes #23185 Bug A).
         #   • None (some mocks / older PT builds) — just call the inner
-        #     function directly since PT already executed it synchronously.
+        #     function directly since PT already executed it synchroflashly.
         # Do NOT fall back to a bare _pt_print when ensure_future raises,
         # because run_in_terminal already invoked the lambda in that case
         # (the mock path), which would double-print the line.
@@ -2681,7 +2681,7 @@ def _cprint(text: str):
             coro = run_in_terminal(lambda: _pt_print(_PT_ANSI(text)))
             if coro is not None and (_inspect.isawaitable(coro) or _inspect.iscoroutine(coro)):
                 _aio.ensure_future(coro)
-            # else: run_in_terminal ran the lambda synchronously; nothing more
+            # else: run_in_terminal ran the lambda synchroflashly; nothing more
             # to do (double-scheduling would print twice).
         except Exception:
             pass  # best-effort; the line may already have been printed
@@ -3505,7 +3505,7 @@ def _build_compact_banner() -> str:
 
     w = min(shutil.get_terminal_size().columns - 2, 88)
     if w < 30:
-        return f"\n[{title_color}]{tiny_line}[/] [dim {dim_color}]- Nous Research[/]\n"
+        return f"\n[{title_color}]{tiny_line}[/] [dim {dim_color}]- Flash Org[/]\n"
 
     inner = w - 2  # inside the box border
     bar = "═" * w
@@ -3703,7 +3703,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         Args:
             model: Model to use (default: from env or claude-sonnet)
             toolsets: List of toolsets to enable (default: all)
-            provider: Inference provider ("auto", "openrouter", "nous", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
+            provider: Inference provider ("auto", "openrouter", "flash", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
             api_key: API key (default: from environment)
             base_url: API base URL (default: OpenRouter)
             max_turns: Maximum tool-calling iterations shared with subagents (default: 90)
@@ -6229,13 +6229,13 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 )
 
         # Warn if the configured model is a Nous Flash LLM (not agentic)
-        from flash_cli.model_switch import is_nous_flash_non_agentic
+        from flash_cli.model_switch import is_flash_flash_non_agentic
 
         model_name = getattr(self, "model", "") or ""
-        if is_nous_flash_non_agentic(model_name):
+        if is_flash_flash_non_agentic(model_name):
             self._console_print()
             self._console_print(
-                "[bold yellow]⚠  Nous Research Flash 3 & 4 models are NOT agentic and are not "
+                "[bold yellow]⚠  Flash Org Flash 3 & 4 models are NOT agentic and are not "
                 "designed for use with Flash Agent.[/]"
             )
             self._console_print(
@@ -6986,7 +6986,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         """Stage old-session memory extraction so /new stays responsive.
 
         The context-engine ``on_session_end`` boundary is delivered
-        synchronously here: it is cheap (local state clear, no LLM call) and
+        synchroflashly here: it is cheap (local state clear, no LLM call) and
         ordering-sensitive — it must land before ``reset_session_state()``
         rebinds the engine to the new session.
 
@@ -7027,7 +7027,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         old_session_id = self.session_id
         _boundary_snapshot = None
         if self.agent and self.conversation_history:
-            # Deliver the context-engine boundary synchronously and get back
+            # Deliver the context-engine boundary synchroflashly and get back
             # the history snapshot for the deferred provider extraction —
             # queued below (after rotation) so /new never blocks on the
             # LLM-bound extraction call.
@@ -9632,7 +9632,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         which would otherwise early-return before any credits showed.
         """
         if not self.agent:
-            if not self._print_nous_credits_block():
+            if not self._print_flash_credits_block():
                 print("(._.) No active agent -- send a message first.")
             return
 
@@ -9640,7 +9640,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         calls = agent.session_api_calls
 
         if calls == 0:
-            if not self._print_nous_credits_block():
+            if not self._print_flash_credits_block():
                 print("(._.) No API calls made yet in this session.")
             return
 
@@ -9711,7 +9711,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         # Nous credits magnitudes + monthly-grant gauge (agent-independent — also
         # runs at the no-agent / no-calls early-returns above). See the helper.
-        self._print_nous_credits_block()
+        self._print_flash_credits_block()
 
         if self.verbose:
             logging.getLogger().setLevel(logging.DEBUG)
@@ -9727,11 +9727,11 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # Console quietness is enforced by flash_logging not
             # installing a console StreamHandler in non-verbose mode.
 
-    def _print_nous_credits_block(self) -> bool:
+    def _print_flash_credits_block(self) -> bool:
         """Print the Nous credits magnitudes + monthly-grant gauge when a Nous account
         is logged in. Returns True if it printed anything.
 
-        Delegates to the shared ``agent.account_usage.nous_credits_lines`` helper —
+        Delegates to the shared ``agent.account_usage.flash_credits_lines`` helper —
         the single source for the /usage credits block across CLI, gateway, and TUI.
         It's agent-independent (a portal fetch gated on "a Nous account is logged in",
         NOT the inference-provider string), so /usage shows the block even in the TUI
@@ -9739,9 +9739,9 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         wall-clock-bounded inside the helper; also honors HERMES_DEV_CREDITS_FIXTURE
         for offline testing — same behavior as every other surface.
         """
-        from agent.account_usage import nous_credits_lines
+        from agent.account_usage import flash_credits_lines
 
-        lines = nous_credits_lines()
+        lines = flash_credits_lines()
         if not lines:
             return False
         print()
@@ -10082,7 +10082,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print(f"  Payment: {card.masked}")
         print(f"  {'─' * 41}")
         _consent = (
-            "By confirming, you allow Nous Research to charge your card."
+            "By confirming, you allow Flash Org to charge your card."
         )
         _cprint(f"  {_d(_consent)}")
 
@@ -10104,7 +10104,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             return
 
         # Submit the charge with a fresh idempotency key (reused on retry).
-        from flash_cli.nous_billing import (
+        from flash_cli.flash_billing import (
             BillingError,
             BillingScopeRequired,
             post_charge,
@@ -10132,7 +10132,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         import time as _time
 
         from agent.billing_view import format_money
-        from flash_cli.nous_billing import (
+        from flash_cli.flash_billing import (
             BillingError,
             BillingRateLimited,
             get_charge_status,
@@ -10187,7 +10187,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
     def _billing_render_charge_error(self, state, exc):
         """Render a typed BillingError at submit time (pre-poll)."""
-        from flash_cli.nous_billing import BillingRateLimited
+        from flash_cli.flash_billing import BillingRateLimited
 
         code = getattr(exc, "error", None)
         portal_url = getattr(exc, "portal_url", None) or getattr(state, "portal_url", None)
@@ -10237,9 +10237,9 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print("  🟡 Cancelled.")
             return
         try:
-            from flash_cli.auth import step_up_nous_billing_scope
+            from flash_cli.auth import step_up_flash_billing_scope
 
-            granted = step_up_nous_billing_scope(open_browser=True)
+            granted = step_up_flash_billing_scope(open_browser=True)
         except Exception as exc:
             print(f"  🔴 Re-authorization failed: {exc}")
             return
@@ -10366,7 +10366,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         print()
         _ar_consent = (
-            f"By confirming, you authorize Nous Research to charge {card.masked} "
+            f"By confirming, you authorize Flash Org to charge {card.masked} "
             f"whenever your balance reaches {format_money(threshold_amt)}. "
             f"Turn off any time here or on the portal."
         )
@@ -10385,7 +10385,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print("  🟡 Cancelled.")
             return
 
-        from flash_cli.nous_billing import (
+        from flash_cli.flash_billing import (
             BillingError,
             BillingScopeRequired,
             patch_auto_top_up,
@@ -10410,7 +10410,7 @@ class FlashCLI(CLIAgentSetupMixin, CLICommandsMixin):
         The endpoint requires ``threshold``/``topUpAmount`` in the body even when
         disabling, so we echo back the current values (falling back to 0).
         """
-        from flash_cli.nous_billing import (
+        from flash_cli.flash_billing import (
             BillingError,
             BillingScopeRequired,
             patch_auto_top_up,
@@ -15797,7 +15797,7 @@ def main(
         toolsets: Comma-separated list of toolsets to enable (e.g., "web,terminal")
         skills: Comma-separated or repeated list of skills to preload for the session
         model: Model to use (default: anthropic/claude-opus-4-20250514)
-        provider: Inference provider ("auto", "openrouter", "nous", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
+        provider: Inference provider ("auto", "openrouter", "flash", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
         api_key: API key for authentication
         base_url: Base URL for the API
         max_turns: Maximum tool-calling iterations (default: 60)

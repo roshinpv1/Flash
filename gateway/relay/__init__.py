@@ -449,7 +449,7 @@ def _resolve_relay_identity_token() -> str:
          token via the OAuth2 ``client_credentials`` grant against the operator's
          own IdP (Entra; Authentik in the sandbox). The connector's Seam-A OIDC
          verifier reads a claim (default ``tid``) off it as the tenant.
-      2. **Nous Portal** (default): ``resolve_nous_access_token()`` — existing
+      2. **Nous Portal** (default): ``resolve_flash_access_token()`` — existing
          managed/hosted behaviour.
 
     Raises on failure; callers decide whether that's fatal (enroll CLI) or a
@@ -473,9 +473,9 @@ def _resolve_relay_identity_token() -> str:
 
     if not token_url:
         # Mode 2 — Nous Portal (default, unchanged behaviour).
-        from flash_cli.auth import resolve_nous_access_token
+        from flash_cli.auth import resolve_flash_access_token
 
-        return resolve_nous_access_token()
+        return resolve_flash_access_token()
 
     # Mode 1 — generic OAuth2 client_credentials grant.
     import json
@@ -517,7 +517,7 @@ def self_provision_relay() -> bool:
     Fires when relay is configured (``relay_url()`` set) and NO per-gateway secret
     is already present, AND the agent can resolve its own Nous access token. In
     that case the runtime resolves the agent's own Nous access token (the same
-    ``resolve_nous_access_token()`` the enroll CLI / dashboard register use),
+    ``resolve_flash_access_token()`` the enroll CLI / dashboard register use),
     POSTs ``/relay/provision`` asserting its own endpoint + route keys, and sets
     ``GATEWAY_RELAY_ID`` / ``GATEWAY_RELAY_SECRET`` / ``GATEWAY_RELAY_DELIVERY_KEY``
     into ``os.environ`` so the subsequent ``register_relay_adapter()`` picks them
@@ -535,7 +535,7 @@ def self_provision_relay() -> bool:
       - A self-hosted operator who ran ``flash gateway enroll``: has a PINNED
         ``GATEWAY_RELAY_SECRET`` -> skipped (the secret-present guard below).
       - A self-hosted box with a relay URL but no NAS identity:
-        ``resolve_nous_access_token()`` fails -> graceful no-op.
+        ``resolve_flash_access_token()`` fails -> graceful no-op.
 
     Stateless: process-env creds don't survive a restart, so a hosted container
     re-provisions every boot; the connector's rotation window covers a still-

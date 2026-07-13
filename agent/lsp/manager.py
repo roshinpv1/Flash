@@ -1,12 +1,12 @@
 """Service-level orchestration for LSP clients.
 
-The :class:`LSPService` is the bridge between the synchronous
+The :class:`LSPService` is the bridge between the synchroflash
 file_operations layer and the async :class:`agent.lsp.client.LSPClient`.
 
 Design choices:
 
 - A **single asyncio event loop** runs in a background thread.  All
-  client work happens on that loop.  Synchronous callers from
+  client work happens on that loop.  Synchroflash callers from
   ``tools/file_operations.py`` use :meth:`get_diagnostics_sync` to
   open + wait + drain in one blocking call.
 
@@ -64,7 +64,7 @@ DEFAULT_IDLE_TIMEOUT = 600  # seconds; servers idle for >10min get reaped
 class _BackgroundLoop:
     """A daemon thread that owns one asyncio event loop.
 
-    Provides :meth:`run` for synchronous callers — submits a coroutine
+    Provides :meth:`run` for synchroflash callers — submits a coroutine
     to the loop and blocks until it finishes (or a timeout fires).
     """
 
@@ -307,7 +307,7 @@ class LSPService:
         timeout: Optional[float] = None,
         line_shift: Optional[Callable[[int], Optional[int]]] = None,
     ) -> List[Dict[str, Any]]:
-        """Synchronously open ``file_path`` in the right server, wait for
+        """Synchroflashly open ``file_path`` in the right server, wait for
         diagnostics, return them.
 
         If ``delta`` is True (default), the result is filtered against

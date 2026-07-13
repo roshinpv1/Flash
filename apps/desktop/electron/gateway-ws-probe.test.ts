@@ -14,7 +14,7 @@ import test from 'node:test'
 
 import { probeGatewayWebSocket } from './gateway-ws-probe'
 
-// Minimal WebSocket double: records listeners synchronously (the probe attaches
+// Minimal WebSocket double: records listeners synchroflashly (the probe attaches
 // them in its executor) and exposes emit() so the test can replay events.
 function makeFakeWs(): { FakeWs: new (url: string) => any; instances: any[] } {
   const instances = []
@@ -30,7 +30,7 @@ function makeFakeWs(): { FakeWs: new (url: string) => any; instances: any[] } {
       instances.push(this)
     }
     addEventListener(type, fn) {
-      ;(this.listeners[type] ||= []).push(fn)
+      ; (this.listeners[type] ||= []).push(fn)
     }
     close() {
       this.closed = true

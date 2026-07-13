@@ -72,7 +72,7 @@ automatically when the bearer approaches expiry.
 flash proxy providers
 ```
 
-Currently shipped: `nous` (Nous Portal) and `xai` (xAI / Grok). More
+Currently shipped: `flash` (Nous Portal) and `xai` (xAI / Grok). More
 OAuth providers can be added by implementing the `UpstreamAdapter`
 interface in `flash_cli/proxy/adapters/`.
 
@@ -85,7 +85,7 @@ flash proxy status
 ```
 Flash proxy upstream adapters
 
-  [nous    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
+  [flash    ] Nous Portal — ready (bearer expires 2026-05-15T06:43:21Z)
 ```
 
 If you see `not logged in`, run `flash portal`. If you see

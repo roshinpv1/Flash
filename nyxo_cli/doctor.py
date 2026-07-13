@@ -817,7 +817,7 @@ def run_doctor(args):
                 "opencode-zen",
                 "huggingface",
                 "lmstudio",
-                "nous",
+                "flash",
                 "nvidia",
             }
             provider_accepts_vendor_slug = (
@@ -1070,13 +1070,13 @@ def run_doctor(args):
 
     try:
         from nyxo_cli.auth import (
-            get_nous_auth_status,
+            get_flash_auth_status,
             get_codex_auth_status,
             get_minimax_oauth_auth_status,
         )
 
-        nous_status = get_nous_auth_status()
-        if nous_status.get("logged_in"):
+        flash_status = get_flash_auth_status()
+        if flash_status.get("logged_in"):
             check_ok("Nous Portal auth", "(logged in)")
         else:
             check_warn("Nous Portal auth", "(not logged in)")

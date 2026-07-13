@@ -247,7 +247,7 @@ test('buildGatewayWsUrlWithTicket url-encodes the ticket', () => {
 // --- authModeFromStatus ---
 
 test('authModeFromStatus returns oauth when auth_required is true', () => {
-  assert.equal(authModeFromStatus({ auth_required: true, auth_providers: ['nous'] }), 'oauth')
+  assert.equal(authModeFromStatus({ auth_required: true, auth_providers: ['flash'] }), 'oauth')
 })
 
 test('authModeFromStatus returns token when auth_required is false/missing', () => {

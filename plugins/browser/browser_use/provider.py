@@ -130,7 +130,7 @@ class BrowserUseBrowserProvider(BrowserProvider):
         # managed_tool_gateway pulls in the Nous auth stack which can be
         # heavy and is not needed for direct-API-key users.
         from tools.managed_tool_gateway import (
-            peek_nous_access_token,
+            peek_flash_access_token,
             resolve_managed_tool_gateway,
         )
         from tools.tool_backend_helpers import prefers_gateway
@@ -145,29 +145,29 @@ class BrowserUseBrowserProvider(BrowserProvider):
                 "managed_mode": False,
             }
 
-        # Keep availability scans off the synchronous OAuth refresh path.
+        # Keep availability scans off the synchroflash OAuth refresh path.
         managed = resolve_managed_tool_gateway(
             "browser-use",
-            token_reader=None if refresh_token else peek_nous_access_token,
+            token_reader=None if refresh_token else peek_flash_access_token,
         )
         if managed is None:
             return None
 
         return {
-            "api_key": managed.nous_user_token,
+            "api_key": managed.flash_user_token,
             "base_url": managed.gateway_origin.rstrip("/"),
             "managed_mode": True,
         }
 
     def _get_config(self) -> Dict[str, Any]:
-        from tools.tool_backend_helpers import managed_nous_tools_enabled
+        from tools.tool_backend_helpers import managed_flash_tools_enabled
 
         config = self._get_config_or_none()
         if config is None:
             message = (
                 "Browser Use requires a direct BROWSER_USE_API_KEY credential."
             )
-            if managed_nous_tools_enabled():
+            if managed_flash_tools_enabled():
                 message = (
                     "Browser Use requires either a direct BROWSER_USE_API_KEY "
                     "credential or a managed Browser Use gateway configuration."

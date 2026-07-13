@@ -1831,7 +1831,7 @@ def _persist_session_git_meta(session: dict, cwd: str) -> None:
     or on an unreachable mount. Run them on a short-lived daemon thread instead
     and persist via the same profile-aware db the caller writes ``cwd`` to.
 
-    Best-effort: ``cwd`` itself is persisted synchronously by the caller, so a
+    Best-effort: ``cwd`` itself is persisted synchroflashly by the caller, so a
     probe failure just leaves these enrichment columns unset (the project tree
     falls back to its live resolver / lazy backfill). Daemon, so a mid-flight
     probe never delays gateway shutdown.
@@ -3780,7 +3780,7 @@ def _on_tool_progress(
 
 
 # ── Child-session live mirror ────────────────────────────────────────
-# A delegated child is not a live gateway session — it runs synchronously
+# A delegated child is not a live gateway session — it runs synchroflashly
 # inside the parent's turn, and its activity reaches the gateway only as
 # relayed ``subagent.*`` events on the PARENT sid. When a UI opens the child's
 # own session (session.resume on ``child_session_id``, e.g. the desktop's
@@ -5711,7 +5711,7 @@ def _(rid, params: dict) -> dict:
     # immediately and pre-warm the agent on a short timer (the same deferred-
     # build contract session.create uses); _sess() also builds on demand if the
     # first prompt beats the timer. A caller that needs the agent built
-    # synchronously (e.g. tests of the build race) passes ``eager_build: true``
+    # synchroflashly (e.g. tests of the build race) passes ``eager_build: true``
     # to fall through to the eager path below. Distinct from the lazy/watch
     # branch above: a normal resume restores the full ancestor history and the
     # session's persisted runtime identity, and is a real (upgradable) session.
@@ -6499,9 +6499,9 @@ def _(rid, params: dict) -> dict:
     # these lines regardless of `calls`. Fail-open: [] when not logged into Nous
     # or on any portal hiccup.
     try:
-        from agent.account_usage import nous_credits_lines
+        from agent.account_usage import flash_credits_lines
 
-        credits = nous_credits_lines()
+        credits = flash_credits_lines()
         if credits:
             usage["credits_lines"] = credits
     except Exception:
@@ -7561,12 +7561,12 @@ def _(rid, params: dict) -> dict:
 # Ink side can branch on the typed billing error code (insufficient_scope,
 # rate_limited, no_payment_method, …) to render the right affordance instead of
 # landing in a generic catch. The data-building lives in the shared core
-# (agent/billing_view.py + flash_cli/nous_billing.py) — same as /credits.
+# (agent/billing_view.py + flash_cli/flash_billing.py) — same as /credits.
 
 
 def _serialize_billing_error(exc) -> dict:
     """Map a BillingError into the result.error envelope the TUI branches on."""
-    from flash_cli.nous_billing import (
+    from flash_cli.flash_billing import (
         BillingRateLimited,
         BillingScopeRequired,
     )
@@ -7665,7 +7665,7 @@ def _(rid, params: dict) -> dict:
     supplied, the server-side core mints a fresh one and returns it so the TUI can
     reuse it on retry of the SAME purchase.
     """
-    from flash_cli.nous_billing import BillingError, post_charge
+    from flash_cli.flash_billing import BillingError, post_charge
     from agent.billing_view import new_idempotency_key
 
     amount = params.get("amount_usd")
@@ -7689,7 +7689,7 @@ def _(rid, params: dict) -> dict:
 
     The poll. Caller drives the 2s/5-min cadence; this is a single status read.
     """
-    from flash_cli.nous_billing import BillingError, get_charge_status
+    from flash_cli.flash_billing import BillingError, get_charge_status
 
     charge_id = params.get("charge_id")
     if not charge_id:
@@ -7718,7 +7718,7 @@ def _(rid, params: dict) -> dict:
 
     params: {enabled: bool, threshold: number, top_up_amount: number}.
     """
-    from flash_cli.nous_billing import BillingError, patch_auto_top_up
+    from flash_cli.flash_billing import BillingError, patch_auto_top_up
 
     try:
         enabled = bool(params.get("enabled"))
@@ -7750,7 +7750,7 @@ def _(rid, params: dict) -> dict:
     """
     sid = params.get("session_id") or ""
     try:
-        from flash_cli.auth import step_up_nous_billing_scope
+        from flash_cli.auth import step_up_flash_billing_scope
 
         def _on_verification(url: str, code: str) -> None:
             _emit(
@@ -7759,7 +7759,7 @@ def _(rid, params: dict) -> dict:
                 {"verification_url": url, "user_code": code},
             )
 
-        granted = step_up_nous_billing_scope(
+        granted = step_up_flash_billing_scope(
             open_browser=False, on_verification=_on_verification
         )
         return _ok(rid, {"ok": True, "granted": bool(granted)})
