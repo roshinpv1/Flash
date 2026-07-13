@@ -108,13 +108,13 @@ config/mcporter.json
 flash_cli/tui_dist/*
 flash_cli/scripts/
 docs/superpowers/*
-# Working directory for the Hermes Agent's session state (~/.flash/ at runtime;
+# Working directory for the Flash Agent's session state (~/.flash/ at runtime;
 # also created in-repo when an agent operates in this checkout). Plans, audit
 # logs, and per-session caches are never artifacts of the codebase.
 .flash/
 
 # Desktop/bootstrap install marker written into the managed checkout root by the
-# bootstrap installer. It is Hermes-managed runtime state, never a code change —
+# bootstrap installer. It is Flash-managed runtime state, never a code change —
 # ignore it so `flash update`'s `git stash push --include-untracked` does not
 # treat it as a local edit and autostash it on every run (#38529).
 .flash-bootstrap-complete

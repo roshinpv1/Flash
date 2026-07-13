@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
-// Hermes Setup — Tauri-targeted Vite config.
+// Flash Setup — Tauri-targeted Vite config.
 //
 // Port 5175 keeps us out of the way of:
 //   web       (vite default 5173)
@@ -28,10 +28,10 @@ export default defineConfig({
     host: host || '127.0.0.1',
     hmr: host
       ? {
-          protocol: 'ws',
-          host,
-          port: 5176
-        }
+        protocol: 'ws',
+        host,
+        port: 5176
+      }
       : undefined,
     watch: {
       // Don't watch the Rust side — tauri-cli handles it.

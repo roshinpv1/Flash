@@ -76,19 +76,19 @@ class TestIsWriteDenied:
     )
     def test_oauth_mcp_tokens_and_pairing_denied(self, path):
         """PKCE creds, mcp-tokens, and pairing entries must be write-denied."""
-        from hermes_constants import get_hermes_home
-        hermes_home = get_hermes_home()
-        full_path = str(hermes_home / path)
+        from flash_constants import get_flash_home
+        flash_home = get_flash_home()
+        full_path = str(flash_home / path)
         assert _is_write_denied(full_path) is True
 
     @pytest.mark.parametrize(
         "path",
         ["auth.json", "config.yaml", "webhook_subscriptions.json"],
     )
-    def test_hermes_control_files_requested_writable(self, path):
-        from hermes_constants import get_hermes_home
+    def test_flash_control_files_requested_writable(self, path):
+        from flash_constants import get_flash_home
 
-        assert _is_write_denied(str(get_hermes_home() / path)) is False
+        assert _is_write_denied(str(get_flash_home() / path)) is False
 
     @pytest.mark.parametrize(
         "path",
@@ -98,9 +98,9 @@ class TestIsWriteDenied:
     )
     def test_oauth_traversal_denied(self, path):
         """Path traversal attempts to protected OAuth files must be blocked."""
-        from hermes_constants import get_hermes_home
-        hermes_home = get_hermes_home()
-        full_path = str(hermes_home / path)
+        from flash_constants import get_flash_home
+        flash_home = get_flash_home()
+        full_path = str(flash_home / path)
         assert _is_write_denied(full_path) is True
 
     @pytest.mark.parametrize(
@@ -118,7 +118,7 @@ class TestIsWriteDenied:
     @pytest.mark.parametrize("name", [".anthropic_oauth.json"])
     def test_oauth_protected_in_profile_mode(self, tmp_path, monkeypatch, name):
         """Under a profile, BOTH <profile>/X and <root>/X must be denied."""
-        root = tmp_path / "hermes"
+        root = tmp_path / "flash"
         profile = root / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setenv("HERMES_HOME", str(profile))
@@ -131,7 +131,7 @@ class TestIsWriteDenied:
         ["auth.json", "config.yaml", "webhook_subscriptions.json"],
     )
     def test_control_files_requested_writable_in_profile_mode(self, tmp_path, monkeypatch, name):
-        root = tmp_path / "hermes"
+        root = tmp_path / "flash"
         profile = root / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setenv("HERMES_HOME", str(profile))
@@ -141,7 +141,7 @@ class TestIsWriteDenied:
 
     def test_mcp_tokens_dir_protected_in_profile_mode(self, tmp_path, monkeypatch):
         """mcp-tokens/ under profile AND under root must both be denied."""
-        root = tmp_path / "hermes"
+        root = tmp_path / "flash"
         profile = root / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setenv("HERMES_HOME", str(profile))
@@ -154,13 +154,13 @@ class TestIsWriteDenied:
     def test_pairing_dir_denied(self, tmp_path, monkeypatch):
         """Regression: pairing/ must be write-denied under both profile and root.
 
-        PR #30383 introduced ~/.hermes/pairing/{platform}-approved.json as the
+        PR #30383 introduced ~/.flash/pairing/{platform}-approved.json as the
         gateway access-control list. Without this block, a prompt-injected agent
         can write arbitrary user IDs into an approved file, granting persistent
         gateway access without going through the pairing code flow — the same
         threat class that motivated protecting webhook_subscriptions.json.
         """
-        root = tmp_path / "hermes"
+        root = tmp_path / "flash"
         profile = root / "profiles" / "coder"
         profile.mkdir(parents=True)
         monkeypatch.setenv("HERMES_HOME", str(profile))
@@ -702,7 +702,7 @@ class TestSearchFilesFallbackHiddenPaths:
 
     def test_hidden_root_with_hidden_ancestor_includes_files(self, tmp_path, monkeypatch):
         """Fallback find should include visible files when path is inside hidden root."""
-        root = tmp_path / ".hermes" / "logs"
+        root = tmp_path / ".flash" / "logs"
         root.mkdir(parents=True)
         visible_file = root / "agent.log"
         hidden_dir_file = root / ".hidden" / "secret.log"

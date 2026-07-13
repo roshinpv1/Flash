@@ -1,12 +1,12 @@
 ---
 sidebar_position: 12
 title: "将脚本输出推送到消息平台"
-description: "使用 `hermes send` 将任意 shell 脚本、cron 任务、CI hook 或监控守护进程的文本发送到 Telegram、Discord、Slack、Signal 等平台。"
+description: "使用 `flash send` 将任意 shell 脚本、cron 任务、CI hook 或监控守护进程的文本发送到 Telegram、Discord、Slack、Signal 等平台。"
 ---
 
 # 将脚本输出推送到消息平台
 
-`hermes send` 是一个轻量、可脚本化的 CLI，能将消息推送到 Hermes 已配置的任意消息平台。可以把它理解为跨平台的通知专用 `curl`——无需运行中的 gateway，无需 LLM，也无需在每个脚本里重复粘贴 bot token。
+`flash send` 是一个轻量、可脚本化的 CLI，能将消息推送到 Flash 已配置的任意消息平台。可以把它理解为跨平台的通知专用 `curl`——无需运行中的 gateway，无需 LLM，也无需在每个脚本里重复粘贴 bot token。
 
 适用场景：
 
@@ -14,9 +14,9 @@ description: "使用 `hermes send` 将任意 shell 脚本、cron 任务、CI hoo
 - CI/CD 通知（部署完成、测试失败）
 - 需要将结果推送给你的 cron 脚本
 - 从终端发送一次性消息
-- 将任意工具的输出管道到任意平台（`make | hermes send --to slack:#builds`）
+- 将任意工具的输出管道到任意平台（`make | flash send --to slack:#builds`）
 
-该命令复用 `hermes gateway` 已有的凭据和平台适配器，无需维护第二套配置。
+该命令复用 `flash gateway` 已有的凭据和平台适配器，无需维护第二套配置。
 
 ---
 
@@ -24,25 +24,25 @@ description: "使用 `hermes send` 将任意 shell 脚本、cron 任务、CI hoo
 
 ```bash
 # 向某平台的默认频道发送纯文本
-hermes send --to telegram "deploy finished"
+flash send --to telegram "deploy finished"
 
 # 将任意命令的 stdout 通过管道传入
-echo "RAM 92%" | hermes send --to telegram:-1001234567890
+echo "RAM 92%" | flash send --to telegram:-1001234567890
 
 # 发送文件
-hermes send --to discord:#ops --file /tmp/report.md
+flash send --to discord:#ops --file /tmp/report.md
 
 # 附加主题/标题行
-hermes send --to slack:#eng --subject "[CI] build.log" --file build.log
+flash send --to slack:#eng --subject "[CI] build.log" --file build.log
 
 # 指定线程目标（Telegram 话题、Discord 线程）
-hermes send --to telegram:-1001234567890:17585 "threaded reply"
+flash send --to telegram:-1001234567890:17585 "threaded reply"
 
 # 列出所有已配置的目标
-hermes send --list
+flash send --list
 
 # 按平台过滤
-hermes send --list telegram
+flash send --list telegram
 ```
 
 ---
@@ -70,7 +70,7 @@ hermes send --list telegram
 | `platform:#channel` | `discord:#ops` | 易读的频道名称（通过频道目录解析） |
 | `platform:+E164` | `signal:+15551234567` | 以电话号码寻址的平台：Signal、SMS、WhatsApp |
 
-Hermes 附带适配器的所有平台均可作为目标：
+Flash 附带适配器的所有平台均可作为目标：
 `telegram`、`discord`、`slack`、`signal`、`sms`、`whatsapp`、`matrix`、
 `mattermost`、`feishu`、`dingtalk`、`wecom`、`weixin`、`email` 等。
 
@@ -88,13 +88,13 @@ Hermes 附带适配器的所有平台均可作为目标：
 
 ## 消息体解析顺序
 
-`hermes send` 按以下顺序解析消息体：
+`flash send` 按以下顺序解析消息体：
 
-1. **位置参数** — `hermes send --to telegram "hi"`
-2. **`--file PATH`** — `hermes send --to telegram --file msg.txt`
-3. **管道 stdin** — `echo hi | hermes send --to telegram`
+1. **位置参数** — `flash send --to telegram "hi"`
+2. **`--file PATH`** — `flash send --to telegram --file msg.txt`
+3. **管道 stdin** — `echo hi | flash send --to telegram`
 
-当 stdin 是 TTY（无管道）时，Hermes **不会**等待输入——你会收到明确的用法错误提示。这可以防止脚本在意外省略消息体时挂起。
+当 stdin 是 TTY（无管道）时，Flash **不会**等待输入——你会收到明确的用法错误提示。这可以防止脚本在意外省略消息体时挂起。
 
 ---
 
@@ -108,15 +108,15 @@ Hermes 附带适配器的所有平台均可作为目标：
 #!/usr/bin/env bash
 ram_pct=$(free | awk '/^Mem:/ {printf "%d", $3 * 100 / $2}')
 if [ "$ram_pct" -ge 85 ]; then
-  hermes send --to telegram --subject "⚠ MEMORY WARNING" \
+  flash send --to telegram --subject "⚠ MEMORY WARNING" \
     "RAM ${ram_pct}% on $(hostname)"
 fi
 ```
 
-由于 `hermes send` 复用你的 Hermes 配置，同一脚本可在任何安装了 Hermes 的主机上运行——无需手动将 bot token 导出到每台机器的环境变量中。
+由于 `flash send` 复用你的 Flash 配置，同一脚本可在任何安装了 Flash 的主机上运行——无需手动将 bot token 导出到每台机器的环境变量中。
 
 :::tip 不要用 gateway 监控自身
-对于可能在 gateway 本身出现问题时触发的 watchdog（OOM 告警、磁盘满告警），请继续使用最简单的 `curl` 调用，而非 `hermes send`。如果 Python 解释器因机器抖动无法加载，你仍然希望告警能发出去。
+对于可能在 gateway 本身出现问题时触发的 watchdog（OOM 告警、磁盘满告警），请继续使用最简单的 `curl` 调用，而非 `flash send`。如果 Python 解释器因机器抖动无法加载，你仍然希望告警能发出去。
 :::
 
 ### CI / CD：构建与测试结果
@@ -124,9 +124,9 @@ fi
 ```bash
 # 在 .github/workflows/deploy.yml 或任意 CI 脚本中
 if ./scripts/deploy.sh; then
-  hermes send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
+  flash send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
 else
-  tail -n 100 deploy.log | hermes send \
+  tail -n 100 deploy.log | flash send \
     --to slack:#deploys --subject "❌ deploy failed"
   exit 1
 fi
@@ -137,7 +137,7 @@ fi
 ```bash
 # Crontab 条目
 0 9 * * * /usr/local/bin/generate-metrics.sh \
-  | /home/me/.hermes/bin/hermes send \
+  | /home/me/.flash/bin/flash send \
       --to telegram --subject "Daily metrics $(date +%Y-%m-%d)"
 ```
 
@@ -145,31 +145,31 @@ fi
 
 ```bash
 ./train.py --epochs 200 && \
-  hermes send --to telegram "training done" || \
-  hermes send --to telegram "training failed (exit $?)"
+  flash send --to telegram "training done" || \
+  flash send --to telegram "training failed (exit $?)"
 ```
 
 ### 脚本中使用 `--json` 与 `--quiet`
 
 ```bash
 # 投递失败时让脚本硬失败；成功时不污染日志
-hermes send --to telegram --quiet "keepalive" || {
+flash send --to telegram --quiet "keepalive" || {
   echo "Telegram delivery failed" >&2
   exit 1
 }
 
 # 捕获消息 ID 以便后续编辑 / 回复线程
-msg_id=$(hermes send --to discord:#ops --json "build started" \
+msg_id=$(flash send --to discord:#ops --json "build started" \
   | jq -r .message_id)
 ```
 
 ---
 
-## `hermes send` 需要 gateway 运行吗？
+## `flash send` 需要 gateway 运行吗？
 
-**通常不需要。** 对于所有基于 bot token 的平台——Telegram、Discord、Slack、Signal、SMS、WhatsApp Cloud API 等——`hermes send` 直接使用 `~/.hermes/.env` 和 `~/.hermes/config.yaml` 中的凭据调用平台的 REST 接口。它是一个独立的子进程，消息投递完成后即退出。
+**通常不需要。** 对于所有基于 bot token 的平台——Telegram、Discord、Slack、Signal、SMS、WhatsApp Cloud API 等——`flash send` 直接使用 `~/.flash/.env` 和 `~/.flash/config.yaml` 中的凭据调用平台的 REST 接口。它是一个独立的子进程，消息投递完成后即退出。
 
-只有依赖持久适配器连接的**插件平台**才需要运行中的 gateway（例如，某个保持长连接 WebSocket 的自定义插件）。此时你会收到明确的错误提示，指引你启动 gateway；执行 `hermes gateway start` 后重试即可。
+只有依赖持久适配器连接的**插件平台**才需要运行中的 gateway（例如，某个保持长连接 WebSocket 的自定义插件）。此时你会收到明确的错误提示，指引你启动 gateway；执行 `flash gateway start` 后重试即可。
 
 ---
 
@@ -179,16 +179,16 @@ msg_id=$(hermes send --to discord:#ops --json "build started" \
 
 ```bash
 # 列出所有已配置平台的所有目标
-hermes send --list
+flash send --list
 
 # 仅列出 Telegram 目标
-hermes send --list telegram
+flash send --list telegram
 
 # 机器可读格式
-hermes send --list --json
+flash send --list --json
 ```
 
-列表数据来源于 `~/.hermes/channel_directory.json`，gateway 运行期间每隔几分钟刷新一次。如果看到"尚未发现频道"，请先启动一次 gateway（`hermes gateway start`）以填充缓存。
+列表数据来源于 `~/.flash/channel_directory.json`，gateway 运行期间每隔几分钟刷新一次。如果看到"尚未发现频道"，请先启动一次 gateway（`flash gateway start`）以填充缓存。
 
 易读名称（`discord:#ops`、`slack:#engineering`）在发送时通过该缓存解析，无需记忆数字 ID。
 
@@ -196,14 +196,14 @@ hermes send --list --json
 
 ## 与其他方案的对比
 
-| 方案 | 多平台 | 复用 Hermes 凭据 | 需要 gateway | 最适合 |
+| 方案 | 多平台 | 复用 Flash 凭据 | 需要 gateway | 最适合 |
 |----------|----------------|---------------------|---------------|----------|
-| `hermes send` | ✅ | ✅ | 否（bot token） | 以下所有场景 |
+| `flash send` | ✅ | ✅ | 否（bot token） | 以下所有场景 |
 | 对各平台直接 `curl` | 各自单独编写 | 手动管理 | 否 | 关键 watchdog |
 | 带 `--deliver` 的 `cron` 任务 | ✅ | ✅ | 否 | 定时 agent 任务 |
 | `send_message` agent 工具 | ✅ | ✅ | 否 | agent 循环内部 |
 
-`hermes send` 有意保持最简接口。如果需要 agent 决定说什么，请在对话或 cron 任务中使用 `send_message` 工具。如果需要定时运行并生成 LLM 内容，请使用带 `deliver='telegram:...'` 的 `cronjob(action='create', prompt=...)`。如果只需要管道传输原始字符串，直接用 `hermes send`。
+`flash send` 有意保持最简接口。如果需要 agent 决定说什么，请在对话或 cron 任务中使用 `send_message` 工具。如果需要定时运行并生成 LLM 内容，请使用带 `deliver='telegram:...'` 的 `cronjob(action='create', prompt=...)`。如果只需要管道传输原始字符串，直接用 `flash send`。
 
 ---
 
@@ -212,6 +212,6 @@ hermes send --list --json
 - [用 Cron 自动化一切](/guides/automate-with-cron) —
   输出自动投递到任意平台的定时任务。
 - [Gateway 内部机制](/developer-guide/gateway-internals) —
-  `hermes send` 与 cron 投递共享的投递路由器。
+  `flash send` 与 cron 投递共享的投递路由器。
 - [消息平台配置](/user-guide/messaging/) —
   各平台的一次性配置说明。

@@ -1273,7 +1273,7 @@ class TestTakeoverMarker:
         assert marker_path.exists()
 
     def test_consume_accepts_legacy_marker_without_flash_home(self, tmp_path, monkeypatch):
-        """Back-compat (#29092): markers written by older Hermes versions have no
+        """Back-compat (#29092): markers written by older Flash versions have no
         ``replacer_flash_home`` field; an absent field is treated as same-home so
         single-profile setups and mixed old/new deployments keep working.
         """

@@ -349,7 +349,7 @@ export class GatewayClient extends EventEmitter {
     const pyPath = env.PYTHONPATH?.trim()
 
     env.PYTHONPATH = pyPath ? `${root}${delimiter}${pyPath}` : root
-    // Tell the gateway child where the Hermes source root is so its import
+    // Tell the gateway child where the Flash source root is so its import
     // guard can force it ahead of any same-named package in the launch cwd.
     env.HERMES_PYTHON_SRC_ROOT = root
     this.startReadyTimer(python, cwd)
@@ -487,7 +487,7 @@ export class GatewayClient extends EventEmitter {
       // a connect-error / early-close rejection would surface as an
       // unhandled promise rejection in Node. Attach a no-op handler to
       // ensure the rejection is always observed.
-      connectPromise.catch(() => {})
+      connectPromise.catch(() => { })
       this.wsConnectPromise = connectPromise
 
       ws.addEventListener('message', ev => this.handleWebSocketFrame(ev.data))

@@ -1,6 +1,6 @@
-# Hermes TUI
+# Flash TUI
 
-React + Ink terminal UI for Hermes. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
+React + Ink terminal UI for Flash. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
 
 ```bash
 hermes --tui
@@ -488,5 +488,5 @@ tui_gateway/
   entry.py               stdio entrypoint
   server.py              RPC handlers and session logic
   render.py              optional rich/ANSI bridge
-  slash_worker.py        persistent HermesCLI subprocess for slash commands
+  slash_worker.py        persistent FlashCLI subprocess for slash commands
 ```

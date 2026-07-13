@@ -38,7 +38,7 @@ interface MessageStreamOptions {
     runtimeSessionId?: string | null
   ) => Promise<void>
   queryClient: QueryClient
-  refreshHermesConfig: () => Promise<void>
+  refreshFlashConfig: () => Promise<void>
   refreshSessions: () => Promise<void>
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
   updateSessionState: (
@@ -57,7 +57,7 @@ export function useMessageStream({
   activeSessionIdRef,
   hydrateFromStoredSession,
   queryClient,
-  refreshHermesConfig,
+  refreshFlashConfig,
   refreshSessions,
   sessionStateByRuntimeIdRef,
   updateSessionState
@@ -108,10 +108,10 @@ export function useMessageStream({
             nextMessages = prev.map(m =>
               m.id === streamId
                 ? {
-                    ...m,
-                    parts: transform(m.parts, m),
-                    pending: opts.pending ? opts.pending(m) : true
-                  }
+                  ...m,
+                  parts: transform(m.parts, m),
+                  pending: opts.pending ? opts.pending(m) : true
+                }
                 : m
             )
           }
@@ -380,16 +380,16 @@ export function useMessageStream({
         const completeMessage = (message: ChatMessage): ChatMessage =>
           completionError
             ? {
-                ...message,
-                error: completionError,
-                parts: message.parts.filter(part => part.type !== 'text'),
-                pending: false
-              }
+              ...message,
+              error: completionError,
+              parts: message.parts.filter(part => part.type !== 'text'),
+              pending: false
+            }
             : {
-                ...message,
-                parts: replaceTextPart(message.parts),
-                pending: false
-              }
+              ...message,
+              parts: replaceTextPart(message.parts),
+              pending: false
+            }
 
         const newAssistantFromCompletion = (): ChatMessage => ({
           id: `assistant-${Date.now()}`,
@@ -473,29 +473,29 @@ export function useMessageStream({
         const streamId = state.streamId ?? `assistant-error-${Date.now()}`
         const groupId = state.pendingBranchGroup ?? undefined
         const prev = state.messages
-        const error = errorMessage.trim() || 'Hermes reported an error'
+        const error = errorMessage.trim() || 'Flash reported an error'
 
         const nextMessages = prev.some(m => m.id === streamId)
           ? prev.map(message =>
-              message.id === streamId
-                ? {
-                    ...message,
-                    error,
-                    pending: false
-                  }
-                : message
-            )
-          : [
-              ...prev,
-              {
-                id: streamId,
-                role: 'assistant' as const,
-                parts: [],
+            message.id === streamId
+              ? {
+                ...message,
                 error,
-                pending: false,
-                branchGroupId: groupId
+                pending: false
               }
-            ]
+              : message
+          )
+          : [
+            ...prev,
+            {
+              id: streamId,
+              role: 'assistant' as const,
+              parts: [],
+              error,
+              pending: false,
+              branchGroupId: groupId
+            }
+          ]
 
         return {
           ...state,
@@ -524,7 +524,7 @@ export function useMessageStream({
     failAssistantMessage,
     flushQueuedDeltas,
     queryClient,
-    refreshHermesConfig,
+    refreshFlashConfig,
     sessionInterrupted,
     updateSessionState,
     upsertToolCall

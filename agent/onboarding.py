@@ -97,7 +97,7 @@ def tool_progress_hint_cli() -> str:
 
 
 def openclaw_residue_hint_cli() -> str:
-    """Banner shown the first time Hermes starts and finds ``~/.openclaw/``.
+    """Banner shown the first time Flash starts and finds ``~/.openclaw/``.
 
     Points users at ``flash claw migrate`` (non-destructive port of config,
     memory, and skills) first. ``flash claw cleanup`` is mentioned as the
@@ -106,7 +106,7 @@ def openclaw_residue_hint_cli() -> str:
     """
     return (
         "A legacy OpenClaw directory was detected at ~/.openclaw/.\n"
-        "To port your config, memory, and skills over to Hermes, run "
+        "To port your config, memory, and skills over to Flash, run "
         "`flash claw migrate`.\n"
         "If you've already migrated and want to archive the old directory, "
         "run `flash claw cleanup` (renames it to ~/.openclaw.pre-migration — "

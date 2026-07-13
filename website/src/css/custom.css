@@ -1,5 +1,5 @@
 /**
- * Hermes Agent — Custom Docusaurus Theme
+ * Flash Agent — Custom Docusaurus Theme
  * Matches the landing page branding: amber-on-dark, terminal aesthetic
  * Colors from landingpage/style.css
  */
@@ -242,7 +242,7 @@ pre.prism-code.language-ascii code {
     font-size: 0.95rem;
   }
 
-  .menu__list-item-collapsible > .menu__link {
+  .menu__list-item-collapsible>.menu__link {
     font-weight: 600;
     font-size: 1rem;
     padding: 0.75rem 0.75rem;
@@ -274,7 +274,7 @@ pre.prism-code.language-ascii code {
 }
 
 /* Hero banner for docs landing if needed */
-.hero--hermes {
+.hero--flash {
   background: linear-gradient(135deg, #07070d 0%, #0f0f18 100%);
   padding: 4rem 0;
 }

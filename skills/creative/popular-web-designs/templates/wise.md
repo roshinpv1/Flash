@@ -1,7 +1,7 @@
 # Design System: Wise
 
 
-> **Hermes Agent — Implementation Notes**
+> **Flash Agent — Implementation Notes**
 >
 > The original site uses proprietary fonts. For self-contained HTML output, use these CDN substitutes:
 > - **Primary:** `Inter` | **Mono:** `system monospace stack`

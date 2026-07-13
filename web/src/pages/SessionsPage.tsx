@@ -68,14 +68,14 @@ import { PluginSlot } from "@/plugins";
 import { isDashboardEmbeddedChatEnabled } from "@/lib/dashboard-flags";
 
 const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: string }> =
-  {
-    cli: { icon: Terminal, color: "text-primary" },
-    telegram: { icon: MessageCircle, color: "text-[oklch(0.65_0.15_250)]" },
-    discord: { icon: Hash, color: "text-[oklch(0.65_0.15_280)]" },
-    slack: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
-    whatsapp: { icon: Globe, color: "text-success" },
-    cron: { icon: Clock, color: "text-warning" },
-  };
+{
+  cli: { icon: Terminal, color: "text-primary" },
+  telegram: { icon: MessageCircle, color: "text-[oklch(0.65_0.15_250)]" },
+  discord: { icon: Hash, color: "text-[oklch(0.65_0.15_280)]" },
+  slack: { icon: MessageSquare, color: "text-[oklch(0.7_0.15_155)]" },
+  whatsapp: { icon: Globe, color: "text-success" },
+  cron: { icon: Clock, color: "text-warning" },
+};
 
 /** Render an FTS5 snippet with highlighted matches.
  *  The backend wraps matches in >>> and <<< delimiters. */
@@ -767,7 +767,7 @@ export default function SessionsPage() {
     api
       .getEmptySessionsCount()
       .then((r) => setEmptyCount(r.count))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const clearSelection = useCallback(() => {
@@ -818,7 +818,7 @@ export default function SessionsPage() {
         setSessions(resp.sessions);
         setTotal(resp.total);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!silent) setLoading(false);
       });
@@ -828,7 +828,7 @@ export default function SessionsPage() {
     api
       .getSessionStats()
       .then(setStats)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -854,7 +854,7 @@ export default function SessionsPage() {
       api
         .getStatus()
         .then(setStatus)
-        .catch(() => {});
+        .catch(() => { });
       api
         .getSessions(50)
         .then((r) => {
@@ -872,7 +872,7 @@ export default function SessionsPage() {
           }
           newestSeenRef.current = newest;
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     loadOverview();
     const id = setInterval(loadOverview, 5000);
@@ -1135,7 +1135,7 @@ export default function SessionsPage() {
         const res = await fetch(api.exportSessionUrl(id), {
           credentials: "include",
           headers: {
-            "X-Hermes-Session-Token":
+            "X-Flash-Session-Token":
               (window as unknown as { __HERMES_SESSION_TOKEN__?: string })
                 .__HERMES_SESSION_TOKEN__ ?? "",
           },
@@ -1421,7 +1421,7 @@ export default function SessionsPage() {
               <span className="text-xs font-mondwest tracking-[0.12em] truncate">
                 {activeAction === "restart"
                   ? t.status.restartGateway
-                  : t.status.updateHermes}
+                  : t.status.updateFlash}
               </span>
 
               <Badge

@@ -40,7 +40,7 @@ test('desktop background child processes opt into hidden Windows consoles', () =
   requireHiddenChildOptions(source, /flashProcess = spawn\(\s*backend\.command,\s*backend\.args/)
   requireHiddenChildOptions(source, /spawn\(\s*py,\s*\['-m', 'flash_cli\.main', 'uninstall', '--gui-summary'\]/)
 
-  assert.match(source, /function unwrapWindowsVenvHermesCommand\(command, backendArgs\)/)
+  assert.match(source, /function unwrapWindowsVenvFlashCommand\(command, backendArgs\)/)
   assert.match(source, /function getVenvSitePackagesEntries\(venvRoot\)/)
   assert.match(source, /path\.join\(venvRoot, 'Lib', 'site-packages'\)/)
   assert.match(source, /args: \['-m', 'flash_cli\.main', \.\.\.backendArgs\]/)
@@ -86,8 +86,8 @@ test('desktop backend teardown tree-kills Windows backend descendants', () => {
   assert.match(helperSnippet, /forceKillProcessTree\(child\.pid\)/)
   assert.match(helperSnippet, /child\.kill\('SIGTERM'\)/)
 
-  const resetIndex = source.indexOf('function resetHermesConnection()')
-  assert.notEqual(resetIndex, -1, 'missing resetHermesConnection')
+  const resetIndex = source.indexOf('function resetFlashConnection()')
+  assert.notEqual(resetIndex, -1, 'missing resetFlashConnection')
   const resetSnippet = source.slice(resetIndex, resetIndex + 300)
   assert.match(resetSnippet, /stopBackendChild\(flashProcess\)/)
   assert.doesNotMatch(resetSnippet, /flashProcess\.kill\('SIGTERM'\)/)

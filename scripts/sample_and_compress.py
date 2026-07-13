@@ -30,8 +30,8 @@ load_dotenv()
 DEFAULT_DATASETS = [
     "FlashOrg/swe-terminus-agent-glm-kimi-minimax",
     "FlashOrg/flash-agent-megascience-sft1",
-    "FlashOrg/Hermes-Agent-Thinking-GLM-4.7-SFT2",
-    "FlashOrg/Hermes-Agent-Thinking-GLM-4.7-SFT1",
+    "FlashOrg/Flash-Agent-Thinking-GLM-4.7-SFT2",
+    "FlashOrg/Flash-Agent-Thinking-GLM-4.7-SFT1",
     "FlashOrg/terminal-tasks-glm-flash-agent"
 ]
 

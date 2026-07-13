@@ -86,11 +86,11 @@ def _media_caption_split(text, media_files, *, max_caption_len):
     """Decide whether the accompanying text should ride on the media bubble.
 
     Single enforced chokepoint for the ``MEDIA:<path> caption`` behavior
-    across every standalone sender. ``hermes send`` (and the send_message
+    across every standalone sender. ``flash send`` (and the send_message
     tool / cron) strips the ``MEDIA:`` tag and leaves the remaining prose as
     ``text``; historically each platform sent that ``text`` as a *separate*
     message before an uncaptioned media bubble, splitting the reported case
-    ``hermes send --to whatsapp "MEDIA:/x.png This Caption"`` into two parts.
+    ``flash send --to whatsapp "MEDIA:/x.png This Caption"`` into two parts.
 
     Returns ``(caption, body_text)``:
 
@@ -423,9 +423,9 @@ def _handle_send(args):
                     },
                 )
             else:
-                return tool_error(f"Platform '{platform_name}' is not configured. Set up credentials in ~/.hermes/config.yaml or environment variables.")
+                return tool_error(f"Platform '{platform_name}' is not configured. Set up credentials in ~/.flash/config.yaml or environment variables.")
         else:
-            return tool_error(f"Platform '{platform_name}' is not configured. Set up credentials in ~/.hermes/config.yaml or environment variables.")
+            return tool_error(f"Platform '{platform_name}' is not configured. Set up credentials in ~/.flash/config.yaml or environment variables.")
 
     from gateway.platforms.base import BasePlatformAdapter
 
@@ -457,7 +457,7 @@ def _handle_send(args):
             return json.dumps({
                 "error": f"No home channel set for {platform_name} to determine where to send the message. "
                 f"Either specify a channel directly with '{platform_name}:CHANNEL_NAME', "
-                f"or set a home channel via: hermes config set {home_env} <channel_id>"
+                f"or set a home channel via: flash config set {home_env} <channel_id>"
             })
 
     duplicate_skip = _maybe_skip_cron_duplicate_send(platform_name, chat_id, thread_id)
@@ -961,7 +961,7 @@ async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None,
     # standalone_sender_fn (plugins/platforms/feishu/adapter.py::_standalone_send). #41112
     if platform == Platform.FEISHU and media_files:
         from gateway.platform_registry import platform_registry as _pr_feishu
-        from hermes_cli.plugins import discover_plugins as _dp_feishu
+        from flash_cli.plugins import discover_plugins as _dp_feishu
         _dp_feishu()
         _feishu_entry = _pr_feishu.get("feishu")
         if _feishu_entry is None or _feishu_entry.standalone_sender_fn is None:
@@ -987,7 +987,7 @@ async def _send_to_platform(platform, pconfig, chat_id, message, thread_id=None,
     # endpoint so images/videos/audio arrive as native bubbles, not documents. #41112
     if platform == Platform.WHATSAPP and media_files:
         from gateway.platform_registry import platform_registry as _pr_wa
-        from hermes_cli.plugins import discover_plugins as _dp_wa
+        from flash_cli.plugins import discover_plugins as _dp_wa
         _dp_wa()
         _wa_entry = _pr_wa.get("whatsapp")
         if _wa_entry is None or _wa_entry.standalone_sender_fn is None:
@@ -1437,7 +1437,7 @@ async def _registry_standalone_send(platform_name, pconfig, chat_id, message, th
     ``_standalone_send`` and is reached via the platform registry.
     """
     from gateway.platform_registry import platform_registry
-    from hermes_cli.plugins import discover_plugins
+    from flash_cli.plugins import discover_plugins
     discover_plugins()  # idempotent — ensure the entry is registered
     entry = platform_registry.get(platform_name)
     if entry is None or entry.standalone_sender_fn is None:
@@ -1657,7 +1657,7 @@ async def _send_matrix_via_adapter(pconfig, chat_id, message, media_files=None, 
     that exhaust recipient OTKs and silently drop messages (issue #46310).
 
     Falls back to an ephemeral connect/disconnect cycle only when no gateway
-    is running (standalone cron, ``hermes send`` CLI).
+    is running (standalone cron, ``flash send`` CLI).
     """
     media_files = media_files or []
     metadata = {"thread_id": thread_id} if thread_id else None
@@ -1958,7 +1958,7 @@ from tools.registry import tool_error
 # ``_send_via_adapter``, ``_parse_target_ref``, the per-platform ``_send_*``
 # helpers) remains the shared transport used by:
 #   - cron delivery (cron/scheduler.py)
-#   - the ``hermes send`` CLI command (hermes_cli/send_cmd.py)
+#   - the ``flash send`` CLI command (flash_cli/send_cmd.py)
 #   - the gateway kanban notifier (dashboard-toggled, outside agent control)
 #   - the standalone MCP server (mcp_serve.py), which is an opt-in surface
 # Those callers import the helpers directly; none of them need the registry

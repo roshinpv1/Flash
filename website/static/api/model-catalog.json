@@ -2,8 +2,8 @@
   "version": 1,
   "updated_at": "2026-07-09T18:38:59Z",
   "metadata": {
-    "source": "hermes-agent repo",
-    "docs": "https://hermes-agent.flashorg.com/docs/reference/model-catalog"
+    "source": "flash-agent repo",
+    "docs": "https://flash-agent.flashorg.com/docs/reference/model-catalog"
   },
   "providers": {
     "openrouter": {

@@ -1,12 +1,12 @@
 import queue
 from unittest.mock import patch
 
-from cli import HermesCLI
+from cli import FlashCLI
 from flash_cli.moa_config import decode_moa_turn
 
 
 def _make_cli():
-    cli = HermesCLI.__new__(HermesCLI)
+    cli = FlashCLI.__new__(FlashCLI)
     cli.config = {
         "moa": {
             "default_preset": "default",

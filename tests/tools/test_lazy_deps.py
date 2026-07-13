@@ -122,7 +122,7 @@ class TestSecurityGating:
         monkeypatch.setenv("HERMES_DISABLE_LAZY_INSTALLS", "1")
         # Bypass config layer; the env var alone must disable.
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "flash_cli.config.load_config",
             lambda: {"security": {"allow_lazy_installs": True}},
         )
         assert ld._allow_lazy_installs() is False
@@ -130,7 +130,7 @@ class TestSecurityGating:
     def test_default_allows(self, monkeypatch):
         monkeypatch.delenv("HERMES_DISABLE_LAZY_INSTALLS", raising=False)
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "flash_cli.config.load_config",
             lambda: {"security": {}},
         )
         assert ld._allow_lazy_installs() is True
@@ -140,7 +140,7 @@ class TestSecurityGating:
         # blocking the user out of their own backends.
         monkeypatch.delenv("HERMES_DISABLE_LAZY_INSTALLS", raising=False)
         monkeypatch.setattr(
-            "hermes_cli.config.load_config",
+            "flash_cli.config.load_config",
             lambda: (_ for _ in ()).throw(RuntimeError("config broken")),
         )
         assert ld._allow_lazy_installs() is True
@@ -295,7 +295,7 @@ class TestIsSatisfiedVersionAware:
 
 
 # ---------------------------------------------------------------------------
-# active_features + refresh_active_features (Piece A — hermes update wiring)
+# active_features + refresh_active_features (Piece A — flash update wiring)
 # ---------------------------------------------------------------------------
 
 
@@ -334,7 +334,7 @@ class TestRefreshActiveFeatures:
 
     def test_windows_matrix_refresh_is_skipped_before_pip(self, monkeypatch):
         # Matrix E2EE pulls python-olm, which has no native Windows wheel/build
-        # path. `hermes update` must not retry that doomed install every run.
+        # path. `flash update` must not retry that doomed install every run.
         monkeypatch.setattr(ld.sys, "platform", "win32")
         monkeypatch.setattr(ld, "active_features", lambda: ["platform.matrix"])
         monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)
@@ -404,7 +404,7 @@ class TestRefreshActiveFeatures:
         assert result == {"test.feat": "refreshed"}
 
     def test_install_failure_recorded_not_raised(self, monkeypatch):
-        # A failed refresh must NOT raise out of hermes update.
+        # A failed refresh must NOT raise out of flash update.
         monkeypatch.setattr(ld, "active_features", lambda: ["test.feat"])
         monkeypatch.setitem(ld.LAZY_DEPS, "test.feat", ("zzzfake==2.0.0",))
         monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)
@@ -422,7 +422,7 @@ class TestRefreshActiveFeatures:
 
     def test_lazy_installs_disabled_marked_skipped(self, monkeypatch):
         # security.allow_lazy_installs=false → don't error, mark skipped
-        # so hermes update can render "respecting your config" message.
+        # so flash update can render "respecting your config" message.
         monkeypatch.setattr(ld, "active_features", lambda: ["test.feat"])
         monkeypatch.setitem(ld.LAZY_DEPS, "test.feat", ("zzzfake==2.0.0",))
         monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)

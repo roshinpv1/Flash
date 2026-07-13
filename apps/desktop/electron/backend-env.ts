@@ -73,7 +73,7 @@ function buildDesktopBackendPath({
   return appendUniquePathEntries([flashNodeBin, venvBin, currentPath, saneEntries], { delimiter })
 }
 
-function normalizeHermesHomeRoot(flashHome, { pathModule = pathModuleForPlatform(process.platform) }: any = {}) {
+function normalizeFlashHomeRoot(flashHome, { pathModule = pathModuleForPlatform(process.platform) }: any = {}) {
   if (!flashHome) {
     return flashHome
   }
@@ -116,7 +116,7 @@ export {
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
   delimiterForPlatform,
-  normalizeHermesHomeRoot,
+  normalizeFlashHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES
 }

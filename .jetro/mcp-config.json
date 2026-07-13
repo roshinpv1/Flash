@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jetro": {
+      "command": "/Users/roshinpv/.jetro/runtime/node-darwin-arm64",
+      "args": [
+        "/Users/roshinpv/.jetro/mcp-server/index.js"
+      ],
+      "env": {
+        "JET_WORKSPACE": "/Users/roshinpv/Documents/my projects/Flash",
+        "JET_API_URL": "https://api.jetro.ai",
+        "PATH": "/Users/roshinpv/.jetro/runtime:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/.local/bin:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/.antigravity-ide/antigravity-ide/bin:/Users/roshinpv/Library/Python/3.12/bin:/Users/roshinpv/.opencode/bin:/Users/roshinpv/.strix/bin:/Users/roshinpv/.local/bin:/Users/roshinpv/.local/bin:/Users/roshinpv/.antigravity/antigravity/bin:/Users/roshinpv/.local/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/Library/TeX/texbin:/Users/roshinpv/.lmstudio/bin"
+      }
+    }
+  }
+}

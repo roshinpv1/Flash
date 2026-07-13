@@ -1,9 +1,9 @@
 {
   "name": "flash",
-  "productName": "Hermes",
+  "productName": "Flash",
   "private": true,
   "version": "0.17.0",
-  "description": "Native desktop shell for Hermes Agent.",
+  "description": "Native desktop shell for Flash Agent.",
   "author": "Nous Research",
   "type": "module",
   "main": "dist/electron-main.mjs",
@@ -153,17 +153,17 @@
   "build": {
     "electronVersion": "40.10.2",
     "appId": "com.flashorg.flash",
-    "productName": "Hermes",
-    "executableName": "Hermes",
+    "productName": "Flash",
+    "executableName": "Flash",
     "protocols": [
       {
-        "name": "Hermes Protocol",
+        "name": "Flash Protocol",
         "schemes": [
           "flash"
         ]
       }
     ],
-    "artifactName": "Hermes-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Flash-${version}-${os}-${arch}.${ext}",
     "icon": "assets/icon",
     "directories": {
       "output": "release"
@@ -199,11 +199,11 @@
       "entitlements": "electron/entitlements.mac.plist",
       "entitlementsInherit": "electron/entitlements.mac.inherit.plist",
       "extendInfo": {
-        "CFBundleDisplayName": "Hermes",
-        "CFBundleExecutable": "Hermes",
-        "CFBundleName": "Hermes",
-        "NSAudioCaptureUsageDescription": "Hermes uses audio capture for voice conversations.",
-        "NSMicrophoneUsageDescription": "Hermes uses the microphone for voice input and voice conversations."
+        "CFBundleDisplayName": "Flash",
+        "CFBundleExecutable": "Flash",
+        "CFBundleName": "Flash",
+        "NSAudioCaptureUsageDescription": "Flash uses audio capture for voice conversations.",
+        "NSMicrophoneUsageDescription": "Flash uses the microphone for voice input and voice conversations."
       },
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
@@ -213,7 +213,7 @@
       ]
     },
     "dmg": {
-      "title": "Install Hermes",
+      "title": "Install Flash",
       "backgroundColor": "#f5f5f7",
       "iconSize": 96,
       "window": {
@@ -235,7 +235,7 @@
       ]
     },
     "win": {
-      "legalTrademarks": "Hermes",
+      "legalTrademarks": "Flash",
       "target": [
         "nsis",
         "msi"
@@ -245,7 +245,7 @@
     "linux": {
       "category": "Development",
       "maintainer": "Nous Research <support@flashorg.com>",
-      "synopsis": "Native desktop shell for Hermes Agent.",
+      "synopsis": "Native desktop shell for Flash Agent.",
       "target": [
         "AppImage",
         "deb",
@@ -256,8 +256,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false,
-      "shortcutName": "Hermes",
-      "uninstallDisplayName": "Hermes",
+      "shortcutName": "Flash",
+      "uninstallDisplayName": "Flash",
       "warningsAsErrors": false
     }
   }

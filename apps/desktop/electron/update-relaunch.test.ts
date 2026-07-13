@@ -57,10 +57,10 @@ test('resolveUnpackedRelease returns the dir for a binary UNDER release/<plat>-u
 
 test('resolveUnpackedRelease is null for AppImage / .deb / .rpm / dev / unresolved paths', () => {
   // AppImage mount
-  assert.equal(resolveUnpackedRelease('/tmp/.mount_Hermes12345/AppRun', ROOT, 'linux'), null)
+  assert.equal(resolveUnpackedRelease('/tmp/.mount_Flash12345/AppRun', ROOT, 'linux'), null)
   // .deb / .rpm system install
   assert.equal(resolveUnpackedRelease('/usr/lib/flash/flash', ROOT, 'linux'), null)
-  assert.equal(resolveUnpackedRelease('/opt/Hermes/flash', ROOT, 'linux'), null)
+  assert.equal(resolveUnpackedRelease('/opt/Flash/flash', ROOT, 'linux'), null)
   // dev electron
   assert.equal(
     resolveUnpackedRelease('/home/u/.flash/flash-agent/node_modules/electron/dist/electron', ROOT, 'linux'),
@@ -162,7 +162,7 @@ test('collectRelaunchEnv preserves HERMES_HOME + HERMES_DESKTOP_* + sandbox opt-
     HERMES_DESKTOP_REMOTE_URL: 'http://box:9119',
     HERMES_DESKTOP_REMOTE_TOKEN: 'secret',
     HERMES_DESKTOP_HERMES_ROOT: '/home/u/dev/flash',
-    HERMES_DESKTOP_APP_NAME: 'HermesSandbox',
+    HERMES_DESKTOP_APP_NAME: 'FlashSandbox',
     ELECTRON_DISABLE_SANDBOX: '1', // sandbox opt-out — preserved
     PATH: '/usr/bin', // not preserved
     HOME: '/home/u', // not preserved
@@ -174,7 +174,7 @@ test('collectRelaunchEnv preserves HERMES_HOME + HERMES_DESKTOP_* + sandbox opt-
     HERMES_DESKTOP_REMOTE_URL: 'http://box:9119',
     HERMES_DESKTOP_REMOTE_TOKEN: 'secret',
     HERMES_DESKTOP_HERMES_ROOT: '/home/u/dev/flash',
-    HERMES_DESKTOP_APP_NAME: 'HermesSandbox',
+    HERMES_DESKTOP_APP_NAME: 'FlashSandbox',
     ELECTRON_DISABLE_SANDBOX: '1'
   })
   assert.deepEqual(collectRelaunchEnv(null), {})
@@ -192,7 +192,7 @@ test('shellQuote neutralizes single quotes and metacharacters', () => {
 test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
   const script = buildRelaunchScript({
     pid: 4242,
-    execPath: '/home/u/.flash/flash-agent/apps/desktop/release/linux-unpacked/Hermes',
+    execPath: '/home/u/.flash/flash-agent/apps/desktop/release/linux-unpacked/Flash',
     args: ['flash://open/agent/42', "--note=it's fine"],
     env: { HERMES_HOME: '/home/u/.flash', HERMES_DESKTOP_REMOTE_URL: 'http://box:9119' },
     cwd: '/home/u/work dir'
@@ -207,7 +207,7 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () =>
   assert.match(script, /export HERMES_HOME='\/home\/u\/\.flash'/)
   assert.match(script, /export HERMES_DESKTOP_REMOTE_URL='http:\/\/box:9119'/)
   assert.match(script, /cd '\/home\/u\/work dir'/)
-  assert.match(script, /exec '.*\/linux-unpacked\/Hermes' 'flash:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
+  assert.match(script, /exec '.*\/linux-unpacked\/Flash' 'flash:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
 
   // It must be syntactically valid bash (`bash -n`). Write to a temp file and lint.
   const tmp = path.join(os.tmpdir(), `flash-relaunch-test-${Date.now()}.sh`)
@@ -223,7 +223,7 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () =>
 test('buildRelaunchScript with no args/env still lints clean', () => {
   const script = buildRelaunchScript({
     pid: 1,
-    execPath: '/opt/Hermes/Hermes',
+    execPath: '/opt/Flash/Flash',
     args: [],
     env: {},
     cwd: ''
@@ -239,5 +239,5 @@ test('buildRelaunchScript with no args/env still lints clean', () => {
   }
 
   // exec line has no trailing args.
-  assert.match(script, /exec '\/opt\/Hermes\/Hermes'\n/)
+  assert.match(script, /exec '\/opt\/Flash\/Flash'\n/)
 })

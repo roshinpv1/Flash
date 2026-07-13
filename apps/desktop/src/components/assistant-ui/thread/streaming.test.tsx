@@ -20,7 +20,7 @@ class TestResizeObserver {
     this.target = target
   }
 
-  unobserve() {}
+  unobserve() { }
 
   disconnect() {
     resizeObservers.delete(this)
@@ -49,11 +49,11 @@ vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
 )
 vi.stubGlobal('cancelAnimationFrame', (id: number) => window.clearTimeout(id))
 
-Element.prototype.scrollTo = function scrollTo() {}
+Element.prototype.scrollTo = function scrollTo() { }
 
 Element.prototype.animate = function animate() {
   return {
-    cancel: () => {},
+    cancel: () => { },
     finished: Promise.resolve()
   } as unknown as Animation
 }
@@ -270,7 +270,7 @@ function StreamingHarness() {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages,
     isRunning,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -284,7 +284,7 @@ function TodoHarness({ message }: { message: ThreadMessage }) {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [message],
     isRunning: message.status?.type === 'running',
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -298,7 +298,7 @@ function MessageHarness({ message }: { message: ThreadMessage }) {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [message],
     isRunning: false,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -312,7 +312,7 @@ function RunningMessageHarness({ message }: { message: ThreadMessage }) {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [message],
     isRunning: true,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -326,7 +326,7 @@ function ReasoningHarness() {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [assistantReasoningMessage(' The user is asking what this file is.')],
     isRunning: false,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -340,7 +340,7 @@ function RunningReasoningHarness() {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [assistantReasoningMessage('```ts\nconst answer = 42\n', true)],
     isRunning: true,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -354,7 +354,7 @@ function GroupedReasoningHarness() {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [assistantMultiReasoningMessage([' First thought.', ' Second thought.'])],
     isRunning: false,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -368,7 +368,7 @@ function IntroHarness() {
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [],
     isRunning: false,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -382,7 +382,7 @@ function DismissibleErrorHarness({ onDismissError }: { onDismissError: (messageI
   const runtime = useExternalStoreRuntime<ThreadMessage>({
     messages: [assistantErrorMessage('OpenRouter rejected the request (403).')],
     isRunning: false,
-    onNew: async () => {}
+    onNew: async () => { }
   })
 
   return (
@@ -400,7 +400,7 @@ describe('assistant-ui streaming renderer', () => {
   it('renders assistant text incrementally before completion', async () => {
     const { container } = render(<StreamingHarness />)
 
-    expect(screen.getByRole('status', { name: 'Hermes is loading a response' })).toBeTruthy()
+    expect(screen.getByRole('status', { name: 'Flash is loading a response' })).toBeTruthy()
 
     await wait(80)
 
@@ -408,7 +408,7 @@ describe('assistant-ui streaming renderer', () => {
       expect(container.textContent).toContain('first chunk')
     })
     expect(container.textContent).not.toContain('second chunk')
-    expect(screen.queryByRole('status', { name: 'Hermes is loading a response' })).toBeNull()
+    expect(screen.queryByRole('status', { name: 'Flash is loading a response' })).toBeNull()
 
     await wait(500)
 

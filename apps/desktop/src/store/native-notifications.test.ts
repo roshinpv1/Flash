@@ -13,7 +13,7 @@ import { $approvalRequest, setApprovalRequest } from './prompts'
 import { $activeSessionId, setActiveSessionId } from './session'
 
 const desktopWindow = window as unknown as { flashDesktop?: Window['flashDesktop'] }
-const initialHermesDesktop = desktopWindow.flashDesktop
+const initialFlashDesktop = desktopWindow.flashDesktop
 
 const notify = vi.fn().mockResolvedValue(true)
 
@@ -46,8 +46,8 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialHermesDesktop) {
-    desktopWindow.flashDesktop = initialHermesDesktop
+  if (initialFlashDesktop) {
+    desktopWindow.flashDesktop = initialFlashDesktop
   } else {
     delete desktopWindow.flashDesktop
   }
@@ -153,7 +153,7 @@ describe('sendTestNativeNotification', () => {
   it('fires regardless of focus or active session', () => {
     setWindowState({ focused: true, hidden: false })
     setActiveSessionId('on-screen')
-    sendTestNativeNotification('Hermes', 'works')
+    sendTestNativeNotification('Flash', 'works')
     expect(notify).toHaveBeenCalledTimes(1)
   })
 })

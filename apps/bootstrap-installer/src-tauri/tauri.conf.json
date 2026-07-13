@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Hermes",
+  "productName": "Flash",
   "version": "0.0.1",
   "identifier": "com.flashorg.flash.setup",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Hermes",
+        "title": "Flash",
         "width": 880,
         "height": 620,
         "minWidth": 720,
@@ -34,8 +34,8 @@
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
-    "shortDescription": "Hermes",
-    "longDescription": "Installs Hermes Agent on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
+    "shortDescription": "Flash",
+    "longDescription": "Installs Flash Agent on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
     "publisher": "Nous Research",
     "copyright": "Copyright © 2026 Nous Research",
     "targets": [

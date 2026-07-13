@@ -6,12 +6,12 @@ import {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
-  normalizeHermesHomeRoot,
+  normalizeFlashHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES
 } from './backend-env'
 
-test('desktop backend PATH adds Hermes-managed bins and missing POSIX sane entries', () => {
+test('desktop backend PATH adds Flash-managed bins and missing POSIX sane entries', () => {
   const result = buildDesktopBackendPath({
     flashHome: '/Users/test/.flash',
     venvRoot: '/Users/test/.flash/flash-agent/venv',
@@ -67,16 +67,16 @@ test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () =
   assert.ok(env.PATH.includes('/opt/homebrew/bin'))
 })
 
-test('normalizeHermesHomeRoot maps profile homes back to the global Hermes root', () => {
+test('normalizeFlashHomeRoot maps profile homes back to the global Flash root', () => {
   assert.equal(
-    normalizeHermesHomeRoot('/Users/test/.flash/profiles/oracle', { pathModule: path.posix }),
+    normalizeFlashHomeRoot('/Users/test/.flash/profiles/oracle', { pathModule: path.posix }),
     '/Users/test/.flash'
   )
   assert.equal(
-    normalizeHermesHomeRoot('C:\\Users\\test\\AppData\\Local\\flash\\profiles\\oracle', { pathModule: path.win32 }),
+    normalizeFlashHomeRoot('C:\\Users\\test\\AppData\\Local\\flash\\profiles\\oracle', { pathModule: path.win32 }),
     'C:\\Users\\test\\AppData\\Local\\flash'
   )
-  assert.equal(normalizeHermesHomeRoot('/Users/test/.flash', { pathModule: path.posix }), '/Users/test/.flash')
+  assert.equal(normalizeFlashHomeRoot('/Users/test/.flash', { pathModule: path.posix }), '/Users/test/.flash')
 })
 
 test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {

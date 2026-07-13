@@ -7,7 +7,7 @@ import { currentPickerSelection } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
 import type { ModelOptionProvider, ModelPricing } from '@/types/flash'
 
-import type { HermesGateway } from '../flash'
+import type { FlashGateway } from '../flash'
 import { cn } from '../lib/utils'
 import { startManualOnboarding } from '../store/onboarding'
 
@@ -20,7 +20,7 @@ import { Skeleton } from './ui/skeleton'
 interface ModelPickerDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  gw?: HermesGateway
+  gw?: FlashGateway
   sessionId?: string | null
   currentModel: string
   currentProvider: string

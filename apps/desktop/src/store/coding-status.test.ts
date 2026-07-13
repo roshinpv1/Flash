@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { HermesRepoStatus } from '@/global'
+import type { FlashRepoStatus } from '@/global'
 
 import { $repoStatus, refreshRepoStatus } from './coding-status'
 import { $currentCwd } from './session'
 
-const sampleStatus: HermesRepoStatus = {
+const sampleStatus: FlashRepoStatus = {
   branch: 'feature/login',
   defaultBranch: 'main',
   detached: false,
@@ -21,7 +21,7 @@ const sampleStatus: HermesRepoStatus = {
   files: []
 }
 
-function stubProbe(impl: (cwd: string) => Promise<HermesRepoStatus | null>) {
+function stubProbe(impl: (cwd: string) => Promise<FlashRepoStatus | null>) {
   ; (window as unknown as { flashDesktop?: unknown }).flashDesktop = { git: { repoStatus: impl } }
 }
 

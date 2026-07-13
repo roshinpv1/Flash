@@ -114,7 +114,7 @@ export interface Translations {
       loadingSettings: string
       loadingSessions: string
       startingDesktopConnection: string
-      startingHermesDesktop: string
+      startingFlashDesktop: string
     }
     errors: {
       backgroundExited: string
@@ -166,7 +166,7 @@ export interface Translations {
     backendOutOfDateTitle: string
     backendOutOfDateMessage: string
     installMethodUnsupportedTitle: string
-    updateHermes: string
+    updateFlash: string
     updateReadyTitle: string
     updateReadyMessage: (count: number) => string
     seeWhatsNew: string
@@ -949,7 +949,7 @@ export interface Translations {
     flashActiveSessions: (version: string, count: number) => string
     restartGateway: string
     gatewayRestartFailed: string
-    updateHermes: string
+    updateFlash: string
     actionRunning: string
     actionDone: string
     actionFailed: string

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run a Hermes instance in an isolated sandbox — separate HERMES_HOME,
+# Run a Flash instance in an isolated sandbox — separate HERMES_HOME,
 # separate Electron userData, and a distinct Desktop app name so it doesn't compete
 # with your main desktop instance's single-instance lock.
 #
@@ -15,7 +15,7 @@
 #   scripts/dev-sandbox.sh --persistent flash desktop
 #   scripts/dev-sandbox.sh --persistent -- npm run dev
 #
-# Override the app name (default: HermesSandbox):
+# Override the app name (default: FlashSandbox):
 #   HERMES_DEV_SANDBOX_NAME=Staging scripts/dev-sandbox.sh flash desktop
 #
 # Override the persistent sandbox dir name (default: .flash-sandbox):
@@ -29,7 +29,7 @@ print_help() {
   cat <<'EOF'
 Usage: dev-sandbox.sh [--persistent] [--] <command...>
 
-Run a Hermes instance in an isolated sandbox.
+Run a Flash instance in an isolated sandbox.
 
 Options:
   --persistent    Keep the sandbox dir across restarts (under the worktree
@@ -39,7 +39,7 @@ Options:
   -h, --help      Show this help message.
 
 Environment:
-  HERMES_DEV_SANDBOX_NAME  Override the app name (default: HermesSandbox)
+  HERMES_DEV_SANDBOX_NAME  Override the app name (default: FlashSandbox)
   HERMES_DEV_SANDBOX_DIR   Override the persistent dir name (default: .flash-sandbox)
 
 Examples:
@@ -113,7 +113,7 @@ WORKTREE_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/
 WORKTREE_ROOT="$(cd "$WORKTREE_ROOT" && pwd)"
 WORKTREE_HASH="$(printf '%s' "$WORKTREE_ROOT" | cksum | cut -d' ' -f1)"
 WORKTREE_NAME="$(basename "$WORKTREE_ROOT")"
-DEFAULT_SANDBOX_NAME="HermesSandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
+DEFAULT_SANDBOX_NAME="FlashSandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
 
 SANDBOX_NAME="${HERMES_DEV_SANDBOX_NAME:-$DEFAULT_SANDBOX_NAME}"
 

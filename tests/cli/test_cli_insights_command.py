@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from cli import HermesCLI
+from cli import FlashCLI
 
 
 class _InsightsEngineStub:
@@ -18,7 +18,7 @@ class _InsightsEngineStub:
 
 
 def _run_show_insights(command: str):
-    cli_obj = HermesCLI.__new__(HermesCLI)
+    cli_obj = FlashCLI.__new__(FlashCLI)
     db = MagicMock()
     _InsightsEngineStub.calls = []
     with patch("flash_state.SessionDB", return_value=db), \

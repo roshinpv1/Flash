@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { getHermesConfigRecord } from '@/flash'
+import { getFlashConfigRecord } from '@/flash'
 import { queryClient, writeCache } from '@/lib/query-client'
-import type { HermesConfigRecord } from '@/types/flash'
+import type { FlashConfigRecord } from '@/types/flash'
 
 // One shared cache for the whole profile config record (`GET /api/config`).
 // Every settings surface (MCP, model, config) reads and writes through this key
@@ -14,9 +14,9 @@ import type { HermesConfigRecord } from '@/types/flash'
 export const HERMES_CONFIG_KEY = ['flash-config-record'] as const
 
 // staleTime 0 → serve cache instantly, background-revalidate on every mount.
-export const useHermesConfigRecord = () =>
-  useQuery({ queryKey: HERMES_CONFIG_KEY, queryFn: getHermesConfigRecord, staleTime: 0 })
+export const useFlashConfigRecord = () =>
+  useQuery({ queryKey: HERMES_CONFIG_KEY, queryFn: getFlashConfigRecord, staleTime: 0 })
 
-export const setHermesConfigCache = writeCache<HermesConfigRecord>(HERMES_CONFIG_KEY)
+export const setFlashConfigCache = writeCache<FlashConfigRecord>(HERMES_CONFIG_KEY)
 
-export const invalidateHermesConfig = () => queryClient.invalidateQueries({ queryKey: HERMES_CONFIG_KEY })
+export const invalidateFlashConfig = () => queryClient.invalidateQueries({ queryKey: HERMES_CONFIG_KEY })

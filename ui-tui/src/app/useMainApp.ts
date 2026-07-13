@@ -210,9 +210,9 @@ export function useMainApp(gw: GatewayClient) {
   const slashRef = useRef<(cmd: string) => boolean>(() => false)
   const colsRef = useRef(cols)
   const scrollRef = useRef<null | ScrollBoxHandle>(null)
-  const onEventRef = useRef<(ev: GatewayEvent) => void>(() => {})
-  const clipboardPasteRef = useRef<(quiet?: boolean) => Promise<void> | void>(() => {})
-  const submitRef = useRef<(value: string) => void>(() => {})
+  const onEventRef = useRef<(ev: GatewayEvent) => void>(() => { })
+  const clipboardPasteRef = useRef<(quiet?: boolean) => Promise<void> | void>(() => { })
+  const submitRef = useRef<(value: string) => void>(() => { })
   const terminalHintsShownRef = useRef(new Set<string>())
   const historyItemsRef = useRef(historyItems)
   const lastUserMsgRef = useRef(lastUserMsg)
@@ -298,7 +298,7 @@ export function useMainApp(gw: GatewayClient) {
           turnController.pushActivity(hint.message, hint.tone)
         }
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const messageId = useCallback((msg: Msg) => {
@@ -557,7 +557,7 @@ export function useMainApp(gw: GatewayClient) {
             }
           }
         })
-        .catch(() => {})
+        .catch(() => { })
     }
 
     refresh()
@@ -578,7 +578,7 @@ export function useMainApp(gw: GatewayClient) {
   const tabCwd = ui.info?.cwd
 
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Hermes'
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Flash'
   )
 
   useEffect(() => {
@@ -1012,32 +1012,32 @@ export function useMainApp(gw: GatewayClient) {
   const showProgressArea = useTurnSelector(state =>
     anyPanelVisible
       ? Boolean(
-          ui.busy ||
-          state.outcome ||
-          state.streamPendingTools.length ||
-          state.streamSegments.some(segment => {
-            const hasThinking = Boolean(segment.thinking?.trim())
-            const hasTrailTools = Boolean(segment.tools?.length)
+        ui.busy ||
+        state.outcome ||
+        state.streamPendingTools.length ||
+        state.streamSegments.some(segment => {
+          const hasThinking = Boolean(segment.thinking?.trim())
+          const hasTrailTools = Boolean(segment.tools?.length)
 
-            if (segment.kind === 'trail' && !segment.text) {
-              return (
-                (thinkingPanelVisible && hasThinking) || ((toolsPanelVisible || activityPanelVisible) && hasTrailTools)
-              )
-            }
-
+          if (segment.kind === 'trail' && !segment.text) {
             return (
-              Boolean(segment.text?.trim()) ||
-              (thinkingPanelVisible && hasThinking) ||
-              ((toolsPanelVisible || activityPanelVisible) && hasTrailTools)
+              (thinkingPanelVisible && hasThinking) || ((toolsPanelVisible || activityPanelVisible) && hasTrailTools)
             )
-          }) ||
-          state.subagents.length ||
-          state.tools.length ||
-          state.todos.length ||
-          state.turnTrail.length ||
-          (thinkingPanelVisible && hasReasoning) ||
-          state.activity.length
-        )
+          }
+
+          return (
+            Boolean(segment.text?.trim()) ||
+            (thinkingPanelVisible && hasThinking) ||
+            ((toolsPanelVisible || activityPanelVisible) && hasTrailTools)
+          )
+        }) ||
+        state.subagents.length ||
+        state.tools.length ||
+        state.todos.length ||
+        state.turnTrail.length ||
+        (thinkingPanelVisible && hasReasoning) ||
+        state.activity.length
+      )
       : state.activity.some(item => item.tone !== 'info')
   )
 

@@ -1,9 +1,9 @@
 import type {
-  HermesGitBranch,
-  HermesGitWorktree,
-  HermesRepoStatus,
-  HermesReviewList,
-  HermesReviewShipInfo
+  FlashGitBranch,
+  FlashGitWorktree,
+  FlashRepoStatus,
+  FlashReviewList,
+  FlashReviewShipInfo
 } from '@/global'
 
 import { desktopFsProfile, isDesktopFsRemoteMode } from './desktop-fs'
@@ -20,7 +20,7 @@ function desktopApi<T>(path: string, body?: Record<string, unknown>): Promise<T>
   const desktop = window.flashDesktop
 
   if (!desktop) {
-    throw new Error('Hermes Desktop bridge is unavailable')
+    throw new Error('Flash Desktop bridge is unavailable')
   }
 
   return desktop.api<T>(
@@ -46,7 +46,7 @@ function gitPost<T>(route: string, body: Record<string, unknown>): Promise<T> {
 
 const remoteGit: GitBridge = {
   worktreeList: async repoPath =>
-    (await gitGet<{ worktrees: HermesGitWorktree[] }>('worktrees', { path: repoPath })).worktrees,
+    (await gitGet<{ worktrees: FlashGitWorktree[] }>('worktrees', { path: repoPath })).worktrees,
 
   worktreeAdd: (repoPath, options) => gitPost('worktree/add', { path: repoPath, ...options }),
 
@@ -56,16 +56,16 @@ const remoteGit: GitBridge = {
   branchSwitch: (repoPath, branch) => gitPost('branch/switch', { branch, path: repoPath }),
 
   branchList: async repoPath =>
-    (await gitGet<{ branches: HermesGitBranch[] }>('branches', { path: repoPath })).branches,
+    (await gitGet<{ branches: FlashGitBranch[] }>('branches', { path: repoPath })).branches,
 
-  repoStatus: repoPath => gitGet<HermesRepoStatus | null>('status', { path: repoPath }),
+  repoStatus: repoPath => gitGet<FlashRepoStatus | null>('status', { path: repoPath }),
 
   fileDiff: async (repoPath, filePath) =>
     (await gitGet<{ diff: string }>('file-diff', { file: filePath, path: repoPath })).diff,
 
   review: {
     list: (repoPath, scope, baseRef) =>
-      gitGet<HermesReviewList>('review/list', { base: baseRef, path: repoPath, scope }),
+      gitGet<FlashReviewList>('review/list', { base: baseRef, path: repoPath, scope }),
 
     diff: async (repoPath, filePath, scope, baseRef, staged) =>
       (await gitGet<{ diff: string }>('review/diff', { base: baseRef, file: filePath, path: repoPath, scope, staged }))
@@ -86,7 +86,7 @@ const remoteGit: GitBridge = {
 
     push: repoPath => gitPost('review/push', { path: repoPath }),
 
-    shipInfo: repoPath => gitGet<HermesReviewShipInfo>('review/ship-info', { path: repoPath }),
+    shipInfo: repoPath => gitGet<FlashReviewShipInfo>('review/ship-info', { path: repoPath }),
 
     createPr: repoPath => gitPost('review/create-pr', { path: repoPath })
   },

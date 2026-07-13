@@ -90,7 +90,7 @@ function stripDiffMarker(line: string): string {
 }
 
 // Git-style unified diffs arrive with a file-header preamble — `diff --git`,
-// `index …`, `--- a/path`, `+++ b/path`, and Hermes' own `a/path → b/path`
+// `index …`, `--- a/path`, `+++ b/path`, and Flash' own `a/path → b/path`
 // arrow line. That preamble just repeats the path (which the tool row already
 // shows) and reads especially badly for absolute paths (`a//Users/…`). Strip
 // the leading header zone up to the first hunk.
@@ -345,10 +345,10 @@ function PreviewDiffRows({
               <span className={cn(PREVIEW_DIFF_LINE_BASE, DIFF_KIND_TINT[line.kind])} key={`${index}-${line.text}`}>
                 {rowTokens.length > 0
                   ? rowTokens.map((token, tokenIndex) => (
-                      <span key={`${tokenIndex}-${token.offset}`} style={tokenStyle(token)}>
-                        {token.content}
-                      </span>
-                    ))
+                    <span key={`${tokenIndex}-${token.offset}`} style={tokenStyle(token)}>
+                      {token.content}
+                    </span>
+                  ))
                   : line.text || ' '}
               </span>
             )
@@ -432,10 +432,10 @@ function TokenizedDiffBody({
           <span className={cn(PREVIEW_DIFF_LINE_BASE, DIFF_KIND_TINT[line.kind])} key={`${index}-${line.text}`}>
             {rowTokens.length > 0
               ? rowTokens.map((token, tokenIndex) => (
-                  <span key={`${tokenIndex}-${token.offset}`} style={tokenStyle(token)}>
-                    {token.content}
-                  </span>
-                ))
+                <span key={`${tokenIndex}-${token.offset}`} style={tokenStyle(token)}>
+                  {token.content}
+                </span>
+              ))
               : line.text || ' '}
           </span>
         )
@@ -495,7 +495,7 @@ function overviewRuns(lines: DiffLine[]): { kind: 'add' | 'remove'; sizePct: num
   const total = lines.length || 1
   const runs: { kind: 'add' | 'remove'; sizePct: number; startPct: number }[] = []
 
-  for (let i = 0; i < lines.length; ) {
+  for (let i = 0; i < lines.length;) {
     const kind = lines[i].kind
 
     if (kind === 'context') {

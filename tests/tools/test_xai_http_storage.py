@@ -7,7 +7,7 @@ import yaml
 
 def _invalidate_config_cache():
     try:
-        import hermes_cli.config as cfg_mod
+        import flash_cli.config as cfg_mod
 
         if hasattr(cfg_mod, "_invalidate_load_config_cache"):
             cfg_mod._invalidate_load_config_cache()
@@ -23,14 +23,14 @@ def test_storage_defaults_to_permanent_public_urls(tmp_path, monkeypatch):
 
     storage = build_xai_storage_options(
         "image_gen",
-        filename_prefix="hermes-xai-image",
+        filename_prefix="flash-xai-image",
         extension="png",
     )
 
     assert storage is not None
     assert storage["public_url"] is True
     assert "expires_after" not in storage
-    assert storage["filename"].startswith("hermes-xai-image-")
+    assert storage["filename"].startswith("flash-xai-image-")
     assert storage["filename"].endswith(".png")
 
 
@@ -51,7 +51,7 @@ def test_storage_can_be_disabled(tmp_path, monkeypatch):
 
     assert build_xai_storage_options(
         "video_gen",
-        filename_prefix="hermes-xai-video",
+        filename_prefix="flash-xai-video",
         extension="mp4",
     ) is None
     assert xai_storage_notice_text("video_gen") == ""
@@ -74,7 +74,7 @@ def test_storage_can_be_permanent(tmp_path, monkeypatch):
 
     storage = build_xai_storage_options(
         "image_gen",
-        filename_prefix="hermes-xai-image",
+        filename_prefix="flash-xai-image",
         extension="png",
     )
 
@@ -99,7 +99,7 @@ def test_storage_can_use_finite_retention(tmp_path, monkeypatch):
 
     storage = build_xai_storage_options(
         "image_gen",
-        filename_prefix="hermes-xai-image",
+        filename_prefix="flash-xai-image",
         extension="png",
     )
 
@@ -124,7 +124,7 @@ def test_invalid_storage_retention_falls_back_to_bounded_ttl(tmp_path, monkeypat
 
     storage = build_xai_storage_options(
         "video_gen",
-        filename_prefix="hermes-xai-video",
+        filename_prefix="flash-xai-video",
         extension="mp4",
     )
 

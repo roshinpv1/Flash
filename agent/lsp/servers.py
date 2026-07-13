@@ -769,7 +769,7 @@ def _spawn_powershell_es(root: str, ctx: ServerContext) -> Optional[SpawnSpec]:
         f"-LogPath '{log_path}' "
         f"-SessionDetailsPath '{session_path}' "
         f"-FeatureFlags @() -AdditionalModules @() "
-        f"-HostName Hermes -HostProfileId flash -HostVersion 1.0.0 "
+        f"-HostName Flash -HostProfileId flash -HostVersion 1.0.0 "
         f"-Stdio -LogLevel Normal"
     )
     return SpawnSpec(

@@ -6,7 +6,7 @@
 //!   Linux:   ~/.flash  (override via $HERMES_HOME)
 //!
 //! NOTE (macOS): Python's get_flash_home(), scripts/install.sh, and the
-//! Electron desktop's resolveHermesHome() ALL use ~/.flash on macOS — there
+//! Electron desktop's resolveFlashHome() ALL use ~/.flash on macOS — there
 //! is no ~/Library/Application Support branch anywhere else. An earlier
 //! version of this file used Application Support, which drifted from every
 //! other component: the installer wrote the install to one dir and the
@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing_appender::non_blocking::WorkerGuard;
 
-/// Returns the canonical Hermes home directory, respecting $HERMES_HOME if set.
+/// Returns the canonical Flash home directory, respecting $HERMES_HOME if set.
 pub fn flash_home() -> PathBuf {
     if let Ok(override_path) = std::env::var("HERMES_HOME") {
         if !override_path.trim().is_empty() {
@@ -31,14 +31,14 @@ pub fn flash_home() -> PathBuf {
 
     #[cfg(target_os = "windows")]
     {
-        // %LOCALAPPDATA%\flash — matches scripts/install.ps1's $HermesHome.
+        // %LOCALAPPDATA%\flash — matches scripts/install.ps1's $FlashHome.
         if let Some(local_app_data) = dirs::data_local_dir() {
             return local_app_data.join("flash");
         }
     }
 
     // macOS + Linux + fallback: ~/.flash (matches Python get_flash_home(),
-    // install.sh, and the Electron desktop's resolveHermesHome()).
+    // install.sh, and the Electron desktop's resolveFlashHome()).
     if let Some(home) = dirs::home_dir() {
         return home.join(".flash");
     }

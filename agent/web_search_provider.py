@@ -61,7 +61,7 @@ def get_provider_env(name: str) -> str:
 
     Resolves *name* via :func:`flash_cli.config.get_env_value` (checks
     ``os.environ`` first, then ``~/.flash/.env``) so credentials set
-    through Hermes' config layer are visible even when they were never
+    through Flash' config layer are visible even when they were never
     exported into the process environment — gateway sessions, delegate
     children, and subprocess agent runs (issue #40190). Falls back to a
     bare ``os.getenv`` when the config module is unavailable (stripped

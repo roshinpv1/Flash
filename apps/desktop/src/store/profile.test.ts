@@ -1,7 +1,7 @@
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { HermesConnection } from '@/global'
+import type { FlashConnection } from '@/global'
 import type { ProfileInfo } from '@/types/flash'
 
 // Keep profile.ts's side-effecting imports inert: the gateway socket layer and
@@ -33,13 +33,13 @@ const profile = (name: string, isDefault = false): ProfileInfo => ({
   skill_count: 0
 })
 
-const remoteConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
-  ({ baseUrl: 'https://flash-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as HermesConnection
+const remoteConn = (over: Partial<FlashConnection> = {}): FlashConnection =>
+  ({ baseUrl: 'https://flash-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as FlashConnection
 
-const localConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
-  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as HermesConnection
+const localConn = (over: Partial<FlashConnection> = {}): FlashConnection =>
+  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as FlashConnection
 
-const getConnection = vi.fn<(profile?: string | null) => Promise<HermesConnection>>()
+const getConnection = vi.fn<(profile?: string | null) => Promise<FlashConnection>>()
 
 beforeEach(() => {
   getConnection.mockReset()

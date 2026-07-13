@@ -28,7 +28,7 @@ async function withCleanEnv(setup: () => void, body: () => Promise<void>) {
 describe('forceTruecolor', () => {
   it('does not force truecolor by default', async () => {
     await withCleanEnv(
-      () => {},
+      () => { },
       async () => {
         await import('../lib/forceTruecolor.js?t=default-' + importId++)
         expect(process.env.COLORTERM).toBeUndefined()
@@ -161,7 +161,7 @@ describe('forceTruecolor', () => {
     )
   })
 
-  it('respects existing FORCE_COLOR unless Hermes truecolor is explicit', async () => {
+  it('respects existing FORCE_COLOR unless Flash truecolor is explicit', async () => {
     await withCleanEnv(
       () => {
         process.env.FORCE_COLOR = ''
@@ -175,7 +175,7 @@ describe('forceTruecolor', () => {
     )
   })
 
-  it('lets explicit Hermes truecolor override existing FORCE_COLOR', async () => {
+  it('lets explicit Flash truecolor override existing FORCE_COLOR', async () => {
     await withCleanEnv(
       () => {
         process.env.FORCE_COLOR = '0'

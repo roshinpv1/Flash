@@ -1,4 +1,4 @@
-# Hermes Desktop ☤
+# Flash Desktop ☤
 
 <p align="center">
   <a href="https://github.com/FlashOrg/flash-agent/releases"><img src="https://img.shields.io/badge/Download-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-FFD700?style=for-the-badge" alt="Download"></a>
@@ -7,13 +7,13 @@
   <a href="https://github.com/FlashOrg/flash-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
 </p>
 
-**The native desktop app for [Hermes Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://flashorg.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
+**The native desktop app for [Flash Agent](../../README.md) — the self-improving AI agent from [Nous Research](https://flashorg.com).** Same agent, same skills, same memory as the CLI and gateway, in a polished native window — chat with streaming tool output, side-by-side previews, a file browser, voice, and settings, no terminal required. Available for **macOS, Windows, and Linux**.
 
 <table>
-<tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Hermes surface.</td></tr>
+<tr><td><b>Chat with the full agent</b></td><td>Streaming responses, live tool activity, structured tool summaries, and the same conversation history as every other Flash surface.</td></tr>
 <tr><td><b>Side-by-side previews</b></td><td>Render web pages, files, and tool outputs in a right-hand pane while you keep chatting.</td></tr>
 <tr><td><b>File browser</b></td><td>Explore and preview the working directory without leaving the app.</td></tr>
-<tr><td><b>Voice</b></td><td>Talk to Hermes and hear it back.</td></tr>
+<tr><td><b>Voice</b></td><td>Talk to Flash and hear it back.</td></tr>
 <tr><td><b>Settings & onboarding</b></td><td>Manage providers, models, tools, and credentials from a real UI. First-run setup gets you to your first message in seconds.</td></tr>
 <tr><td><b>Stays current</b></td><td>Built-in updates pull the latest agent and rebuild the app in place.</td></tr>
 </table>
@@ -22,19 +22,19 @@
 
 ## Install
 
-### Install with Hermes (recommended)
+### Install with Flash (recommended)
 
-Already have the Hermes CLI? Just run:
+Already have the Flash CLI? Just run:
 
 ```bash
 flash desktop
 ```
 
-It builds and launches the GUI against your existing install — same config, keys, sessions, and skills. On first launch Hermes walks you through picking a provider and model; nothing else to configure.
+It builds and launches the GUI against your existing install — same config, keys, sessions, and skills. On first launch Flash walks you through picking a provider and model; nothing else to configure.
 
 ### Prebuilt installers
 
-Prebuilt installers are built and distributed via [the Hermes Desktop website.](https://flash-agent.flashorg.com/).
+Prebuilt installers are built and distributed via [the Flash Desktop website.](https://flash-agent.flashorg.com/).
 
 ---
 
@@ -88,7 +88,7 @@ Installers are built and uploaded to GitHub Releases manually. macOS/Windows sig
 ### How it works
 
 The packaged app ships the Electron shell and a native React chat surface. On
-first launch it can install the Hermes Agent runtime into `HERMES_HOME`
+first launch it can install the Flash Agent runtime into `HERMES_HOME`
 (`~/.flash`, or `%LOCALAPPDATA%\flash` on Windows), using the same layout as a
 CLI install.
 
@@ -98,7 +98,7 @@ The app has three boundaries:
   filesystem/git/window capabilities, and exposes a narrow preload bridge.
 - **React** owns the Desktop routes, panes, interaction state, and
   `@assistant-ui/react` transcript.
-- **Hermes Agent** runs as a headless `flash serve` process and exposes the
+- **Flash Agent** runs as a headless `flash serve` process and exposes the
   `tui_gateway` JSON-RPC/WebSocket API. The renderer connects through
   [`apps/shared`](../shared/), which is also used by the browser dashboard.
 
@@ -108,7 +108,7 @@ Backend resolution is an ordered ladder:
 2. the current source checkout during development
 3. a completed managed install
 4. `HERMES_DESKTOP_HERMES`, or `flash` on `PATH`
-5. a system Python that can import the Hermes runtime
+5. a system Python that can import the Flash runtime
 6. the first-launch bootstrap installer
 
 Candidates are probed before use; an existing shim or interpreter is not enough.
@@ -130,7 +130,7 @@ Before changing the app, read:
 
 ### Connections, projects, and switching
 
-Desktop supports a managed local backend, explicit remote gateways, and Hermes
+Desktop supports a managed local backend, explicit remote gateways, and Flash
 Cloud connections. Remote and cloud modes use the same remote-capability path;
 authentication and discovery differ, not the renderer feature model.
 
@@ -184,7 +184,7 @@ Remove-Item "$env:LOCALAPPDATA\flash\flash-agent\.flash-bootstrap-complete"
 Remove-Item -Recurse -Force "$env:LOCALAPPDATA\flash\flash-agent\venv"
 ```
 
-> The default Hermes home on Windows is `%LOCALAPPDATA%\flash`. Set the `HERMES_HOME` env var if you've relocated it.
+> The default Flash home on Windows is `%LOCALAPPDATA%\flash`. Set the `HERMES_HOME` env var if you've relocated it.
 
 ---
 

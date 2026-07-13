@@ -36,8 +36,8 @@ ACCEPT = [
     "flash -p gateway gateway run",
     "python -m flash_cli.main --profile gateway gateway run",
     # quoted Windows paths with spaces (shlex-aware tokenization)
-    r'"C:\Program Files\Hermes\flash-gateway.exe"',
-    r'"C:\Program Files\Hermes\gateway\run.py" run',
+    r'"C:\Program Files\Flash\flash-gateway.exe"',
+    r'"C:\Program Files\Flash\gateway\run.py" run',
     r'"C:\Program Files\Py\pythonw.exe" -m flash_cli.main gateway run',
 ]
 
