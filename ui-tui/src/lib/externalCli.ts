@@ -5,7 +5,7 @@ export interface LaunchResult {
   error?: string
 }
 
-const resolveFlashBin = () => process.env.HERMES_BIN?.trim() || 'hermes'
+const resolveFlashBin = () => process.env.HERMES_BIN?.trim() || 'flash'
 
 export const launchFlashCommand = (args: string[]): Promise<LaunchResult> =>
   new Promise(resolve => {

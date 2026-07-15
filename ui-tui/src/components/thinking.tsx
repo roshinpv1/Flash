@@ -1,4 +1,4 @@
-import { Box, NoSelect, Text } from '@hermes/ink'
+import { Box, NoSelect, Text } from '@flash/ink'
 import { memo, type ReactNode, useEffect, useMemo, useState } from 'react'
 import spinners, { type BrailleSpinnerName } from 'unicode-animations'
 
@@ -845,13 +845,13 @@ export const ToolTrail = memo(function ToolTrail({
       label,
       details: tool.verboseArgs
         ? [
-            {
-              color: t.color.muted,
-              content: `Args:\n${boundedLiveRenderText(tool.verboseArgs)}`,
-              dimColor: true,
-              key: `${tool.id}-args`
-            }
-          ]
+          {
+            color: t.color.muted,
+            content: `Args:\n${boundedLiveRenderText(tool.verboseArgs)}`,
+            dimColor: true,
+            key: `${tool.id}-args`
+          }
+        ]
         : [],
       content: (
         <>

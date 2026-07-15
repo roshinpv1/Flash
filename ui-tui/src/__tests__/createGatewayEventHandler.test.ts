@@ -186,11 +186,11 @@ describe('createGatewayEventHandler', () => {
     const onEvent = createGatewayEventHandler(ctx)
 
     onEvent({
-      payload: { text: "💾 Self-improvement review: Skill 'hermes-release' patched" },
+      payload: { text: "💾 Self-improvement review: Skill 'flash-release' patched" },
       type: 'review.summary'
     } as any)
 
-    expect(ctx.system.sys).toHaveBeenCalledWith("💾 Self-improvement review: Skill 'hermes-release' patched")
+    expect(ctx.system.sys).toHaveBeenCalledWith("💾 Self-improvement review: Skill 'flash-release' patched")
   })
 
   it('ignores review.summary events with empty or missing text', () => {
@@ -495,7 +495,7 @@ describe('createGatewayEventHandler', () => {
         cwd: '/repo',
         python: '/opt/venv/bin/python',
         stderr_tail:
-          '[startup] timed out\nModuleNotFoundError: No module named openai\nFileNotFoundError: ~/.hermes/config.yaml'
+          '[startup] timed out\nModuleNotFoundError: No module named openai\nFileNotFoundError: ~/.flash/config.yaml'
       },
       type: 'gateway.start_timeout'
     } as any)
@@ -699,7 +699,7 @@ describe('createGatewayEventHandler', () => {
     onEvent({
       payload: {
         message:
-          'agent init failed: No LLM provider configured. Run `hermes model` to select a provider, or run `hermes setup` for first-time configuration.'
+          'agent init failed: No LLM provider configured. Run `flash model` to select a provider, or run `flash setup` for first-time configuration.'
       },
       type: 'error'
     } as any)

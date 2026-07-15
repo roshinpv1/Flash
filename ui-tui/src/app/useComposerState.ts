@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { useStdin, withInkSuspended } from '@hermes/ink'
+import { useStdin, withInkSuspended } from '@flash/ink'
 import { useStore } from '@nanostores/react'
 import { useCallback, useMemo, useState } from 'react'
 
@@ -217,7 +217,7 @@ export function useComposerState({
 
           setPasteSnips(prev => prev.map(s => (s.label === label ? { ...s, path } : s)))
         })
-        .catch(() => {})
+        .catch(() => { })
 
       return inserted
     },
@@ -237,19 +237,19 @@ export function useComposerState({
 
         const readPreferredText = preferOsc52
           ? readOsc52Clipboard(querier).then(async osc52Text => {
-              if (isUsableClipboardText(osc52Text)) {
-                return osc52Text
-              }
+            if (isUsableClipboardText(osc52Text)) {
+              return osc52Text
+            }
 
-              return readClipboardText()
-            })
+            return readClipboardText()
+          })
           : readClipboardText().then(async clipText => {
-              if (isUsableClipboardText(clipText)) {
-                return clipText
-              }
+            if (isUsableClipboardText(clipText)) {
+              return clipText
+            }
 
-              return readOsc52Clipboard(querier)
-            })
+            return readOsc52Clipboard(querier)
+          })
 
         return readPreferredText.then(async preferredText => {
           if (isUsableClipboardText(preferredText)) {
@@ -268,7 +268,7 @@ export function useComposerState({
   )
 
   const openEditor = useCallback(async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'hermes-'))
+    const dir = mkdtempSync(join(tmpdir(), 'flash-'))
     const file = join(dir, 'prompt.md')
     const [cmd, ...args] = resolveEditor()
 

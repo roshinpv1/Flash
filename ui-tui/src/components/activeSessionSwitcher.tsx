@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from '@hermes/ink'
+import { Box, Text, useInput, useStdout } from '@flash/ink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { sessionScopedModelArg } from '../domain/slash.js'
@@ -108,21 +108,21 @@ export interface OrchestratorHintSegment {
 export const orchestratorContextHintSegments = (newSelected: boolean): OrchestratorHintSegment[] =>
   newSelected
     ? [
-        { role: 'label', text: 'New row:' },
-        { role: 'text', text: ' type prompt · ' },
-        { role: 'hotkey', text: 'Enter' },
-        { role: 'text', text: ' start · ' },
-        { role: 'hotkey', text: 'Tab' },
-        { role: 'text', text: ' model' }
-      ]
+      { role: 'label', text: 'New row:' },
+      { role: 'text', text: ' type prompt · ' },
+      { role: 'hotkey', text: 'Enter' },
+      { role: 'text', text: ' start · ' },
+      { role: 'hotkey', text: 'Tab' },
+      { role: 'text', text: ' model' }
+    ]
     : [
-        { role: 'label', text: 'Session row:' },
-        { role: 'text', text: ' ' },
-        { role: 'hotkey', text: 'Enter' },
-        { role: 'text', text: ' switch · ' },
-        { role: 'hotkey', text: 'Ctrl+D' },
-        { role: 'text', text: ' close' }
-      ]
+      { role: 'label', text: 'Session row:' },
+      { role: 'text', text: ' ' },
+      { role: 'hotkey', text: 'Enter' },
+      { role: 'text', text: ' switch · ' },
+      { role: 'hotkey', text: 'Ctrl+D' },
+      { role: 'text', text: ' close' }
+    ]
 
 export const orchestratorGlobalHotkeyHintSegments: OrchestratorHintSegment[] = [
   { role: 'hotkey', text: '↑↓' },

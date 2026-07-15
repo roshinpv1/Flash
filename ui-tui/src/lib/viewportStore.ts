@@ -1,4 +1,4 @@
-import type { ScrollBoxHandle } from '@hermes/ink'
+import type { ScrollBoxHandle } from '@flash/ink'
 import type { RefObject } from 'react'
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 
@@ -86,7 +86,7 @@ export function scrollbarSnapshotKey(v: ScrollbarSnapshot) {
 
 export function useViewportSnapshot(scrollRef: RefObject<ScrollBoxHandle | null>): ViewportSnapshot {
   const key = useSyncExternalStore(
-    useCallback((cb: () => void) => scrollRef.current?.subscribe(cb) ?? (() => {}), [scrollRef]),
+    useCallback((cb: () => void) => scrollRef.current?.subscribe(cb) ?? (() => { }), [scrollRef]),
     () => viewportSnapshotKey(getViewportSnapshot(scrollRef.current)),
     () => viewportSnapshotKey(EMPTY)
   )
@@ -107,7 +107,7 @@ export function useViewportSnapshot(scrollRef: RefObject<ScrollBoxHandle | null>
 
 export function useScrollbarSnapshot(scrollRef: RefObject<ScrollBoxHandle | null>): ScrollbarSnapshot {
   const key = useSyncExternalStore(
-    useCallback((cb: () => void) => scrollRef.current?.subscribe(cb) ?? (() => {}), [scrollRef]),
+    useCallback((cb: () => void) => scrollRef.current?.subscribe(cb) ?? (() => { }), [scrollRef]),
     () => scrollbarSnapshotKey(getScrollbarSnapshot(scrollRef.current)),
     () => scrollbarSnapshotKey(EMPTY_SCROLLBAR)
   )

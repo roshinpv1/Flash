@@ -1,4 +1,4 @@
-import { AlternateScreen, Box, NoSelect, ScrollBox, Text } from '@hermes/ink'
+import { AlternateScreen, Box, NoSelect, ScrollBox, Text } from '@flash/ink'
 import { useStore } from '@nanostores/react'
 import { Fragment, memo, useEffect, useMemo, useRef } from 'react'
 
@@ -76,11 +76,11 @@ export const PetPane = memo(function PetPane() {
     $petBox.set(
       active
         ? {
-            // Bottom PET_BOTTOM rows sit over the composer, so the transcript
-            // only needs to clear the rest in the row-reservation (band) mode.
-            height: Math.max(0, height - PET_BOTTOM),
-            width: width + PET_PAD_LEFT + PET_RIGHT + PET_GUTTER_GAP
-          }
+          // Bottom PET_BOTTOM rows sit over the composer, so the transcript
+          // only needs to clear the rest in the row-reservation (band) mode.
+          height: Math.max(0, height - PET_BOTTOM),
+          width: width + PET_PAD_LEFT + PET_RIGHT + PET_GUTTER_GAP
+        }
         : null
     )
 

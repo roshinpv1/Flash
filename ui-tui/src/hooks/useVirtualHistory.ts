@@ -1,4 +1,4 @@
-import type { ScrollBoxHandle } from '@hermes/ink'
+import type { ScrollBoxHandle } from '@flash/ink'
 import {
   type RefObject,
   useCallback,
@@ -49,7 +49,7 @@ const FREEZE_RENDERS = 2
 // 25-item commit was the dominant contributor to the 100ms+ p99 frames.
 const SLIDE_STEP = 12
 
-const NOOP = () => {}
+const NOOP = () => { }
 
 export const virtualHistorySnapshotKey = (s?: ScrollBoxHandle | null): string => {
   if (!s) {

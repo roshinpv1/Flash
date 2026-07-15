@@ -50,7 +50,7 @@ const loadCommandRegistryNames = (): CommandRegistryLoad => {
         process.env.PYTHON ?? 'python3',
         [
           '-c',
-          'import json; from hermes_cli.commands import COMMAND_REGISTRY; print(json.dumps([c.name for c in COMMAND_REGISTRY]))'
+          'import json; from flash_cli.commands import COMMAND_REGISTRY; print(json.dumps([c.name for c in COMMAND_REGISTRY]))'
         ],
         { cwd: resolve(here, '../../..'), encoding: 'utf8' }
       )
@@ -89,7 +89,7 @@ const classifyRoute = (name: string): CommandRoute => {
 
 describe('slash parity matrix', () => {
   if (commandRegistry.error) {
-    it.skip(`Python command registry unavailable: ${skipReason}`, () => {})
+    it.skip(`Python command registry unavailable: ${skipReason}`, () => { })
   }
 
   registryIt('classifies each command registry command as local/native/fallback', () => {

@@ -1,4 +1,4 @@
-import { Box, Text } from '@hermes/ink'
+import { Box, Text } from '@flash/ink'
 
 import { compactPreview } from '../lib/text.js'
 import type { Theme } from '../theme.js'
@@ -24,9 +24,8 @@ export function QueuedMessages({ cols, queueEditIdx, queued, t }: QueuedMessages
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text color={t.color.muted} dimColor>
-        {`queued (${queued.length})${
-          queueEditIdx !== null ? ` · editing ${queueEditIdx + 1} · Ctrl+X delete · Esc cancel` : ''
-        }`}
+        {`queued (${queued.length})${queueEditIdx !== null ? ` · editing ${queueEditIdx + 1} · Ctrl+X delete · Esc cancel` : ''
+          }`}
       </Text>
 
       {q.showLead && (

@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream'
 
-import { Box, renderSync, ScrollBox, type ScrollBoxHandle, Text } from '@hermes/ink'
+import { Box, renderSync, ScrollBox, type ScrollBoxHandle, Text } from '@flash/ink'
 import React, { useLayoutEffect, useRef } from 'react'
 import { describe, expect, it } from 'vitest'
 
@@ -27,7 +27,7 @@ const makeStreams = () => {
   Object.assign(stdout, { columns: 80, isTTY: false, rows: 20 })
   Object.assign(stdin, { isTTY: false })
   Object.assign(stderr, { isTTY: false })
-  stdout.on('data', () => {})
+  stdout.on('data', () => { })
 
   return { stderr, stdin, stdout }
 }

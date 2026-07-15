@@ -1,0 +1,10 @@
+✗ A gateway is already running under launchd for this profile.
+  Starting another one from a shell leaves an orphan dispatcher that
+  escapes the service, survives restarts, and writes to the same kanban
+  DB concurrently — which can corrupt it. Restart the supervised gateway
+  instead:
+
+    flash gateway restart
+
+  Pass --force to start a foreground gateway anyway (not recommended
+  while the service is running).

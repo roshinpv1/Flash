@@ -1,4 +1,4 @@
-import { Box, NoSelect, ScrollBox, type ScrollBoxHandle, Text, useInput, useStdout } from '@hermes/ink'
+import { Box, NoSelect, ScrollBox, type ScrollBoxHandle, Text, useInput, useStdout } from '@flash/ink'
 import { useStore } from '@nanostores/react'
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -679,7 +679,7 @@ export function AgentsOverlay({ gw, initialHistoryIndex = 0, onClose, t }: Agent
     // Warm caps + paused flag on open.
     gw.request<DelegationStatusResponse>('delegation.status', {})
       .then(r => applyDelegationStatus(asRpcResult<DelegationStatusResponse>(r)))
-      .catch(() => {})
+      .catch(() => { })
   }, [gw])
 
   useEffect(() => {
@@ -713,7 +713,7 @@ export function AgentsOverlay({ gw, initialHistoryIndex = 0, onClose, t }: Agent
   const killSubtree = (node: SubagentNode) =>
     guardLive(() => {
       const ids = [node.item.id, ...descendantIds(node)]
-      ids.forEach(id => interrupt(id).catch(() => {}))
+      ids.forEach(id => interrupt(id).catch(() => { }))
       setFlash(`killing subtree · ${ids.length} node${ids.length === 1 ? '' : 's'}`)
     })
 
@@ -873,8 +873,8 @@ export function AgentsOverlay({ gw, initialHistoryIndex = 0, onClose, t }: Agent
   const title =
     replayMode && effectiveSnapshot
       ? `${historyIndex > 0 ? `Replay ${historyIndex}/${history.length}` : 'Last turn'} · finished ${new Date(
-          effectiveSnapshot.finishedAt
-        ).toLocaleTimeString()}`
+        effectiveSnapshot.finishedAt
+      ).toLocaleTimeString()}`
       : `Spawn tree${delegation.paused ? ' · ⏸ paused' : ''}`
 
   const metaLine = [formatSummary(totals), spark, capsLabel, mix ? `· ${mix}` : ''].filter(Boolean).join('  ')

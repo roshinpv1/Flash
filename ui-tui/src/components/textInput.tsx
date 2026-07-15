@@ -1,5 +1,5 @@
-import type { InputEvent, Key } from '@hermes/ink'
-import * as Ink from '@hermes/ink'
+import type { InputEvent, Key } from '@flash/ink'
+import * as Ink from '@flash/ink'
 import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react'
 
 import { setInputSelection } from '../app/inputSelectionStore.js'
@@ -759,7 +759,7 @@ export function TextInput({
             commit(v.slice(0, cur) + fallbackText + v.slice(cur), cur + fallbackText.length)
           }
         })
-        .catch(() => {})
+        .catch(() => { })
 
       return true
     }

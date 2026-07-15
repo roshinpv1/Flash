@@ -91,7 +91,7 @@ export async function captureMemoryDiagnostics(trigger: MemoryTrigger): Promise<
 
   const potentialLeaks = [
     heapStats.number_of_detached_contexts > 0 &&
-      `${heapStats.number_of_detached_contexts} detached context(s) — possible component/closure leak`,
+    `${heapStats.number_of_detached_contexts} detached context(s) — possible component/closure leak`,
     activeHandles > 100 && `${activeHandles} active handles — possible timer/socket leak`,
     nativeMemory > usage.heapUsed && 'Native memory > heap — leak may be in native addons',
     mbPerHour > 100 && `High memory growth rate: ${mbPerHour.toFixed(1)} MB/hour`,
@@ -148,11 +148,11 @@ export async function performHeapDump(trigger: MemoryTrigger = 'manual'): Promis
     // Diagnostics first — heap-snapshot serialization can crash on very large
     // heaps, and the JSON sidecar is the most actionable artifact if so.
     const diagnostics = await captureMemoryDiagnostics(trigger)
-    const dir = process.env.HERMES_HEAPDUMP_DIR?.trim() || join(homedir() || tmpdir(), '.hermes', 'heapdumps')
+    const dir = process.env.HERMES_HEAPDUMP_DIR?.trim() || join(homedir() || tmpdir(), '.flash', 'heapdumps')
 
     await mkdir(dir, { recursive: true })
 
-    const base = `hermes-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}-${trigger}`
+    const base = `flash-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}-${trigger}`
     const heapPath = join(dir, `${base}.heapsnapshot`)
     const diagPath = join(dir, `${base}.diagnostics.json`)
 

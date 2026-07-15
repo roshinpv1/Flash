@@ -2,7 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@hermes/ink": ["src/types/hermes-ink.d.ts"]
+      "@flash/ink": [
+        "src/types/flash-ink.d.ts"
+      ]
     }
   }
 }
